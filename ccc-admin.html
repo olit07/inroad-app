@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Coffee Chat Connect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #FFFFFF;
+    --surface:    #F3F1EE;
+    --border:     #E6E2DB;
+    --border-md:  #CEC8BF;
+    --green:      #1F4530;
+    --green-lite: #EAF2EC;
+    --green-mid:  #A8C9B0;
+    --green-deep: #122B1E;
+    --text:       #1A1714;
+    --text-mid:   #3D3831;
+    --muted:      #7A7068;
+    --subtle:     #ADA79F;
+    --amber:      #92600A;
+    --amber-bg:   #FEF3C7;
+    --red:        #B91C1C;
+    --red-bg:     #FEF2F2;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Lato', sans-serif; font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+  nav {
+    height: 60px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 52px; border-bottom: 1px solid var(--border); background: var(--bg);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .wordmark { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .wordmark-text { font-size: 1rem; font-weight: 700; color: var(--text); }
+  .wordmark-text em { font-style: normal; color: var(--green); }
+  .admin-badge { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: var(--green-lite); color: var(--green); border: 1px solid var(--green-mid); padding: 3px 10px; border-radius: 4px; }
+
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 52px 80px; }
+
+  .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.02em; color: var(--text); margin-bottom: 4px; }
+  .page-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 32px; }
+
+  /* Status banner */
+  .api-status { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; font-weight: 700; padding: 8px 14px; border-radius: 8px; margin-bottom: 28px; width: fit-content; }
+  .api-status.ok { background: var(--green-lite); color: var(--green); border: 1px solid var(--green-mid); }
+  .api-status.err { background: var(--red-bg); color: var(--red); border: 1px solid #FECACA; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* Metric cards */
+  .metrics-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 36px; }
+  .metric-card { background: var(--surface); border-radius: 12px; padding: 16px 18px; }
+  .metric-num { font-size: 1.9rem; font-weight: 900; letter-spacing: -0.03em; color: var(--text); line-height: 1; margin-bottom: 5px; }
+  .metric-num.green { color: var(--green); }
+  .metric-label { font-size: 0.72rem; color: var(--muted); font-weight: 400; line-height: 1.4; }
+
+  /* Section */
+  .section { margin-bottom: 40px; }
+  .section-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle); margin-bottom: 14px; }
+
+  /* Scrape runs table */
+  .runs-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .runs-table th { text-align: left; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--subtle); padding: 0 12px 8px 0; border-bottom: 1px solid var(--border); }
+  .runs-table td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--border); color: var(--text-mid); vertical-align: middle; }
+  .runs-table tr:last-child td { border-bottom: none; }
+
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 700; padding: 2px 9px; border-radius: 100px; }
+  .status-ok    { background: var(--green-lite); color: var(--green); }
+  .status-empty { background: var(--amber-bg); color: var(--amber); }
+  .status-error { background: var(--red-bg); color: var(--red); }
+  .status-running { background: var(--surface); color: var(--muted); }
+
+  /* Industry / source bars */
+  .bar-list { display: flex; flex-direction: column; gap: 8px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; }
+  .bar-label { font-size: 0.78rem; color: var(--text-mid); width: 200px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { flex: 1; height: 5px; background: var(--border); border-radius: 100px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--green); border-radius: 100px; transition: width 0.6s ease; }
+  .bar-count { font-size: 0.75rem; color: var(--muted); width: 40px; text-align: right; flex-shrink: 0; }
+
+  /* Two-col grid */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+  /* Trigger buttons */
+  .btn-trigger { display: inline-flex; align-items: center; gap: 7px; background: var(--text); color: #fff; border: none; border-radius: 9px; padding: 9px 16px; font-size: 0.8rem; font-weight: 700; font-family: 'Lato', sans-serif; cursor: pointer; transition: background 0.15s, transform 0.1s; margin-right: 8px; margin-bottom: 8px; }
+  .btn-trigger:hover { background: var(--text-mid); transform: translateY(-1px); }
+  .btn-trigger.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border-md); }
+  .btn-trigger.secondary:hover { background: var(--border); }
+  .btn-trigger:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; z-index: 999; opacity: 0; transform: translateY(8px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: none; }
+
+  /* Loading skeleton */
+  .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; height: 20px; }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  @media (max-width: 900px) {
+    nav { padding: 0 20px; }
+    .page { padding: 32px 20px 60px; }
+    .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="ccc-landing-final.html" class="wordmark">
+    <div style="width:28px;height:28px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">☕</div>
+    <span class="wordmark-text">Coffee<em>Chat</em>Connect</span>
+  </a>
+  <span class="admin-badge">Admin</span>
+</nav>
+
+<div class="page">
+
+  <h1 class="page-title">System overview</h1>
+  <p class="page-sub" id="last-updated">Loading…</p>
+
+  <div class="api-status err" id="api-status">
+    <div class="status-dot"></div>
+    <span>API offline — start with <code>python3 api/server.py</code></span>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics-grid">
+    <div class="metric-card"><div class="metric-num green" id="m-active">—</div><div class="metric-label">Active jobs</div></div>
+    <div class="metric-card"><div class="metric-num" id="m-total">—</div><div class="metric-label">Total jobs ever</div></div>
+    <div class="metric-card"><div class="metric-num" id="m-companies">—</div><div class="metric-label">Companies</div></div>
+    <div class="metric-card"><div class="metric-num" id="m-students">—</div><div class="metric-label">Students</div></div>
+    <div class="metric-card"><div class="metric-num green" id="m-matches">—</div><div class="metric-label">Matches today</div></div>
+    <div class="metric-card"><div class="metric-num" id="m-sent">—</div><div class="metric-label">Emails sent (7d)</div></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="section">
+    <div class="section-title">Actions</div>
+    <button class="btn-trigger" id="btn-scrape-all" onclick="triggerScrape(null)">▶ Run all scrapers</button>
+    <button class="btn-trigger secondary" id="btn-scrape-gh" onclick="triggerScrape('greenhouse_feed')">Greenhouse only</button>
+    <button class="btn-trigger secondary" id="btn-scrape-lv" onclick="triggerScrape('lever_feed')">Lever only</button>
+    <button class="btn-trigger secondary" onclick="loadStats()">↺ Refresh</button>
+  </div>
+
+  <div class="two-col">
+
+    <!-- Sources -->
+    <div class="section">
+      <div class="section-title">Jobs by source</div>
+      <div class="bar-list" id="source-bars"><div class="skeleton" style="width:100%"></div></div>
+    </div>
+
+    <!-- Industries -->
+    <div class="section">
+      <div class="section-title">Jobs by industry (top 10)</div>
+      <div class="bar-list" id="industry-bars"><div class="skeleton" style="width:100%"></div></div>
+    </div>
+
+  </div>
+
+  <!-- Scrape runs -->
+  <div class="section">
+    <div class="section-title">Recent scrape runs</div>
+    <table class="runs-table">
+      <thead>
+        <tr>
+          <th>Source</th>
+          <th>Status</th>
+          <th>New jobs</th>
+          <th>Total found</th>
+          <th>Duration</th>
+          <th>Finished</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody id="runs-tbody">
+        <tr><td colspan="7" style="color:var(--subtle);padding:16px 0;">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Students -->
+  <div class="section">
+    <div class="section-title">Students</div>
+    <table class="runs-table" id="students-table">
+      <thead><tr>
+        <th>Email</th><th>University</th><th>Industries</th>
+        <th>Sent</th><th>Replies</th><th>Rate</th><th>Joined</th>
+      </tr></thead>
+      <tbody id="students-tbody">
+        <tr><td colspan="7" style="color:var(--subtle);padding:16px 0">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Job browser -->
+  <div class="section">
+    <div class="section-title">Job browser</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <input type="text" id="job-search" placeholder="Search title or company…" style="flex:1;min-width:200px;font-family:'Lato',sans-serif;font-size:0.82rem" oninput="filterJobs()">
+      <select id="job-industry" onchange="filterJobs()" style="font-family:'Lato',sans-serif;font-size:0.82rem">
+        <option value="">All industries</option>
+      </select>
+      <select id="job-region" onchange="filterJobs()" style="font-family:'Lato',sans-serif;font-size:0.82rem">
+        <option value="">All regions</option>
+        <option value="UK">UK</option><option value="US">US</option><option value="Global">Global</option>
+      </select>
+      <select id="job-seniority" onchange="filterJobs()" style="font-family:'Lato',sans-serif;font-size:0.82rem">
+        <option value="">All seniority</option>
+        <option value="intern">Intern</option><option value="junior">Junior</option>
+        <option value="mid">Mid</option><option value="senior">Senior</option>
+      </select>
+    </div>
+    <table class="runs-table">
+      <thead><tr>
+        <th>Company</th><th>Title</th><th>Industry</th>
+        <th>Region</th><th>Seniority</th><th>Posted</th><th>Source</th><th>Link</th>
+      </tr></thead>
+      <tbody id="jobs-tbody"></tbody>
+    </table>
+    <div id="jobs-pagination" style="display:flex;gap:8px;margin-top:12px;align-items:center;font-size:0.8rem;color:var(--muted)"></div>
+  </div>
+
+  <!-- Suppression list -->
+  <div class="section">
+    <div class="section-title">Suppression list</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input type="text" id="suppress-input" placeholder="LinkedIn URL or email address…" style="flex:1;font-family:'Lato',sans-serif;font-size:0.82rem">
+      <select id="suppress-type" style="font-family:'Lato',sans-serif;font-size:0.82rem">
+        <option value="linkedin">LinkedIn</option>
+        <option value="email">Email</option>
+      </select>
+      <button class="btn-trigger" onclick="addSuppression()">Add</button>
+    </div>
+    <div id="suppress-list" style="font-size:0.8rem;color:var(--muted)">Loading…</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = (window.location.hostname === 'localhost' || window.location.protocol === 'file:') ? 'http://localhost:5001' : '';
+
+  async function loadStats() {
+    try {
+      const r = await fetch(`${API}/api/admin/stats`);
+      if (!r.ok) throw new Error(r.status);
+      const { data: s } = await r.json();
+
+      // Status banner
+      document.getElementById('api-status').className = 'api-status ok';
+      document.getElementById('api-status').innerHTML = '<div class="status-dot"></div><span>API online — http://localhost:5001</span>';
+      document.getElementById('last-updated').textContent = 'Last updated ' + new Date().toLocaleTimeString();
+
+      // Metrics
+      document.getElementById('m-active').textContent    = s.active_jobs.toLocaleString();
+      document.getElementById('m-total').textContent     = s.total_jobs.toLocaleString();
+      document.getElementById('m-companies').textContent = s.companies.toLocaleString();
+      document.getElementById('m-students').textContent  = s.students.toLocaleString();
+      document.getElementById('m-matches').textContent   = s.matches_today.toLocaleString();
+      document.getElementById('m-sent').textContent      = s.emails_sent_week.toLocaleString();
+
+      // Source bars
+      const srcEl = document.getElementById('source-bars');
+      const srcEntries = Object.entries(s.by_source || {});
+      const srcMax = srcEntries.length ? Math.max(...srcEntries.map(e => e[1])) : 1;
+      srcEl.innerHTML = srcEntries.length
+        ? srcEntries.map(([name, count]) => `
+            <div class="bar-row">
+              <div class="bar-label" title="${name}">${name}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/srcMax*100)}%"></div></div>
+              <div class="bar-count">${count.toLocaleString()}</div>
+            </div>`).join('')
+        : '<p style="color:var(--subtle);font-size:0.82rem">No data yet — run scrapers first</p>';
+
+      // Industry bars
+      const indEl = document.getElementById('industry-bars');
+      const indEntries = Object.entries(s.by_industry || {}).slice(0, 10);
+      const indMax = indEntries.length ? Math.max(...indEntries.map(e => e[1])) : 1;
+      indEl.innerHTML = indEntries.length
+        ? indEntries.map(([name, count]) => `
+            <div class="bar-row">
+              <div class="bar-label" title="${name}">${name}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/indMax*100)}%"></div></div>
+              <div class="bar-count">${count.toLocaleString()}</div>
+            </div>`).join('')
+        : '<p style="color:var(--subtle);font-size:0.82rem">No data yet</p>';
+
+    } catch(e) {
+      document.getElementById('last-updated').textContent = 'API offline';
+    }
+
+    loadRuns();
+    loadStudents();
+    loadJobs();
+    loadSuppressions();
+  }
+
+  async function loadRuns() {
+    try {
+      const r = await fetch(`${API}/api/admin/runs?limit=30`);
+      if (!r.ok) return;
+      const { data } = await r.json();
+      const tbody = document.getElementById('runs-tbody');
+
+      if (!data.runs.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--subtle);padding:16px 0;">No scrape runs yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.runs.map(run => {
+        const statusClass = run.status === 'ok' ? 'status-ok' : run.status === 'empty' ? 'status-empty' : run.status === 'error' ? 'status-error' : 'status-running';
+        const statusLabel = run.status === 'ok' ? '✓ ok' : run.status === 'empty' ? '⚠ empty' : run.status === 'error' ? '✗ error' : '… running';
+        const finished = run.finished_at ? new Date(run.finished_at + 'Z').toLocaleString('en-GB', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+        const dur = run.duration_secs ? run.duration_secs.toFixed(1) + 's' : '—';
+        const errStr = run.error_msg ? `<span style="color:var(--red);font-size:0.72rem">${run.error_msg.slice(0,60)}</span>` : '—';
+        return `<tr>
+          <td><strong>${run.source_id}</strong></td>
+          <td><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+          <td style="color:var(--green);font-weight:700">+${run.jobs_new || 0}</td>
+          <td>${run.jobs_found || 0}</td>
+          <td style="color:var(--muted)">${dur}</td>
+          <td style="color:var(--muted);font-size:0.78rem">${finished}</td>
+          <td>${errStr}</td>
+        </tr>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  async function triggerScrape(sourceId) {
+    const btnId = sourceId ? null : 'btn-scrape-all';
+    const btn = btnId ? document.getElementById(btnId) : null;
+    if (btn) { btn.disabled = true; btn.textContent = '… Scraping'; }
+
+    try {
+      const r = await fetch(`${API}/api/admin/scrape`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_id: sourceId }),
+      });
+      if (!r.ok) throw new Error(r.status);
+      showToast('Scrape triggered — refreshing in 5s…');
+      setTimeout(() => loadStats(), 5000);
+    } catch(e) {
+      showToast('API offline — start the server first', true);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '▶ Run all scrapers'; }
+    }
+  }
+
+  function showToast(msg, isErr = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = isErr ? 'var(--red)' : 'var(--text)';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+
+  // ── STUDENTS ──
+  async function loadStudents() {
+    try {
+      const r = await fetch(`${API}/api/admin/students`);
+      if (!r.ok) return;
+      const { data } = await r.json();
+      const tbody = document.getElementById('students-tbody');
+      if (!data.students.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--subtle);padding:16px 0">No students yet</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.students.map(s => {
+        const inds = Array.isArray(s.industries) ? s.industries.slice(0,2).join(', ') : (s.industries || '').replace(/[\[\]"]/g,'').split(',').slice(0,2).join(', ');
+        const rate = s.sent ? Math.round((s.replies / s.sent) * 100) : 0;
+        const rateClass = rate >= 20 ? 'rate-good' : '';
+        const joined = s.created_at ? new Date(s.created_at+'Z').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+        return `<tr>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.email}</td>
+          <td>${s.university || '—'}</td>
+          <td style="color:var(--muted)">${inds || '—'}</td>
+          <td><strong>${s.sent || 0}</strong></td>
+          <td>${s.replies || 0}</td>
+          <td class="${rateClass}">${rate}%</td>
+          <td style="color:var(--muted)">${joined}</td>
+        </tr>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  // ── JOB BROWSER ──
+  let allJobs = [], jobPage = 0;
+  const JOB_PAGE_SIZE = 25;
+
+  async function loadJobs() {
+    try {
+      const r = await fetch(`${API}/api/jobs?limit=500`);
+      if (!r.ok) return;
+      const { data } = await r.json();
+      allJobs = data.jobs || [];
+      // Populate industry select
+      const inds = new Set();
+      allJobs.forEach(j => (j.industries || []).forEach(i => inds.add(i)));
+      const sel = document.getElementById('job-industry');
+      [...inds].sort().forEach(ind => {
+        const opt = document.createElement('option');
+        opt.value = ind; opt.textContent = ind;
+        sel.appendChild(opt);
+      });
+      filterJobs();
+    } catch(e) {}
+  }
+
+  function filterJobs() {
+    const q   = (document.getElementById('job-search')?.value || '').toLowerCase();
+    const ind = document.getElementById('job-industry')?.value || '';
+    const reg = document.getElementById('job-region')?.value || '';
+    const sen = document.getElementById('job-seniority')?.value || '';
+    jobPage   = 0;
+    const filtered = allJobs.filter(j => {
+      const matchQ   = !q || j.company_name.toLowerCase().includes(q) || j.title.toLowerCase().includes(q);
+      const matchInd = !ind || (j.industries || []).includes(ind);
+      const matchReg = !reg || j.region === reg;
+      const matchSen = !sen || j.seniority === sen;
+      return matchQ && matchInd && matchReg && matchSen;
+    });
+    renderJobPage(filtered);
+  }
+
+  function renderJobPage(jobs) {
+    const start  = jobPage * JOB_PAGE_SIZE;
+    const page   = jobs.slice(start, start + JOB_PAGE_SIZE);
+    const tbody  = document.getElementById('jobs-tbody');
+    const pagDiv = document.getElementById('jobs-pagination');
+
+    tbody.innerHTML = page.length ? page.map(j => {
+      const ind  = (j.industries || [])[0] || '—';
+      const link = j.url ? `<a href="${j.url}" target="_blank" style="color:var(--green)">Apply ↗</a>` : '—';
+      return `<tr>
+        <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${j.company_name}</strong></td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.title}</td>
+        <td style="color:var(--muted)">${ind}</td>
+        <td>${j.region || '—'}</td>
+        <td>${j.seniority || '—'}</td>
+        <td style="color:var(--muted)">${j.posted_date || '—'}</td>
+        <td style="color:var(--muted);font-size:0.75rem">${j.source_name || '—'}</td>
+        <td>${link}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" style="color:var(--subtle);padding:12px 0">No jobs match filters</td></tr>';
+
+    const totalPages = Math.ceil(jobs.length / JOB_PAGE_SIZE);
+    pagDiv.innerHTML = totalPages > 1 ? `
+      <button onclick="jobPage=Math.max(0,jobPage-1);filterJobs()" class="btn-trigger secondary" style="padding:5px 12px;font-size:0.75rem" ${jobPage===0?'disabled':''}>← Prev</button>
+      <span>Page ${jobPage+1} of ${totalPages} · ${jobs.length} jobs</span>
+      <button onclick="jobPage=Math.min(${totalPages-1},jobPage+1);filterJobs()" class="btn-trigger secondary" style="padding:5px 12px;font-size:0.75rem" ${jobPage>=totalPages-1?'disabled':''}>Next →</button>
+    ` : `<span>${jobs.length} jobs</span>`;
+  }
+
+  // ── SUPPRESSION ──
+  async function loadSuppressions() {
+    try {
+      const r = await fetch(`${API}/api/admin/suppressions`);
+      if (!r.ok) return;
+      const { data } = await r.json();
+      const el = document.getElementById('suppress-list');
+      if (!data.suppressions.length) {
+        el.textContent = 'No suppressions yet';
+        return;
+      }
+      el.innerHTML = data.suppressions.map(s =>
+        `<div style="display:flex;gap:10px;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--border)">
+          <span style="font-family:var(--font-mono,monospace);font-size:0.75rem;color:var(--text-mid)">${s.identifier}</span>
+          <span style="color:var(--subtle)">${s.identifier_type}</span>
+          <span style="color:var(--subtle);margin-left:auto">${s.added_at?.slice(0,10) || ''}</span>
+        </div>`
+      ).join('');
+    } catch(e) {}
+  }
+
+  async function addSuppression() {
+    const val  = document.getElementById('suppress-input')?.value.trim();
+    const type = document.getElementById('suppress-type')?.value || 'linkedin';
+    if (!val) return;
+    try {
+      await fetch(`${API}/api/suppress`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({identifier: val, type})
+      });
+      document.getElementById('suppress-input').value = '';
+      showToast('Suppressed: ' + val);
+      loadSuppressions();
+    } catch(e) { showToast('API offline', true); }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const s = document.createElement('style');
+    s.textContent = '.rate-good{color:var(--green);font-weight:700}';
+    document.head.appendChild(s);
+  });
+
+  // Load on page start
+  loadStats();
+  // Auto-refresh every 30s
+  setInterval(loadStats, 30000);
+</script>
+</body>
+</html>

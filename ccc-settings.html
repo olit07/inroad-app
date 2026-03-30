@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Coffee Chat Connect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#FFFFFF; --surface:#F3F1EE; --border:#E6E2DB; --border-md:#CEC8BF;
+    --green:#1F4530; --green-lite:#EAF2EC; --green-mid:#A8C9B0; --green-deep:#122B1E;
+    --text:#1A1714; --text-mid:#3D3831; --muted:#7A7068; --subtle:#ADA79F;
+    --error:#B91C1C; --error-bg:#FEF2F2;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Lato',sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+
+  nav{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 52px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:50}
+  .wordmark{display:flex;align-items:center;gap:9px;text-decoration:none}
+  .wordmark-text{font-size:1rem;font-weight:700;color:var(--text)}
+  .wordmark-text em{font-style:normal;color:var(--green)}
+  .nav-back{font-size:0.83rem;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.15s}
+  .nav-back:hover{color:var(--text)}
+
+  .page{max-width:620px;margin:0 auto;padding:48px 52px 80px}
+  h1{font-size:1.5rem;font-weight:900;letter-spacing:-0.02em;color:var(--text);margin-bottom:4px}
+  .page-sub{font-size:0.85rem;color:var(--muted);margin-bottom:36px}
+
+  .section{margin-bottom:36px}
+  .section-label{font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:14px}
+  .section-card{background:var(--bg);border:0.5px solid var(--border);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:16px}
+
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:0.78rem;font-weight:700;color:var(--text-mid)}
+  .field input,.field textarea,.field select{
+    background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
+    padding:10px 14px;font-size:0.875rem;font-family:'Lato',sans-serif;font-weight:400;
+    color:var(--text);outline:none;transition:border-color 0.15s,box-shadow 0.15s;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{
+    border-color:var(--green);box-shadow:0 0 0 3px rgba(31,69,48,0.07)
+  }
+  .field textarea{resize:vertical;min-height:80px;line-height:1.65}
+  .field-hint{font-size:0.72rem;color:var(--subtle);margin-top:2px}
+
+  .industry-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .industry-pill{
+    padding:6px 14px;border:1.5px solid var(--border);border-radius:100px;
+    font-size:0.8rem;font-weight:500;color:var(--text-mid);background:var(--bg);
+    cursor:pointer;transition:all 0.15s;user-select:none
+  }
+  .industry-pill.selected{border-color:var(--green);background:var(--green-lite);color:var(--green-deep)}
+
+  .size-row{display:flex;gap:10px}
+  .size-card{
+    flex:1;border:1.5px solid var(--border);border-radius:12px;padding:12px;
+    cursor:pointer;background:var(--bg);transition:all 0.15s;text-align:center;user-select:none
+  }
+  .size-card:hover{border-color:var(--border-md)}
+  .size-card.selected{border-color:var(--green);background:var(--green-lite)}
+  .size-card-label{font-size:0.85rem;font-weight:700;color:var(--text)}
+  .size-card-desc{font-size:0.72rem;color:var(--muted);margin-top:2px}
+
+  .btn-save{
+    width:100%;background:var(--text);color:#fff;border:none;border-radius:11px;
+    padding:13px;font-size:0.9rem;font-weight:700;font-family:'Lato',sans-serif;
+    cursor:pointer;transition:background 0.15s,transform 0.1s;margin-top:8px
+  }
+  .btn-save:hover{background:var(--text-mid);transform:translateY(-1px)}
+  .btn-save.saved{background:var(--green)}
+
+  .danger-zone{border:1px solid #FECACA;border-radius:12px;padding:16px 18px;margin-top:8px}
+  .danger-title{font-size:0.78rem;font-weight:700;color:var(--error);margin-bottom:8px}
+  .danger-desc{font-size:0.8rem;color:var(--muted);margin-bottom:12px}
+  .btn-danger{
+    background:transparent;color:var(--error);border:1px solid #FECACA;
+    border-radius:9px;padding:8px 16px;font-size:0.8rem;font-weight:700;
+    font-family:'Lato',sans-serif;cursor:pointer;transition:all 0.15s
+  }
+  .btn-danger:hover{background:var(--error-bg)}
+
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;
+    padding:10px 18px;border-radius:10px;font-size:0.82rem;font-weight:700;
+    z-index:999;opacity:0;transform:translateY(8px);transition:opacity 0.2s,transform 0.2s}
+  .toast.show{opacity:1;transform:none}
+
+  @media(max-width:640px){nav{padding:0 20px}.page{padding:32px 20px 60px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="ccc-landing-final.html" class="wordmark">
+    <div style="width:28px;height:28px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0">☕</div>
+    <span class="wordmark-text">Coffee<em>Chat</em>Connect</span>
+  </a>
+  <a href="ccc-dashboard-live.html" class="nav-back">← Dashboard</a>
+</nav>
+
+<div class="page">
+  <h1>Settings</h1>
+  <p class="page-sub" id="page-sub">Update your profile to improve your matches.</p>
+
+  <!-- Profile -->
+  <div class="section">
+    <div class="section-label">Profile</div>
+    <div class="section-card">
+      <div class="field">
+        <label>First name</label>
+        <input type="text" id="first-name" placeholder="Alex" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label>University</label>
+        <input type="text" id="university" placeholder="University College London">
+        <span class="field-hint">Auto-detected from your email. You can edit this.</span>
+      </div>
+      <div class="field">
+        <label>Cal.com link</label>
+        <input type="text" id="cal-link" placeholder="cal.com/you/coffee-chat">
+        <span class="field-hint">Paste this into your emails so professionals can book directly.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bio -->
+  <div class="section">
+    <div class="section-label">Your intro</div>
+    <div class="section-card">
+      <div class="field">
+        <label>One or two sentences about you</label>
+        <textarea id="bio" placeholder="e.g. Final year Economics student at UCL with a focus on sustainable finance. Looking to break into VC or impact investing this summer." maxlength="300"></textarea>
+        <span class="field-hint" id="bio-count">0 / 300</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Industries -->
+  <div class="section">
+    <div class="section-label">Target industries</div>
+    <div class="section-card">
+      <div class="industry-grid" id="industry-grid">
+        <!-- populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Company size -->
+  <div class="section">
+    <div class="section-label">Preferred company size</div>
+    <div class="section-card">
+      <div class="size-row">
+        <div class="size-card" data-value="startup" onclick="selectSize(this)">
+          <div class="size-card-label">🚀 Startup</div>
+          <div class="size-card-desc">Under 200 people</div>
+        </div>
+        <div class="size-card" data-value="mid" onclick="selectSize(this)">
+          <div class="size-card-label">🏢 Mid-size</div>
+          <div class="size-card-desc">200–2,000</div>
+        </div>
+        <div class="size-card" data-value="large" onclick="selectSize(this)">
+          <div class="size-card-label">🌐 Large</div>
+          <div class="size-card-desc">2,000+ people</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-save" id="save-btn" onclick="saveSettings()">Save changes</button>
+
+  <!-- Danger zone -->
+  <div class="section" style="margin-top:48px">
+    <div class="section-label">Account</div>
+    <div class="danger-zone">
+      <div class="danger-title">Delete account</div>
+      <div class="danger-desc">This will permanently remove your profile, match history, and all data. This cannot be undone.</div>
+      <button class="btn-danger" onclick="confirmDelete()">Delete my account</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = (window.location.hostname === 'localhost' || window.location.protocol === 'file:') ? 'http://localhost:5001' : '';
+const INDUSTRIES = [
+  'Finance','Investment Banking','Technology','Software Engineering','Product Management',
+  'Consulting','Strategy','Marketing','Growth','Law','Healthcare','Media & Journalism',
+  'Design & UX','Data & Analytics','Real Estate','Non-profit & Policy','Venture Capital','Other'
+];
+
+// Read student_id from URL
+const params     = new URLSearchParams(window.location.search);
+const studentId  = params.get('student_id') ? parseInt(params.get('student_id')) : null;
+let   currentData = {};
+
+// Populate industry pills
+const grid = document.getElementById('industry-grid');
+INDUSTRIES.forEach(ind => {
+  const pill = document.createElement('span');
+  pill.className = 'industry-pill';
+  pill.textContent = ind;
+  pill.dataset.value = ind;
+  pill.onclick = () => { pill.classList.toggle('selected'); };
+  grid.appendChild(pill);
+});
+
+function selectSize(el) {
+  document.querySelectorAll('.size-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// Load current settings
+async function loadSettings() {
+  if (!studentId) {
+    document.getElementById('page-sub').textContent = 'No student ID found — open from your dashboard.';
+    return;
+  }
+  try {
+    const r = await fetch(`${API}/api/students/${studentId}`);
+    if (!r.ok) return;
+    const { data } = await r.json();
+    currentData = data;
+
+    document.getElementById('first-name').value = data.first_name || '';
+    document.getElementById('university').value  = data.university  || '';
+    document.getElementById('cal-link').value    = data.cal_link    || '';
+    document.getElementById('bio').value         = data.bio         || '';
+    updateBioCount();
+
+    // Set industry pills
+    const selInds = Array.isArray(data.industries) ? data.industries :
+      JSON.parse(data.industries || '[]');
+    document.querySelectorAll('.industry-pill').forEach(pill => {
+      if (selInds.includes(pill.dataset.value)) pill.classList.add('selected');
+    });
+
+    // Set size
+    const sizeEl = document.querySelector(`[data-value="${data.company_size}"]`);
+    if (sizeEl) selectSize(sizeEl);
+
+    document.getElementById('page-sub').textContent =
+      `Signed in as ${data.email} · Last updated ${data.updated_at?.slice(0,10) || '—'}`;
+
+  } catch(e) {
+    document.getElementById('page-sub').textContent = 'API offline — changes saved locally only.';
+  }
+}
+
+function updateBioCount() {
+  const bio = document.getElementById('bio');
+  const cnt = document.getElementById('bio-count');
+  cnt.textContent = `${bio.value.length} / 300`;
+  cnt.style.color = bio.value.length > 270 ? '#B91C1C' : 'var(--subtle)';
+}
+document.getElementById('bio').addEventListener('input', updateBioCount);
+
+async function saveSettings() {
+  const industries = [...document.querySelectorAll('.industry-pill.selected')]
+    .map(p => p.dataset.value);
+  const size = document.querySelector('.size-card.selected')?.dataset.value || 'large';
+
+  const payload = {
+    first_name:   document.getElementById('first-name').value.trim(),
+    university:   document.getElementById('university').value.trim(),
+    cal_link:     document.getElementById('cal-link').value.trim(),
+    bio:          document.getElementById('bio').value.trim(),
+    industries,
+    company_size: size,
+  };
+
+  // Save cal link to localStorage for immediate dashboard use
+  if (payload.cal_link) {
+    localStorage.setItem('ccc_cal_link', payload.cal_link);
+  }
+
+  const btn = document.getElementById('save-btn');
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+
+  if (studentId) {
+    try {
+      const r = await fetch(`${API}/api/students/${studentId}`, {
+        method: 'PUT', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (r.ok) {
+        btn.textContent = 'Saved ✓';
+        btn.classList.add('saved');
+        showToast('Settings saved');
+        setTimeout(() => { btn.textContent = 'Save changes'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
+        return;
+      }
+    } catch(e) { /* API offline */ }
+  }
+
+  // Offline fallback — save to localStorage
+  localStorage.setItem('ccc_settings', JSON.stringify(payload));
+  btn.textContent = 'Saved locally ✓';
+  btn.classList.add('saved');
+  showToast('Saved locally (API offline)');
+  setTimeout(() => { btn.textContent = 'Save changes'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
+}
+
+function confirmDelete() {
+  if (!confirm('Are you sure? This permanently deletes your account and all match history. This cannot be undone.')) return;
+  showToast('Account deletion — contact hello@coffeechatconnect.com', false);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+loadSettings();
+</script>
+</body>
+</html>

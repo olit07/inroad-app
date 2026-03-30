@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Your Coffee Chat Connect sign-in link</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#F5F5F2; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+  .shell { background:#F5F5F2; padding:40px 20px; }
+  .card { background:#FFFFFF; border-radius:16px; max-width:520px; margin:0 auto; overflow:hidden; border:1px solid #E2DED8; }
+  .header { background:#1F4530; padding:32px 40px; }
+  .wordmark { display:inline-flex; align-items:center; gap:10px; text-decoration:none; }
+  .wm-icon { width:32px; height:32px; background:rgba(255,255,255,0.15); border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:18px; line-height:1; }
+  .wm-text { font-size:17px; font-weight:700; color:#FFFFFF; letter-spacing:0.01em; }
+  .wm-text em { font-style:normal; color:#A8D8B8; }
+  .header-tagline { margin-top:24px; font-size:13px; color:rgba(255,255,255,0.55); font-weight:400; letter-spacing:0.02em; }
+  .body { padding:40px; }
+  .badge { display:inline-flex; align-items:center; gap:6px; background:#EBF4EE; border:1px solid #A8C9B0; border-radius:100px; padding:4px 12px; font-size:11px; font-weight:700; color:#1F4530; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:20px; }
+  .badge-dot { width:5px; height:5px; background:#1F4530; border-radius:50%; display:inline-block; }
+  h1 { font-size:24px; font-weight:900; color:#111110; letter-spacing:-0.02em; line-height:1.1; margin-bottom:12px; }
+  h1 em { font-style:italic; font-weight:300; color:#1F4530; }
+  .sub { font-size:15px; color:#6E6860; line-height:1.65; margin-bottom:32px; font-weight:400; }
+  .btn-wrap { margin-bottom:32px; }
+  .btn { display:inline-block; background:#1F4530; color:#FFFFFF; font-size:15px; font-weight:700; padding:14px 28px; border-radius:10px; text-decoration:none; letter-spacing:0.01em; }
+  .divider { border:none; border-top:1px solid #E2DED8; margin:28px 0; }
+  .what-next { background:#F5F5F2; border-radius:12px; padding:20px 24px; margin-bottom:28px; }
+  .what-next-title { font-size:11px; font-weight:700; color:#6E6860; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:14px; }
+  .step { display:flex; gap:12px; margin-bottom:12px; align-items:flex-start; }
+  .step:last-child { margin-bottom:0; }
+  .step-num { width:20px; height:20px; background:#1F4530; border-radius:50%; color:#FFFFFF; font-size:10px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .step-text { font-size:13px; color:#3A3733; line-height:1.5; }
+  .step-text strong { font-weight:700; color:#111110; }
+  .link-box { background:#F5F5F2; border:1px solid #E2DED8; border-radius:8px; padding:12px 14px; margin-bottom:28px; }
+  .link-box-label { font-size:10px; font-weight:700; color:#A8A09A; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:5px; }
+  .link-box-url { font-size:11px; color:#6E6860; word-break:break-all; font-family:"Courier New",monospace; line-height:1.4; }
+  .stats { display:table; width:100%; margin-bottom:28px; border-collapse:separate; border-spacing:8px; }
+  .stat { display:table-cell; background:#F5F5F2; border-radius:10px; padding:14px 16px; text-align:center; width:33%; }
+  .stat-num { font-size:22px; font-weight:900; color:#1F4530; letter-spacing:-0.02em; line-height:1; }
+  .stat-label { font-size:11px; color:#6E6860; font-weight:400; margin-top:3px; line-height:1.3; }
+  .footer { padding:24px 40px; border-top:1px solid #E2DED8; text-align:center; }
+  .footer-text { font-size:12px; color:#A8A09A; line-height:1.6; }
+  .footer-text a { color:#6E6860; text-decoration:underline; text-underline-offset:2px; }
+  .footer-brand { font-size:12px; font-weight:700; color:#3A3733; margin-bottom:6px; }
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="card">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="wordmark">
+      <div class="wm-icon">&#9749;</div>
+      <span class="wm-text">Coffee<em>Chat</em>Connect</span>
+    </div>
+    <div class="header-tagline">Get into the workforce the smart way</div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Magic link
+    </div>
+
+    <h1>Your sign-in link<br>is <em>ready.</em></h1>
+
+    <p class="sub">
+      Click below to verify your email and start getting matched to real people
+      at companies you want to work at — alumni first.
+    </p>
+
+    <div class="btn-wrap">
+      <a href="http://localhost:5001/auth/verify?token=PREVIEW_TOKEN_abc123" class="btn">Sign in to Coffee Chat Connect &rarr;</a>
+    </div>
+
+    <!-- What happens next -->
+    <div class="what-next">
+      <div class="what-next-title">What happens next</div>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>Set up your profile</strong> &mdash; tell us your target role, industry, and company size.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>Get 3 matches every day</strong> &mdash; real people at companies with open roles, alumni prioritised.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>Send, they book</strong> &mdash; AI drafts the email, you approve, a scheduling link handles the rest.</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <table class="stats">
+      <tr>
+        <td class="stat">
+          <div class="stat-num">20%</div>
+          <div class="stat-label">Average reply rate from alumni</div>
+        </td>
+        <td class="stat">
+          <div class="stat-num">3</div>
+          <div class="stat-label">Targeted matches per day</div>
+        </td>
+        <td class="stat">
+          <div class="stat-num">72h</div>
+          <div class="stat-label">Avg. time to first coffee chat</div>
+        </td>
+      </tr>
+    </table>
+
+    <hr class="divider">
+
+    <!-- Fallback link -->
+    <div class="link-box">
+      <div class="link-box-label">Button not working? Copy this link</div>
+      <div class="link-box-url">http://localhost:5001/auth/verify?token=PREVIEW_TOKEN_abc123</div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-brand">CoffeeChatConnect</div>
+    <div class="footer-text">
+      This link expires in 24 hours and can only be used once.<br>
+      If you didn&rsquo;t request this, you can safely ignore it.<br><br>
+      <a href="#">Privacy</a> &middot; <a href="#">Terms</a> &middot; <a href="/cdn-cgi/l/email-protection#f59d9099999ab5969a93939090969d9481969a9b9b909681db969a98">Contact</a>

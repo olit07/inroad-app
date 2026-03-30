@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get started — Coffee Chat Connect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #FFFFFF;
+    --white:      #FDFDFC;
+    --surface:    #F3F1EE;
+    --border:     #E6E2DB;
+    --border-md:  #CEC8BF;
+    --green:      #1F4530;
+    --green-lite: #EAF2EC;
+    --green-mid:  #A8C9B0;
+    --green-deep: #122B1E;
+    --text:       #1A1714;
+    --text-mid:   #3D3831;
+    --muted:      #7A7068;
+    --subtle:     #ADA79F;
+    --error:      #B91C1C;
+    --error-bg:   #FEF2F2;
+    --error-bd:   #FECACA;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 52px;
+    border-bottom: 1px solid var(--border);
+    background: var(--white);
+    flex-shrink: 0;
+  }
+
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+  }
+
+  .wordmark-text {
+    font-family: 'Lato', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  .wordmark-text em { font-style: normal; color: var(--green); }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-wrap {
+    height: 3px;
+    background: var(--border);
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 0 2px 2px 0;
+    transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ─── MAIN ─── */
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+
+  /* ─── STEP CARD ─── */
+  .step-card {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .step-panel {
+    display: none;
+    animation: rise 0.38s ease forwards;
+  }
+
+  .step-panel.active { display: block; }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── STEP HEADER ─── */
+  .step-meta {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--green);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .step-title {
+    font-family: 'Lato', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .step-title em { font-style: italic; color: var(--green); }
+
+  .step-sub {
+    font-size: 0.875rem;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  /* ─── INPUTS ─── */
+  .field { margin-bottom: 16px; }
+
+  .field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-mid);
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+  }
+
+  .text-input, .select-input, .textarea-input {
+    width: 100%;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 16px;
+    font-size: 0.9rem;
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .text-input::placeholder,
+  .textarea-input::placeholder { color: var(--subtle); }
+
+  .text-input:focus,
+  .select-input:focus,
+  .textarea-input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(45,90,61,0.08);
+  }
+
+  /* Select arrow */
+  .select-wrap { position: relative; }
+
+  .select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+  }
+
+  .select-input { padding-right: 36px; cursor: pointer; }
+
+  /* Textarea */
+  .textarea-input {
+    resize: none;
+    line-height: 1.65;
+    min-height: 100px;
+  }
+
+  .char-count {
+    text-align: right;
+    font-size: 0.72rem;
+    color: var(--subtle);
+    margin-top: 5px;
+  }
+
+  .char-count.warn { color: var(--error); }
+
+  /* ─── CHOICE CARDS (full-time / grad) ─── */
+  .choice-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 0;
+  }
+
+  .choice-card {
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 16px;
+    cursor: pointer;
+    background: var(--white);
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    user-select: none;
+  }
+
+  .choice-card:hover {
+    border-color: var(--border-md);
+    box-shadow: 0 2px 8px rgba(26,23,20,0.06);
+  }
+
+  .choice-card.selected {
+    border-color: var(--green);
+    background: var(--green-lite);
+    box-shadow: 0 0 0 3px rgba(45,90,61,0.08);
+  }
+
+  .choice-icon { font-size: 1.3rem; }
+
+  .choice-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .choice-desc {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  /* ─── INDUSTRY PILLS ─── */
+  .industry-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+
+  .industry-pill {
+    padding: 8px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--text-mid);
+    background: var(--white);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  .industry-pill:hover {
+    border-color: var(--border-md);
+    background: var(--surface);
+  }
+
+  .industry-pill.selected {
+    border-color: var(--green);
+    background: var(--green-lite);
+    color: var(--green-deep);
+  }
+
+  .industry-hint {
+    font-size: 0.76rem;
+    color: var(--subtle);
+    margin-top: 12px;
+  }
+
+  /* ─── SIZE CARDS ─── */
+  .size-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  .size-card {
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 14px;
+    cursor: pointer;
+    background: var(--white);
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+    position: relative;
+  }
+
+  .size-card:hover {
+    border-color: var(--border-md);
+    box-shadow: 0 2px 8px rgba(26,23,20,0.06);
+  }
+
+  .size-card.selected {
+    border-color: var(--green);
+    background: var(--green-lite);
+    box-shadow: 0 0 0 3px rgba(45,90,61,0.08);
+  }
+
+  .size-icon { font-size: 1.4rem; }
+
+  .size-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .size-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .recommended-tag {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: white;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 100px;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  /* ─── ERROR MSG ─── */
+  .error-msg {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: var(--error-bg);
+    border: 1px solid var(--error-bd);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    color: var(--error);
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  .error-msg.visible { display: flex; }
+
+  /* ─── ACTIONS ─── */
+  .step-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .btn-next {
+    flex: 1;
+    background: var(--text);
+    color: var(--white);
+    border: none;
+    border-radius: 12px;
+    padding: 13px 24px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-next:hover {
+    background: var(--text-mid);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(26,23,20,0.14);
+  }
+
+  .btn-next.green {
+    background: var(--green);
+  }
+
+  .btn-next.green:hover { background: var(--green-deep); }
+
+  .btn-back {
+    background: transparent;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 18px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-back:hover { border-color: var(--border-md); color: var(--text); }
+
+  /* ─── STEP COUNTER ─── */
+  .step-counter {
+    font-size: 0.74rem;
+    color: var(--subtle);
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    text-align: center;
+    padding: 18px 24px;
+    font-size: 0.74rem;
+    color: var(--subtle);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  /* ─── AGE SLIDER ─── */
+  .slider-wrap {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .slider-age-display {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  #age-display {
+    font-family: 'Lato', sans-serif;
+    font-size: 3.2rem;
+    font-weight: 700;
+    color: var(--green);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    transition: color 0.15s;
+  }
+
+  .slider-age-unit {
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .age-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 5px;
+    border-radius: 100px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+    position: relative;
+  }
+
+  /* Filled track — set via JS */
+  .age-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 3px solid var(--white);
+    box-shadow: 0 0 0 1.5px var(--green), 0 2px 6px rgba(45,90,61,0.25);
+    cursor: grab;
+    transition: box-shadow 0.15s, transform 0.1s;
+  }
+
+  .age-slider::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 3px rgba(45,90,61,0.15), 0 2px 8px rgba(45,90,61,0.3);
+  }
+
+  .age-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 3px solid var(--white);
+    box-shadow: 0 0 0 1.5px var(--green);
+    cursor: grab;
+  }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--subtle);
+    font-weight: 500;
+    padding: 0 2px;
+  }
+
+  @media (max-width: 520px) {
+    nav { padding: 0 20px; }
+    .size-grid { grid-template-columns: 1fr; }
+    .choice-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="ccc-landing-final.html" class="wordmark">
+    <div style="width:28px;height:28px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">☕</div>
+    <span class="wordmark-text">Coffee<em>Chat</em>Connect</span>
+  </a>
+  <span id="nav-step" style="font-size:0.8rem;color:var(--muted);font-weight:500;"></span>
+</nav>
+
+<!-- PROGRESS BAR -->
+<div class="progress-wrap">
+  <div class="progress-fill" id="progress-fill" style="width: 20%"></div>
+</div>
+
+<!-- MAIN -->
+<main>
+
+  <!-- Verified email banner — shown when arriving from magic link -->
+  <div id="verified-banner" style="display:none; background:var(--green-lite); border:1px solid var(--green-mid); border-radius:12px; padding:10px 16px; margin-bottom:20px; display:none; align-items:center; gap:10px; font-size:0.82rem; color:var(--green);">
+    <span style="font-size:1rem;">✓</span>
+    <span>Email verified: <strong id="verified-email-display"></strong></span>
+  </div>
+  <div class="step-card">
+
+    <!-- ── STEP 1: NAME ── -->
+    <div class="step-panel active" id="step-1">
+      <p class="step-meta">Step 1 of 6</p>
+      <h1 class="step-title">What's your <em>name?</em></h1>
+      <p class="step-sub">We'll use this to personalise your dashboard and outreach emails.</p>
+
+      <div class="error-msg" id="err-1"><span>⚠</span><span id="err-1-text">Please enter your first name.</span></div>
+
+      <div class="field">
+        <label for="name-input">First name</label>
+        <input
+          type="text"
+          id="name-input"
+          class="text-input"
+          placeholder="e.g. Alex"
+          autocomplete="given-name"
+          autocapitalize="words"
+        />
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-next" onclick="nextStep(1)">Continue →</button>
+      </div>
+      <p class="step-counter">1 of 6</p>
+    </div>
+
+    <!-- ── STEP 2: AGE ── -->
+    <div class="step-panel" id="step-2">
+      <p class="step-meta">Step 2 of 6</p>
+      <h1 class="step-title">How old are you?</h1>
+      <p class="step-sub">Helps us tailor your matches to where you are in your career journey.</p>
+
+      <div class="error-msg" id="err-2"><span>⚠</span><span id="err-2-text">Please select your age.</span></div>
+
+      <div class="slider-wrap">
+        <div class="slider-age-display">
+          <span id="age-display">21</span>
+          <span class="slider-age-unit">years old</span>
+        </div>
+        <input
+          type="range"
+          id="age-input"
+          class="age-slider"
+          min="16"
+          max="35"
+          value="21"
+          step="1"
+          oninput="updateAge(this.value)"
+        />
+        <div class="slider-labels">
+          <span>16</span>
+          <span>35</span>
+        </div>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-back" onclick="prevStep(2)">← Back</button>
+        <button class="btn-next" onclick="nextStep(2)">Continue →</button>
+      </div>
+      <p class="step-counter">2 of 6</p>
+    </div>
+    <div class="step-panel" id="step-3">
+      <p class="step-meta">Step 3 of 6</p>
+      <h1 class="step-title">Where are you <em>right now?</em></h1>
+      <p class="step-sub">Are you still studying or have you graduated and looking for your first role?</p>
+
+      <div class="error-msg" id="err-3-status"><span>⚠</span><span>Please select one option.</span></div>
+
+      <div class="choice-grid">
+        <div class="choice-card" data-group="status" data-value="grad-program" onclick="selectChoice(this)">
+          <span class="choice-icon">🎓</span>
+          <span class="choice-label">Grad program / Internship</span>
+          <span class="choice-desc">Currently studying, looking ahead</span>
+        </div>
+        <div class="choice-card" data-group="status" data-value="full-time" onclick="selectChoice(this)">
+          <span class="choice-icon">💼</span>
+          <span class="choice-label">Full time search</span>
+          <span class="choice-desc">Graduated, actively job hunting</span>
+        </div>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-back" onclick="prevStep(3)">← Back</button>
+        <button class="btn-next" onclick="nextStep(3)">Continue →</button>
+      </div>
+      <p class="step-counter">3 of 6</p>
+    </div>
+
+    <!-- ── STEP 4: INDUSTRY ── -->
+    <div class="step-panel" id="step-4">
+      <p class="step-meta">Step 4 of 6</p>
+      <h1 class="step-title">What kind of work <em>excites you?</em></h1>
+      <p class="step-sub">Pick all the industries you're open to. We'll find matches across your selections.</p>
+
+      <div class="error-msg" id="err-3"><span>⚠</span><span>Please select at least one industry.</span></div>
+
+      <div class="industry-grid">
+        <span class="industry-pill" onclick="togglePill(this)">Finance</span>
+        <span class="industry-pill" onclick="togglePill(this)">Investment Banking</span>
+        <span class="industry-pill" onclick="togglePill(this)">Technology</span>
+        <span class="industry-pill" onclick="togglePill(this)">Software Engineering</span>
+        <span class="industry-pill" onclick="togglePill(this)">Product Management</span>
+        <span class="industry-pill" onclick="togglePill(this)">Consulting</span>
+        <span class="industry-pill" onclick="togglePill(this)">Strategy</span>
+        <span class="industry-pill" onclick="togglePill(this)">Marketing</span>
+        <span class="industry-pill" onclick="togglePill(this)">Growth</span>
+        <span class="industry-pill" onclick="togglePill(this)">Law</span>
+        <span class="industry-pill" onclick="togglePill(this)">Healthcare</span>
+        <span class="industry-pill" onclick="togglePill(this)">Media & Journalism</span>
+        <span class="industry-pill" onclick="togglePill(this)">Design & UX</span>
+        <span class="industry-pill" onclick="togglePill(this)">Data & Analytics</span>
+        <span class="industry-pill" onclick="togglePill(this)">Real Estate</span>
+        <span class="industry-pill" onclick="togglePill(this)">Non-profit & Policy</span>
+        <span class="industry-pill" onclick="togglePill(this)">Venture Capital</span>
+        <span class="industry-pill" onclick="togglePill(this)">Other</span>
+      </div>
+      <p class="industry-hint">Select all that apply</p>
+
+      <div class="step-actions">
+        <button class="btn-back" onclick="prevStep(4)">← Back</button>
+        <button class="btn-next" onclick="nextStep(4)">Continue →</button>
+      </div>
+      <p class="step-counter">4 of 6</p>
+    </div>
+
+    <!-- ── STEP 5: COMPANY SIZE ── -->
+    <div class="step-panel" id="step-5">
+      <p class="step-meta">Step 5 of 6</p>
+      <h1 class="step-title">What size company <em>suits you?</em></h1>
+      <p class="step-sub">We'll prioritise matches at companies that fit your preference.</p>
+
+      <div class="error-msg" id="err-4"><span>⚠</span><span>Please select a company size.</span></div>
+
+      <div class="size-grid">
+        <div class="size-card" data-group="size" data-value="startup" onclick="selectChoice(this)">
+          <div class="recommended-tag">Recommended</div>
+          <span class="size-icon">🚀</span>
+          <span class="size-label">Startup</span>
+          <span class="size-desc">Under 200 people. Fast, broad roles.</span>
+        </div>
+        <div class="size-card" data-group="size" data-value="mid" onclick="selectChoice(this)">
+          <span class="size-icon">🏢</span>
+          <span class="size-label">Mid-size</span>
+          <span class="size-desc">200–2,000. Structure with room to grow.</span>
+        </div>
+        <div class="size-card" data-group="size" data-value="large" onclick="selectChoice(this)">
+          <span class="size-icon">🌐</span>
+          <span class="size-label">Large</span>
+          <span class="size-desc">2,000+ people. Brand and stability.</span>
+        </div>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-back" onclick="prevStep(5)">← Back</button>
+        <button class="btn-next" onclick="nextStep(5)">Continue →</button>
+    </div>
+
+    <!-- ── STEP 6: ABOUT ── -->
+    <div class="step-panel" id="step-6">
+      <p class="step-meta">Step 6 of 6</p>
+      <h1 class="step-title">Tell us a little <em>about yourself.</em></h1>
+      <p class="step-sub">One or two sentences. This helps us personalise your outreach emails so they feel genuinely written by you.</p>
+
+      <div class="error-msg" id="err-5"><span>⚠</span><span id="err-5-text">Please write a short intro.</span></div>
+
+      <div class="field">
+        <label for="bio-input">Your intro</label>
+        <textarea
+          id="bio-input"
+          class="textarea-input"
+          placeholder="e.g. I'm a final-year Economics student at UCL with a passion for early-stage startups and sustainable finance. I'm looking to break into VC or fintech after graduating this summer."
+          maxlength="300"
+          oninput="updateCharCount()"
+          rows="4"
+        ></textarea>
+        <p class="char-count" id="char-count">0 / 300</p>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-back" onclick="prevStep(6)">← Back</button>
+        <button class="btn-next green" onclick="nextStep(6)">Find my matches →</button>
+      </div>
+      <p class="step-counter">6 of 6</p>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  © 2026 Coffee Chat Connect · <a href="#">Privacy</a> · <a href="#">Terms</a>
+</footer>
+
+<script>
+  // ── AGE SLIDER ──
+  function updateAge(val) {
+    document.getElementById('age-display').textContent = val;
+    // Fill the track with green up to the thumb position
+    const slider = document.getElementById('age-input');
+    const min = parseInt(slider.min);
+    const max = parseInt(slider.max);
+    const pct = ((val - min) / (max - min)) * 100;
+    slider.style.background =
+      `linear-gradient(to right, var(--green) ${pct}%, var(--border) ${pct}%)`;
+    clearError(1);
+  }
+
+  // Initialise track fill on load + read URL params from magic link
+  window.addEventListener('DOMContentLoaded', () => {
+    updateAge(document.getElementById('age-input').value);
+
+    const params = new URLSearchParams(window.location.search);
+    const verifiedEmail = params.get('email');
+    const isVerified    = params.get('verified') === '1';
+
+    if (verifiedEmail && isVerified) {
+      // Show the verified banner
+      const banner = document.getElementById('verified-banner');
+      document.getElementById('verified-email-display').textContent = decodeURIComponent(verifiedEmail);
+      banner.style.display = 'flex';
+
+      // Store email for use in finish()
+      window._verifiedEmail = decodeURIComponent(verifiedEmail);
+    }
+  });
+
+  const TOTAL = 6;
+  let current = 1;
+
+  const progressFill = document.getElementById('progress-fill');
+  const navStep = document.getElementById('nav-step');
+
+  function updateProgress(step) {
+    progressFill.style.width = (step / TOTAL * 100) + '%';
+    navStep.textContent = step + ' of ' + TOTAL;
+  }
+
+  updateProgress(1);
+
+  // ── NAVIGATION ──
+
+  function showStep(n) {
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById('step-' + n);
+    panel.classList.add('active');
+    updateProgress(n);
+    current = n;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function prevStep(from) {
+    clearError(from);
+    showStep(from - 1);
+  }
+
+  function nextStep(from) {
+    if (!validate(from)) return;
+    clearError(from);
+
+    if (from === TOTAL) {
+      // Final step — redirect to dashboard / confirmation
+      finish();
+      return;
+    }
+
+    showStep(from + 1);
+  }
+
+  // ── VALIDATION ──
+
+  function validate(step) {
+    switch (step) {
+      case 1: {
+        const name = document.getElementById('name-input').value.trim();
+        if (!name || name.length < 1) {
+          showError(1, 'Please enter your first name.');
+          return false;
+        }
+        return true;
+      }
+      case 2: {
+        const val = parseInt(document.getElementById('age-input').value);
+        if (!val || val < 16 || val > 35) {
+          showError(2, 'Please select a valid age.');
+          return false;
+        }
+        return true;
+      }
+      case 3: {
+        if (!document.querySelector('[data-group="status"].selected')) {
+          showError(3, 'Please select one option.', 'err-3-status');
+          return false;
+        }
+        return true;
+      }
+      case 4: {
+        if (!document.querySelector('.industry-pill.selected')) {
+          showError(4, 'Please select at least one industry.');
+          return false;
+        }
+        return true;
+      }
+      case 5: {
+        if (!document.querySelector('[data-group="size"].selected')) {
+          showError(5, 'Please select a company size.');
+          return false;
+        }
+        return true;
+      }
+      case 6: {
+        const bio = document.getElementById('bio-input').value.trim();
+        if (bio.length < 20) {
+          showError(6, 'Please write at least a sentence about yourself.');
+          return false;
+        }
+        return true;
+      }
+    }
+    return true;
+  }
+
+  function showError(step, msg, customId) {
+    const id = customId || ('err-' + step);
+    const box = document.getElementById(id);
+    if (!box) return;
+    const txt = box.querySelector('[id$="-text"], span:last-child');
+    if (txt) txt.textContent = msg;
+    box.classList.add('visible');
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function clearError(step) {
+    const box = document.getElementById('err-' + step) || document.getElementById('err-' + step + '-status');
+    if (box) box.classList.remove('visible');
+  }
+
+  // ── INTERACTIONS ──
+
+  function selectChoice(el) {
+    const group = el.dataset.group;
+    document.querySelectorAll('[data-group="' + group + '"]').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    clearError(current);
+  }
+
+  function togglePill(el) {
+    el.classList.toggle('selected');
+    clearError(current);
+  }
+
+  function updateCharCount() {
+    const ta = document.getElementById('bio-input');
+    const cc = document.getElementById('char-count');
+    const len = ta.value.length;
+    cc.textContent = len + ' / 300';
+    cc.classList.toggle('warn', len > 270);
+  }
+
+  // Enter to advance on text/number inputs
+  document.querySelectorAll('.text-input').forEach(inp => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') nextStep(current);
+    });
+  });
+
+  // Auto-focus first input on step change
+  const observer = new MutationObserver(() => {
+    const active = document.querySelector('.step-panel.active');
+    if (!active) return;
+    const inp = active.querySelector('input, textarea');
+    if (inp) setTimeout(() => inp.focus(), 80);
+  });
+
+  document.querySelectorAll('.step-panel').forEach(p => {
+    observer.observe(p, { attributes: true, attributeFilter: ['class'] });
+  });
+
+  // ── FINISH ──
+
+  function finish() {
+    const name = document.getElementById('name-input').value.trim();
+    const data = {
+      name,
+      email:       window._verifiedEmail || '',
+      age:         document.getElementById('age-input').value,
+      status:      document.querySelector('[data-group="status"].selected')?.dataset.value,
+      industries:  [...document.querySelectorAll('.industry-pill.selected')].map(p => p.textContent),
+      companySize: document.querySelector('[data-group="size"].selected')?.dataset.value,
+      bio:         document.getElementById('bio-input').value.trim(),
+    };
+
+    const btn = document.querySelector('#step-6 .btn-next');
+    btn.textContent = 'Finding your matches…';
+    btn.disabled = true;
+
+    // POST profile to backend if we have a verified email
+    const save = data.email
+      ? fetch('/api/students', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email:           data.email,
+            first_name:      name,
+            university:      '',
+            graduation_year: null,
+            status:          data.status,
+            industries:      JSON.stringify(data.industries),
+            company_size:    data.companySize,
+            bio:             data.bio,
+            region:          'UK',
+          }),
+        }).catch(() => {})
+      : Promise.resolve();
+
+    // Navigate to dashboard regardless of whether save succeeded
+    const encodedName = encodeURIComponent(name || 'there');
+    const emailParam  = window._verifiedEmail ? '&email=' + encodeURIComponent(window._verifiedEmail) : '';
+    // Smart navigate: probe for correct Chrome-suffixed dashboard filename
+    const dashP = '?name=' + encodedName + emailParam;
+    const dashBase = window.location.href.replace(/[^/]*$/, '');
+    const dsfx = ['','_1','_2','_3','_4','_5','_6','_7','_8','_9','_10',
+                  '_11','_12','_13','_14','_15','_16','_17','_18','_19','_20'];
+    let di = 0;
+    function tryDash() {
+      if (di >= dsfx.length) { window.location.href = 'ccc-dashboard-live.html' + dashP; return; }
+      const url = dashBase + 'ccc-dashboard-live' + dsfx[di] + '.html' + dashP;
+      di++;
+      const ifr = document.createElement('iframe');
+      ifr.style.display='none'; ifr.src=url;
+      ifr.onload=function(){
+        try{ const t=ifr.contentDocument&&ifr.contentDocument.title; if(t&&t.length>0){document.body.removeChild(ifr);window.location.href=url;return;} }catch(e){}
+        document.body.removeChild(ifr); tryDash();
+      };
+      ifr.onerror=function(){document.body.removeChild(ifr);tryDash();};
+      document.body.appendChild(ifr);
+    }
+    if (save && typeof save.finally === 'function') {
+      save.finally(() => tryDash());
+    } else {
+      tryDash();
+    }
+  }
+</script>
+
+</body>
+</html>

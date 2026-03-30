@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coffee Chat Connect — Get into the workforce the smart way</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #FFFFFF;
+    --surface:    #F5F5F2;
+    --surface-2:  #EEECEA;
+    --border:     #E2DED8;
+    --border-md:  #C8C3BB;
+    --green:      #1F4530;
+    --green-lite: #EBF4EE;
+    --green-mid:  #A8C9B0;
+    --green-deep: #122B1E;
+    --green-text: #122B1E;
+    --text:       #111110;
+    --text-mid:   #3A3733;
+    --muted:      #6E6860;
+    --subtle:     #A8A09A;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+
+  .wm-icon {
+    width: 30px; height: 30px;
+    background: var(--green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem; flex-shrink: 0;
+  }
+
+  .wm-text {
+    font-family: 'Lato', sans-serif;
+    font-size: 1rem; font-weight: 700;
+    color: var(--text); letter-spacing: 0.01em;
+  }
+
+  .wm-text em { font-style: normal; color: var(--green); }
+
+  .nav-center {
+    display: flex; align-items: center; gap: 32px; list-style: none;
+    position: absolute; left: 50%; transform: translateX(-50%);
+  }
+
+  .nav-center a {
+    font-size: 0.85rem; font-weight: 400;
+    color: var(--muted); text-decoration: none; transition: color 0.15s;
+  }
+
+  .nav-center a:hover { color: var(--text); }
+
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+
+  .btn-login {
+    font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    color: var(--text); background: transparent;
+    border: 1.5px solid var(--border-md);
+    padding: 7px 18px; border-radius: 8px; text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-login:hover { border-color: var(--green); color: var(--green); }
+
+  .btn-nav-cta {
+    font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    color: #fff; background: var(--green); border: none;
+    padding: 8px 18px; border-radius: 8px; text-decoration: none;
+    transition: background 0.15s, transform 0.1s; white-space: nowrap;
+  }
+
+  .btn-nav-cta:hover { background: var(--green-deep); transform: translateY(-1px); }
+
+  /* ── HERO — split: green left, white right ── */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding-top: 62px;
+  }
+
+  .hero-left {
+    background: var(--green);
+    padding: 80px 64px 80px 52px;
+    display: flex; flex-direction: column; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.85);
+    padding: 5px 14px; border-radius: 100px;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em;
+    margin-bottom: 28px; width: fit-content;
+    opacity: 0; animation: rise 0.5s ease forwards;
+  }
+
+  .badge-dot {
+    width: 5px; height: 5px; background: #7FD9A0; border-radius: 50%;
+    animation: blink 2s ease infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  h1 {
+    font-family: 'Lato', sans-serif;
+    font-size: clamp(2.6rem, 4.5vw, 4rem);
+    font-weight: 900; line-height: 1.08;
+    letter-spacing: -0.02em; color: #fff;
+    margin-bottom: 24px;
+    opacity: 0; animation: rise 0.5s ease 0.08s forwards;
+  }
+
+  h1 em { font-style: italic; font-weight: 300; color: #A8D8B8; }
+
+  .hero-sub {
+    font-size: 1rem; color: rgba(255,255,255,0.7);
+    line-height: 1.75; font-weight: 300;
+    margin-bottom: 40px; max-width: 420px;
+    opacity: 0; animation: rise 0.5s ease 0.16s forwards;
+  }
+
+  .hero-actions {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    opacity: 0; animation: rise 0.5s ease 0.24s forwards;
+  }
+
+  .btn-hero-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff; color: var(--green-text);
+    padding: 13px 22px; border-radius: 9px;
+    font-size: 0.875rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    text-decoration: none; transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  }
+
+  .btn-hero-primary:hover {
+    background: #F0FFF4; transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  }
+
+  .btn-hero-ghost {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,0.65); font-size: 0.875rem; font-weight: 400;
+    text-decoration: none; transition: color 0.15s;
+  }
+
+  .btn-hero-ghost:hover { color: #fff; }
+
+  .hero-free-note {
+    display: flex; align-items: center; gap: 7px;
+    margin-top: 20px; font-size: 0.76rem; font-weight: 400;
+    color: rgba(255,255,255,0.5);
+    opacity: 0; animation: rise 0.5s ease 0.32s forwards;
+  }
+
+  .free-star { color: #7FD9A0; }
+
+  .hero-right {
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    padding: 80px 52px 80px 64px;
+    opacity: 0; animation: rise 0.6s ease 0.2s forwards;
+  }
+
+  /* ── APP MOCK ── */
+  .app-mock {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 10px 30px rgba(0,0,0,0.08), 0 24px 60px rgba(0,0,0,0.05);
+    overflow: hidden; width: 100%; max-width: 380px;
+  }
+
+  .mock-topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 13px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .mock-title { font-size: 0.78rem; font-weight: 700; color: var(--text-mid); }
+
+  .mock-quota { display: flex; align-items: center; gap: 7px; }
+  .quota-dots { display: flex; gap: 4px; }
+  .qdot { width: 7px; height: 7px; border-radius: 50%; }
+  .qdot.on  { background: var(--green); }
+  .qdot.off { background: var(--border); }
+  .mock-quota-label { font-size: 0.7rem; color: var(--muted); font-weight: 400; }
+
+  .card-quota-bar { padding: 8px 14px 4px; }
+  .card-quota-track { height: 3px; background: var(--border); border-radius: 100px; overflow: hidden; }
+  .card-quota-fill { height: 100%; background: var(--green); border-radius: 100px; }
+
+  .mock-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .mock-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 11px; background: var(--bg); transition: border-color 0.15s;
+  }
+
+  .mock-row.active { border-color: var(--green-mid); background: var(--green-lite); }
+
+  .mock-av {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; color: var(--muted); flex-shrink: 0;
+  }
+
+  .mock-row.active .mock-av { background: var(--green-lite); border-color: var(--green-mid); color: var(--green); }
+
+  .mock-info { flex: 1; min-width: 0; }
+
+  .mock-name {
+    font-size: 0.78rem; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .alumni-chip {
+    font-size: 0.6rem; font-weight: 700; color: var(--green);
+    background: var(--green-lite); border: 1px solid var(--green-mid);
+    padding: 1px 6px; border-radius: 100px;
+  }
+
+  .mock-sub { font-size: 0.68rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
+  .mock-action { font-size: 0.68rem; font-weight: 700; color: var(--green); white-space: nowrap; flex-shrink: 0; }
+  .mock-sent { font-size: 0.68rem; color: var(--subtle); white-space: nowrap; flex-shrink: 0; font-weight: 400; }
+
+  /* ── CAROUSEL ── */
+  .carousel-wrap {
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    background: var(--surface); padding: 16px 0;
+    display: flex; align-items: center; overflow: hidden;
+  }
+
+  .ticker-label {
+    font-size: 0.7rem; font-weight: 700; color: var(--subtle);
+    letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+    flex-shrink: 0; padding: 0 24px 0 48px; border-right: 1px solid var(--border);
+  }
+
+  .carousel-track-outer {
+    overflow: hidden; flex: 1;
+    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  }
+
+  .carousel-track {
+    display: flex; gap: 10px; width: max-content;
+    animation: scroll-unis 40s linear infinite; padding: 0 16px;
+  }
+
+  .carousel-track:hover { animation-play-state: paused; }
+
+  @keyframes scroll-unis { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  .uni-pill {
+    font-size: 0.76rem; font-weight: 700; color: var(--text-mid);
+    background: var(--bg); border: 1px solid var(--border);
+    padding: 4px 14px; border-radius: 100px; white-space: nowrap; flex-shrink: 0;
+  }
+
+  /* ── STATS — open, no cards ── */
+  .stats-band {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    max-width: 1100px; margin: 0 auto; padding: 72px 48px;
+  }
+
+  .stat-item { padding: 0 40px; border-right: 1px solid var(--border); }
+  .stat-item:first-child { padding-left: 0; }
+  .stat-item:last-child { border-right: none; }
+
+  .stat-num {
+    font-size: 3.6rem; font-weight: 900; color: var(--text);
+    line-height: 1; letter-spacing: -0.03em; margin-bottom: 8px;
+  }
+
+  .stat-num span { color: var(--green); }
+  .stat-desc { font-size: 0.875rem; color: var(--muted); font-weight: 300; line-height: 1.55; max-width: 220px; }
+
+  /* ── SECTIONS ── */
+  .section { max-width: 1100px; margin: 0 auto; padding: 80px 48px; }
+  .section-divider { max-width: 1100px; margin: 0 auto; padding: 0 48px; }
+  .section-divider hr { border: none; border-top: 1px solid var(--border); }
+
+  .eyebrow {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--green); margin-bottom: 12px;
+  }
+
+  h2 {
+    font-family: 'Lato', sans-serif; font-size: clamp(1.9rem, 3vw, 2.6rem);
+    font-weight: 900; letter-spacing: -0.02em; line-height: 1.12;
+    color: var(--text); margin-bottom: 14px;
+  }
+
+  h2 em { font-style: italic; font-weight: 300; color: var(--green); }
+
+  .section-sub {
+    font-size: 0.95rem; color: var(--muted); font-weight: 300;
+    line-height: 1.75; max-width: 480px; margin-bottom: 52px;
+  }
+
+  /* ── STEPS ── */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  .step {
+    padding: 28px 24px; border: 1px solid var(--border);
+    border-left: 3px solid var(--green); border-radius: 14px;
+    background: var(--bg); transition: box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .step:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-color: var(--border-md); border-left-color: var(--green); }
+
+  .step-num { font-size: 0.7rem; font-weight: 700; color: var(--green); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+  .step h3 { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 10px; line-height: 1.35; }
+  .step p { font-size: 0.85rem; color: var(--muted); font-weight: 300; line-height: 1.66; }
+
+  /* ── FEATURE SPLIT ── */
+  .feature-split { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
+  .feature-text h2 { margin-bottom: 14px; }
+  .feature-text p { font-size: 0.9rem; color: var(--muted); font-weight: 300; line-height: 1.76; margin-bottom: 28px; }
+
+  .check-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+  .check-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 0.875rem; color: var(--text-mid); font-weight: 400; line-height: 1.5;
+  }
+
+  .check-icon {
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--green-lite); border: 1px solid var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 0.55rem; color: var(--green); margin-top: 1px;
+  }
+
+  /* ── EMAIL MOCK ── */
+  .email-mock {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; box-shadow: 0 6px 28px rgba(0,0,0,0.07);
+  }
+
+  .email-head {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 18px; display: flex; flex-direction: column; gap: 3px;
+  }
+
+  .ef { font-size: 0.73rem; color: var(--muted); display: flex; gap: 6px; }
+  .ef span { color: var(--text); font-weight: 700; }
+
+  .email-body { padding: 22px; font-size: 0.855rem; line-height: 1.82; color: var(--text-mid); font-weight: 300; }
+  .email-body p + p { margin-top: 10px; }
+  .email-body strong { font-weight: 700; color: var(--text); }
+  .email-link { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+
+  .email-foot {
+    border-top: 1px solid var(--border); padding: 11px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface);
+  }
+
+  .wc { font-size: 0.72rem; color: var(--subtle); }
+
+  .send-btn {
+    background: var(--text); color: var(--bg);
+    font-size: 0.76rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    padding: 7px 15px; border-radius: 7px; border: none; cursor: pointer;
+  }
+
+  /* ── TESTIMONIALS ── */
+  .testi-scroll { display: flex; gap: 18px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+  .testi-scroll::-webkit-scrollbar { display: none; }
+
+  .tcard {
+    flex-shrink: 0; width: 300px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 16px; padding: 26px;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 20px;
+  }
+
+  .tcard-open { font-size: 2.4rem; font-weight: 900; color: var(--green-mid); line-height: 1; margin-bottom: 6px; font-style: italic; }
+  .tcard-text { font-size: 0.875rem; color: var(--text-mid); font-weight: 300; line-height: 1.72; }
+
+  .tcard-author { display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  .tav {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--green-lite); border: 1px solid var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; color: var(--green); flex-shrink: 0;
+  }
+
+  .tname { font-size: 0.8rem; font-weight: 700; color: var(--text); }
+  .tuni { font-size: 0.7rem; color: var(--muted); font-weight: 300; }
+
+  /* ── CTA — full bleed green ── */
+  .cta-section {
+    background: var(--green); padding: 100px 48px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 28px 28px; pointer-events: none;
+  }
+
+  .cta-section h2 { font-size: clamp(2.2rem, 4vw, 3.4rem); color: #fff; margin-bottom: 16px; position: relative; z-index: 1; }
+  .cta-section h2 em { color: #A8D8B8; }
+
+  .cta-section p {
+    font-size: 1rem; color: rgba(255,255,255,0.65); max-width: 420px;
+    margin: 0 auto 40px; font-weight: 300; line-height: 1.72; position: relative; z-index: 1;
+  }
+
+  .cta-actions { display: flex; flex-direction: column; align-items: center; gap: 0; position: relative; z-index: 1; }
+
+  .btn-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff; color: var(--green-text);
+    font-size: 0.9rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    padding: 14px 28px; border-radius: 10px; text-decoration: none;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .btn-cta:hover { background: #F0FFF4; transform: translateY(-1px); }
+  .cta-note { margin-top: 16px; font-size: 0.75rem; color: rgba(255,255,255,0.4); }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border); max-width: 1100px;
+    margin: 0 auto; padding: 32px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .footer-wordmark { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+
+  .footer-wm-icon {
+    width: 22px; height: 22px; background: var(--green); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
+  }
+
+  .footer-wm-text { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+  .footer-wm-text em { font-style: normal; color: var(--green); }
+
+  .footer-links { display: flex; gap: 24px; list-style: none; }
+
+  .footer-links a {
+    font-size: 0.82rem; color: var(--muted); text-decoration: none;
+    font-weight: 400; transition: color 0.15s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+  .footer-copy { font-size: 0.76rem; color: var(--subtle); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease, transform 0.55s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  .reveal-group > * { opacity: 0; transform: translateY(16px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .reveal-group.visible > *:nth-child(1) { opacity:1; transform:none; transition-delay:0s; }
+  .reveal-group.visible > *:nth-child(2) { opacity:1; transform:none; transition-delay:0.07s; }
+  .reveal-group.visible > *:nth-child(3) { opacity:1; transform:none; transition-delay:0.14s; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 0 20px; }
+    .nav-center { display: none; }
+    .hero { grid-template-columns: 1fr; min-height: auto; }
+    .hero-left { padding: 80px 24px 56px; }
+    .hero-right { display: none; }
+    .stats-band { grid-template-columns: 1fr; padding: 48px 24px; gap: 36px; }
+    .stat-item { padding: 0; border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 32px; }
+    .stat-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .section { padding: 56px 24px; }
+    .section-divider { padding: 0 24px; }
+    .steps { grid-template-columns: 1fr; }
+    .feature-split { grid-template-columns: 1fr; gap: 36px; }
+    .cta-section { padding: 72px 24px; }
+    footer { flex-direction: column; gap: 20px; text-align: center; padding: 28px 24px; }
+    .carousel-wrap { padding: 14px 0; }
+    .ticker-label { padding: 0 16px 0 24px; }
+  }
+</style>
+<script>
+// Smart file navigation — works with Chrome's _N download suffixes
+// Finds sibling HTML files in the same directory by trying common suffixes
+function smartNavigate(baseName) {
+  const base = window.location.href.replace(/[^/]*$/, '');
+  const suffixes = ['', '_1','_2','_3','_4','_5','_6','_7','_8','_9',
+                    '_10','_11','_12','_13','_14','_15','_16','_17','_18','_19','_20'];
+  const name = baseName.replace('.html','');
+  let tried = 0;
+  function tryNext() {
+    if (tried >= suffixes.length) { alert('Could not find ' + baseName + '. Make sure all CCC files are in the same folder.'); return; }
+    const url = base + name + suffixes[tried] + '.html';
+    tried++;
+    const img = new Image();
+    img.onload = img.onerror = function(e) {
+      // For file:// we can't use fetch; use iframe trick instead
+      const ifr = document.createElement('iframe');
+      ifr.style.display = 'none';
+      ifr.src = url;
+      ifr.onload = function() {
+        try {
+          // If we can read the title, it loaded
+          const t = ifr.contentDocument && ifr.contentDocument.title;
+          if (t && t.length > 0) { document.body.removeChild(ifr); window.location.href = url; return; }
+        } catch(e2) {}
+        document.body.removeChild(ifr);
+        tryNext();
+      };
+      ifr.onerror = function() { document.body.removeChild(ifr); tryNext(); };
+      document.body.appendChild(ifr);
+    };
+  }
+  tryNext();
+}
+</script>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="wordmark">
+    <div class="wm-icon">☕</div>
+    <span class="wm-text">Coffee<em>Chat</em>Connect</span>
+  </a>
+  <ul class="nav-center">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#stories">Stories</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="ccc-signup.html" class="btn-login" onclick="event.preventDefault();smartNavigate('ccc-signup.html')">Log in</a>
+    <a href="ccc-signup.html" class="btn-nav-cta" onclick="event.preventDefault();smartNavigate('ccc-signup.html')">Get started free →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-badge">
+      <div class="badge-dot"></div>
+      Now in early access · UK & US universities
+    </div>
+    <h1>Stop applying<br>into <em>the void.</em><br>Your next job<br>starts with a <em>match.</em></h1>
+    <p class="hero-sub">
+      The graduate job market is broken. Applications are a lottery. Coffee Chat Connect gives you a smarter wedge into the workforce. Three targeted, AI personalised outreach emails a day, matched to real openings and the people who can get you in.
+    </p>
+    <div class="hero-actions">
+      <a href="ccc-signup.html" class="btn-hero-primary" onclick="event.preventDefault();smartNavigate('ccc-signup.html')">Get started free →</a>
+      <a href="#how" class="btn-hero-ghost">See how it works</a>
+    </div>
+    <p class="hero-free-note">
+      <span class="free-star">✦</span>
+      Free forever for students · No credit card needed
+    </p>
+  </div>
+
+  <div class="hero-right">
+    <div class="app-mock">
+      <div class="mock-topbar">
+        <span class="mock-title">Today's matches</span>
+        <div class="mock-quota">
+          <div class="quota-dots">
+            <div class="qdot on"></div>
+            <div class="qdot on"></div>
+            <div class="qdot off"></div>
+          </div>
+          <span class="mock-quota-label">2 of 3 sent</span>
+        </div>
+      </div>
+      <div class="card-quota-bar">
+        <div class="card-quota-track">
+          <div class="card-quota-fill" style="width:66%"></div>
+        </div>
+      </div>
+      <div class="mock-list">
+        <div class="mock-row">
+          <div class="mock-av">SR</div>
+          <div class="mock-info">
+            <div class="mock-name">Sarah R. <span class="alumni-chip">Alumni</span></div>
+            <div class="mock-sub">VP Product · Monzo · Open PM role</div>
+          </div>
+          <div class="mock-sent">Sent ✓</div>
+        </div>
+        <div class="mock-row">
+          <div class="mock-av">JK</div>
+          <div class="mock-info">
+            <div class="mock-name">James K. <span class="alumni-chip">Alumni</span></div>
+            <div class="mock-sub">Analyst · Goldman Sachs · Summer intern</div>
+          </div>
+          <div class="mock-sent">Sent ✓</div>
+        </div>
+        <div class="mock-row active">
+          <div class="mock-av">AT</div>
+          <div class="mock-info">
+            <div class="mock-name">Aisha T.</div>
+            <div class="mock-sub">Consultant · McKinsey · Analyst opening</div>
+          </div>
+          <div class="mock-action">Draft email →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CAROUSEL -->
+<div class="carousel-wrap">
+  <span class="ticker-label">Students from</span>
+  <div class="carousel-track-outer">
+    <div class="carousel-track">
+      <span class="uni-pill">Harvard</span><span class="uni-pill">Yale</span><span class="uni-pill">Princeton</span><span class="uni-pill">Columbia</span><span class="uni-pill">Penn</span><span class="uni-pill">Cornell</span><span class="uni-pill">Dartmouth</span><span class="uni-pill">Brown</span><span class="uni-pill">Stanford</span><span class="uni-pill">UC Berkeley</span><span class="uni-pill">UCLA</span><span class="uni-pill">USC</span><span class="uni-pill">NYU</span><span class="uni-pill">UCL</span><span class="uni-pill">LSE</span><span class="uni-pill">Imperial College</span><span class="uni-pill">University of Edinburgh</span><span class="uni-pill">University of Manchester</span><span class="uni-pill">King's College London</span><span class="uni-pill">Boston University</span>
+      <span class="uni-pill">Harvard</span><span class="uni-pill">Yale</span><span class="uni-pill">Princeton</span><span class="uni-pill">Columbia</span><span class="uni-pill">Penn</span><span class="uni-pill">Cornell</span><span class="uni-pill">Dartmouth</span><span class="uni-pill">Brown</span><span class="uni-pill">Stanford</span><span class="uni-pill">UC Berkeley</span><span class="uni-pill">UCLA</span><span class="uni-pill">USC</span><span class="uni-pill">NYU</span><span class="uni-pill">UCL</span><span class="uni-pill">LSE</span><span class="uni-pill">Imperial College</span><span class="uni-pill">University of Edinburgh</span><span class="uni-pill">University of Manchester</span><span class="uni-pill">King's College London</span><span class="uni-pill">Boston University</span>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-band reveal-group">
+  <div class="stat-item">
+    <div class="stat-num"><span>20</span>%</div>
+    <div class="stat-desc">Average response rate from alumni outreach, versus under 3% from standard cold applications</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num"><span>3</span></div>
+    <div class="stat-desc">High quality matches per day, curated to open roles not randomly generated contacts</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num"><span>72</span>h</div>
+    <div class="stat-desc">Average time from first email sent to a coffee chat booked in a student's calendar</div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section-divider"><hr></div>
+<div class="section" id="how">
+  <p class="eyebrow reveal">How it works</p>
+  <h2 class="reveal">From sign up to coffee chat<br><em>in minutes.</em></h2>
+  <p class="section-sub reveal">No complicated setup. Sign in with your email and you're ready to reach out.</p>
+  <div class="steps reveal-group">
+    <div class="step">
+      <div class="step-num">Step 01</div>
+      <h3>Sign in with your email</h3>
+      <p>Your email verifies you instantly. No lengthy forms, no waiting, no credit card needed.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">Step 02</div>
+      <h3>Tell us your target role, industry and company size</h3>
+      <p>We pull live job openings from job boards, career networks and trackers. Then we find 3 people at those companies who could actually get you in.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">Step 03</div>
+      <h3>Review, approve and send. They book the chat.</h3>
+      <p>AI drafts a personalised email for each match tied to a real open role. You read it, edit it, and hit send. A scheduling link handles the rest.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE: MATCHING -->
+<div class="section-divider"><hr></div>
+<div class="section" id="features">
+  <div class="feature-split reveal">
+    <div class="feature-text">
+      <p class="eyebrow">Smart matching</p>
+      <h2>Matched to <em>real openings.</em></h2>
+      <p>We don't just find contacts. We match you to people at companies with active roles that fit your profile. Alumni are prioritised because shared experience converts. When someone sees their university in your email, response rates jump.</p>
+      <ul class="check-list">
+        <li><span class="check-icon">✓</span> Open roles pulled from job boards, career networks and tracker apps</li>
+        <li><span class="check-icon">✓</span> Alumni from your university surfaced first</li>
+        <li><span class="check-icon">✓</span> 3 unique, non-repeating matches every day</li>
+        <li><span class="check-icon">✓</span> Name, position, company and contact info surfaced per match</li>
+      </ul>
+    </div>
+    <div class="app-mock" style="max-width:420px;">
+      <div class="mock-topbar"><span class="mock-title">Today's matches · 3 remaining</span></div>
+      <div class="card-quota-bar"><div class="card-quota-track"><div class="card-quota-fill" style="width:0%"></div></div></div>
+      <div class="mock-list">
+        <div class="mock-row active"><div class="mock-av">SR</div><div class="mock-info"><div class="mock-name">Sarah R. <span class="alumni-chip">Alumni</span></div><div class="mock-sub">VP Product · Monzo · PM opening</div></div><div class="mock-action">Draft →</div></div>
+        <div class="mock-row active"><div class="mock-av">JK</div><div class="mock-info"><div class="mock-name">James K. <span class="alumni-chip">Alumni</span></div><div class="mock-sub">Analyst · Goldman · Summer intern</div></div><div class="mock-action">Draft →</div></div>
+        <div class="mock-row"><div class="mock-av">AT</div><div class="mock-info"><div class="mock-name">Aisha T.</div><div class="mock-sub">Consultant · McKinsey · Analyst role</div></div><div class="mock-action">Draft →</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE: EMAIL -->
+<div class="section-divider"><hr></div>
+<div class="section">
+  <div class="feature-split reveal" style="direction:rtl;">
+    <div class="feature-text" style="direction:ltr;">
+      <p class="eyebrow">AI email drafting</p>
+      <h2>Not a spam bot.<br><em>A targeted introduction.</em></h2>
+      <p>Every email is written around the specific role and the professional's actual background. Short, direct, genuine. Three rotating templates keep things fresh. You always read it before it sends. You are in control.</p>
+      <ul class="check-list">
+        <li><span class="check-icon">✓</span> Under 120 words so professionals actually read them</li>
+        <li><span class="check-icon">✓</span> References the specific open role and their career path</li>
+        <li><span class="check-icon">✓</span> Plain text only so no spam filters get triggered</li>
+        <li><span class="check-icon">✓</span> Replies go directly to your inbox with no middleman</li>
+      </ul>
+    </div>
+    <div class="email-mock" style="direction:ltr; max-width:420px;">
+      <div class="email-head">
+        <div class="ef">To: <span><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7f0c1e0d1e17510d3f1210110510511c1012">[email&#160;protected]</a></span></div>
+        <div class="ef">Subject: <span>UCL student reaching out about your PM role at Monzo</span></div>
+      </div>
+      <div class="email-body">
+        <p>Hi Sarah,</p>
+        <p>I noticed you studied at UCL before joining Monzo's product team. I'm in my final year there and came across the PM opening you're currently hiring for.</p>
+        <p>I'd love to hear how you made the jump from university into fintech product. Would you be open to 20 minutes?</p>
+        <p>You can grab a time here: <a class="email-link">cal.com/alex/coffee-chat</a></p>
+        <p>Thanks,<br><strong>Alex</strong></p>
+      </div>
+      <div class="email-foot">
+        <span class="wc">78 words</span>
+        <button class="send-btn">Send email →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TESTIMONIALS -->
+<div class="section-divider"><hr></div>
+<div class="section" id="stories">
+  <p class="eyebrow reveal">Student stories</p>
+  <h2 class="reveal">They stopped applying.<br>They started <em>connecting.</em></h2>
+  <p class="section-sub reveal">Early results from students who switched from mass applying to targeted outreach.</p>
+  <div class="testi-scroll reveal">
+    <div class="tcard">
+      <div><div class="tcard-open">"</div><p class="tcard-text">Got a Goldman Sachs internship after 3 weeks. The alumni matching is the secret. My response rate was unlike anything I had seen from cold outreach on other platforms.</p></div>
+      <div class="tcard-author"><div class="tav">MK</div><div><div class="tname">Maya K.</div><div class="tuni">LSE · Finance · Class of 2025</div></div></div>
+    </div>
+    <div class="tcard">
+      <div><div class="tcard-open">"</div><p class="tcard-text">Four months of applications going nowhere. First week on Coffee Chat Connect I had three real conversations with people actually doing the job I wanted.</p></div>
+      <div class="tcard-author"><div class="tav">TW</div><div><div class="tname">Tom W.</div><div class="tuni">Manchester · CS · Class of 2025</div></div></div>
+    </div>
+    <div class="tcard">
+      <div><div class="tcard-open">"</div><p class="tcard-text">My flatmate asked how I wrote such a good cold email. I didn't have the heart to tell her. The platform makes you look like you've been networking for years.</p></div>
+      <div class="tcard-author"><div class="tav">PL</div><div><div class="tname">Priya L.</div><div class="tuni">Edinburgh · Marketing · Class of 2026</div></div></div>
+    </div>
+    <div class="tcard">
+      <div><div class="tcard-open">"</div><p class="tcard-text">I'd avoided cold emailing because it felt pushy. The emails this generates feel so natural I barely edited them. Three replies in my first week.</p></div>
+      <div class="tcard-author"><div class="tav">OB</div><div><div class="tname">Oliver B.</div><div class="tuni">Imperial · Engineering · Class of 2025</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section reveal" id="signup">
+  <h2>Your next job starts with<br>a <em>conversation.</em></h2>
+  <p>Free to sign up. Get your first matches in under a minute.</p>
+  <div class="cta-actions">
+    <a href="ccc-signup.html" class="btn-cta" onclick="event.preventDefault();smartNavigate('ccc-signup.html')">Get started free →</a>
+    <p class="cta-note">Free, no credit card needed.</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <a href="#" class="footer-wordmark">
+    <div class="footer-wm-icon">☕</div>
+    <span class="footer-wm-text">Coffee<em>Chat</em>Connect</span>
+  </a>
+  <ul class="footer-links">
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="/universities">For Universities</a></li>
+    <li><a href="/cdn-cgi/l/email-protection#e48c8188888ba4878b82828181878c8590878b8a8a818790ca878b89">Contact</a></li>
+  </ul>
+  <p class="footer-copy">© 2026 Coffee Chat Connect</p>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal, .reveal-group').forEach(el => observer.observe(el));
+
+  // Fallback: force all reveal elements visible after 1.5s
+  setTimeout(() => {
+    document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('visible'));
+  }, 1500);
+</script>

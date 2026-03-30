@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Coffee Chat Connect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #FFFFFF;
+    --white:      #FDFDFC;
+    --surface:    #F3F1EE;
+    --border:     #E6E2DB;
+    --border-md:  #CEC8BF;
+    --green:      #1F4530;
+    --green-lite: #EAF2EC;
+    --green-mid:  #A8C9B0;
+    --green-deep: #122B1E;
+    --text:       #1A1714;
+    --text-mid:   #3D3831;
+    --muted:      #7A7068;
+    --subtle:     #ADA79F;
+    --sent-bg:    #F0F7F2;
+    --sent-text:  #2D5A3D;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 52px;
+    border-bottom: 1px solid var(--border);
+    background: var(--white);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+  }
+
+  .wordmark-text {
+    font-family: 'Lato', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  .wordmark-text em { font-style: normal; color: var(--green); }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .nav-profile {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--green-lite);
+    border: 1.5px solid var(--green-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--green);
+    cursor: pointer;
+  }
+
+  .nav-settings {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .nav-settings:hover { color: var(--text); }
+
+  /* ─── LAYOUT ─── */
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 52px 80px;
+  }
+
+  /* ─── PAGE HEADER ─── */
+  .page-header {
+    margin-bottom: 36px;
+    opacity: 0;
+    animation: rise 0.45s ease forwards;
+  }
+
+  .greeting {
+    font-family: 'Lato', sans-serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .greeting em { font-style: italic; color: var(--green); }
+
+  .page-sub {
+    font-size: 0.875rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  /* ─── QUOTA CARD ─── */
+  .quota-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    opacity: 0;
+    animation: rise 0.45s ease 0.06s forwards;
+  }
+
+  .quota-left { flex: 1; }
+
+  .quota-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-mid);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .quota-count {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .quota-count strong {
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  .quota-track {
+    height: 5px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .quota-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 100px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .quota-pips {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .pip {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+
+  .pip.on  { background: var(--green); }
+  .pip.off { background: var(--border); }
+
+  /* ─── SECTION LABEL ─── */
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    margin-bottom: 14px;
+    opacity: 0;
+    animation: rise 0.45s ease 0.1s forwards;
+  }
+
+  /* ─── MATCH CARDS ─── */
+  .matches {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .match-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    opacity: 0;
+    animation: rise 0.45s ease forwards;
+  }
+
+  .match-card:nth-child(1) { animation-delay: 0.14s; }
+  .match-card:nth-child(2) { animation-delay: 0.20s; }
+  .match-card:nth-child(3) { animation-delay: 0.26s; }
+
+  .match-card:hover {
+    border-color: var(--border-md);
+    box-shadow: 0 4px 20px rgba(26,23,20,0.06);
+  }
+
+  .match-card.sent {
+    opacity: 0;
+    animation: rise 0.45s ease forwards;
+    background: var(--sent-bg);
+    border-color: var(--green-mid);
+  }
+
+  /* Card top row */
+  .card-main {
+    padding: 20px 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  /* Avatar */
+  .avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--muted);
+  }
+
+  .match-card.sent .avatar {
+    background: var(--green-lite);
+    border-color: var(--green-mid);
+    color: var(--green);
+  }
+
+  /* Info block */
+  .card-info { flex: 1; min-width: 0; }
+
+  .card-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+  }
+
+  .card-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .alumni-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--green);
+    background: var(--green-lite);
+    border: 1px solid var(--green-mid);
+    padding: 2px 8px;
+    border-radius: 100px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .card-position {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .card-role-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px 10px;
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: var(--text-mid);
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .card-role-tag:hover {
+    border-color: var(--green-mid);
+    color: var(--green);
+  }
+
+  .card-role-tag.has-link {
+    cursor: pointer;
+  }
+
+  .role-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+  }
+
+  .card-posted {
+    font-size: 0.7rem;
+    color: var(--subtle);
+    font-weight: 400;
+    margin-top: 5px;
+  }
+
+  /* Action area */
+  .card-action {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .sent-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--sent-text);
+  }
+
+  .sent-check {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    color: white;
+  }
+
+  .draft-btn {
+    background: var(--text);
+    color: var(--white);
+    border: none;
+    border-radius: 9px;
+    padding: 9px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .draft-btn:hover {
+    background: var(--text-mid);
+    transform: translateY(-1px);
+  }
+
+  /* ─── CARD DETAILS (expandable) ─── */
+  .card-details {
+    border-top: 1px solid var(--border);
+    padding: 0 22px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.2s ease;
+  }
+
+  .card-details.open {
+    max-height: 200px;
+    padding: 16px 22px;
+  }
+
+  .details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .detail-item { display: flex; flex-direction: column; gap: 2px; }
+
+  .detail-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--subtle);
+  }
+
+  .detail-value {
+    font-size: 0.82rem;
+    color: var(--text-mid);
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .detail-value a {
+    color: var(--green);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 500;
+  }
+
+  .detail-value a:hover { color: var(--green-deep); }
+
+  /* Toggle row */
+  .card-toggle {
+    border-top: 1px solid var(--border);
+    padding: 10px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background 0.12s;
+    background: transparent;
+    width: 100%;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    font-family: 'Lato', sans-serif;
+  }
+
+  .card-toggle:hover { background: var(--surface); }
+
+  .toggle-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .toggle-icon {
+    font-size: 0.7rem;
+    color: var(--subtle);
+    transition: transform 0.25s ease;
+  }
+
+  .toggle-icon.open { transform: rotate(180deg); }
+
+  /* ─── EMPTY STATE ─── */
+  .empty-state {
+    text-align: center;
+    padding: 56px 32px;
+    border: 1.5px dashed var(--border);
+    border-radius: 18px;
+    opacity: 0;
+    animation: rise 0.45s ease 0.14s forwards;
+  }
+
+  .empty-icon { font-size: 2.2rem; margin-bottom: 14px; }
+
+  .empty-title {
+    font-family: 'Lato', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .empty-sub {
+    font-size: 0.85rem;
+    color: var(--muted);
+    max-width: 320px;
+    margin: 0 auto 24px;
+    line-height: 1.65;
+  }
+
+  /* ─── EMAIL DRAFT MODAL ─── */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,23,20,0.45);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 640px;
+    box-shadow: 0 24px 80px rgba(26,23,20,0.18);
+    animation: rise 0.3s ease forwards;
+    overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .modal-title {
+    font-family: 'Lato', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .modal-to {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: var(--subtle);
+    padding: 2px;
+    line-height: 1;
+    transition: color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .modal-close:hover { color: var(--text); }
+
+  .modal-body { padding: 20px 24px; }
+
+  /* Editable subject line */
+  .modal-subject {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .modal-subject-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--subtle);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+
+  .modal-subject-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 0.82rem;
+    font-family: 'Lato', sans-serif;
+    font-weight: 500;
+    color: var(--text);
+    padding: 0;
+    min-width: 0;
+  }
+
+  .modal-subject-input:focus {
+    box-shadow: none;
+  }
+
+  .email-textarea {
+    width: 100%;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 0.875rem;
+    font-family: 'Lato', sans-serif;
+    font-weight: 400;
+    color: var(--text-mid);
+    line-height: 1.75;
+    resize: none;
+    outline: none;
+    transition: border-color 0.15s;
+    min-height: 260px;
+  }
+
+  .email-textarea:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(31,69,48,0.07);
+  }
+
+  .modal-footer {
+    padding: 14px 24px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+  }
+
+  .modal-footer-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .view-role-link {
+    font-size: 0.72rem;
+    color: var(--green);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 600;
+  }
+
+  .view-role-link:hover { color: var(--green-deep); }
+
+  .word-count {
+    font-size: 0.74rem;
+    color: var(--subtle);
+  }
+
+  .modal-actions { display: flex; gap: 8px; }
+
+  .btn-regenerate {
+    background: var(--white);
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-regenerate:hover { border-color: var(--border-md); color: var(--text); }
+
+  .btn-copy {
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 9px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .btn-copy:hover { background: var(--green-deep); transform: translateY(-1px); }
+
+  .btn-mark-sent {
+    background: var(--white);
+    color: var(--text-mid);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-mark-sent:hover { border-color: var(--green); color: var(--green); }
+  .btn-mark-sent.done { background: var(--green-lite); border-color: var(--green-mid); color: var(--green); }
+
+  /* ─── SENT SUCCESS OVERLAY ─── */
+  .sent-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(20, 40, 28, 0.72);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .sent-overlay.visible { display: flex; }
+
+  .sent-checkmark-wrap {
+    position: relative;
+    width: 96px;
+    height: 96px;
+  }
+
+  /* Expanding circle — Apple Pay style */
+  .sent-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--green);
+    transform: scale(0);
+    opacity: 0;
+    animation: ringPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes ringPop {
+    0%   { transform: scale(0);    opacity: 0; }
+    60%  { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1);    opacity: 1; }
+  }
+
+  /* SVG tick */
+  .sent-tick {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    animation: tickFade 0.2s ease 0.35s forwards;
+  }
+
+  @keyframes tickFade {
+    from { opacity: 0; transform: scale(0.7); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  .sent-tick svg {
+    width: 44px;
+    height: 44px;
+    stroke: #fff;
+    stroke-width: 3.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .sent-tick .tick-path {
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+    animation: drawTick 0.28s ease 0.38s forwards;
+  }
+
+  @keyframes drawTick {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .sent-label-text {
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-top: 22px;
+    opacity: 0;
+    animation: tickFade 0.25s ease 0.55s forwards;
+  }
+
+  /* ─── SENT CARD STATE WITH REVIEW OPTION ─── */
+  .card-review-link {
+    font-size: 0.72rem;
+    color: var(--green);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 600;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: 'Lato', sans-serif;
+  }
+
+  .card-review-link:hover { color: var(--green-deep); }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 640px) {
+    nav { padding: 0 20px; }
+    .page { padding: 32px 20px 60px; }
+    .details-grid { grid-template-columns: 1fr; }
+    .card-main { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="ccc-landing-final.html" class="wordmark">
+    <div style="width:28px;height:28px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">☕</div>
+    <span class="wordmark-text">Coffee<em>Chat</em>Connect</span>
+  </a>
+  <div class="nav-right">
+    <a href="#" class="nav-settings">Settings</a>
+    <div class="nav-profile" title="Your profile">AJ</div>
+  </div>
+</nav>
+
+<!-- PAGE -->
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1 class="greeting" id="greeting-text">Good morning, <em id="user-name">there</em>.</h1>
+    <p class="page-sub" id="page-sub">Loading your matches...</p>
+  </div>
+
+  <!-- Quota -->
+  <div class="quota-card">
+    <div class="quota-left">
+      <div class="quota-label">
+        <span>Today's outreach</span>
+        <span class="quota-count"><strong>0</strong> of 3 sent</span>
+      </div>
+      <div class="quota-track">
+        <div class="quota-fill" id="quota-fill" style="width: 0%"></div>
+      </div>
+    </div>
+    <div class="quota-pips">
+      <div class="pip off"></div>
+        <div class="pip off"></div>
+        <div class="pip off"></div>
+    </div>
+  </div>
+
+  <!-- Section label -->
+  <p class="section-label">Today's matches</p>
+
+  <!-- Match cards -->
+  <div class="matches">
+
+    <!-- MATCH 1 — Finance: Jefferies -->
+    <div class="match-card" id="card-1">
+      <div class="card-main">
+        <div class="avatar">JF</div>
+        <div class="card-info">
+          <div class="card-name-row">
+            <span class="card-name">James F.</span>
+            <span class="alumni-badge">Alumni</span>
+          </div>
+          <div class="card-position">Risk Analyst · Jefferies</div>
+          <a class="card-role-tag has-link"
+             href="https://jefferies.tal.net/vx/lang-en-GB/mobile-0/appcentre-1/brand-4/user-415213/xf-5ac368c85a0a/candidate/so/pm/1/pl/2/opp/1666-2026-Risk-Management-Quant-Summer-Associate-Programme-London/en-GB"
+             target="_blank" rel="noopener noreferrer">
+            <div class="role-dot"></div>
+            2026 Risk Management (Quant) Summer Associate ↗
+          </a>
+          <div class="card-posted">Posted 25 Mar 2026 · Finance · UK</div>
+        </div>
+        <div class="card-action">
+          <button class="draft-btn" onclick="openModal('card-1')">Draft email →</button>
+        </div>
+      </div>
+      <button class="card-toggle" onclick="toggleDetails('card-1', this)">
+        <span class="toggle-label">Contact details</span>
+        <span class="toggle-icon">▾</span>
+      </button>
+      <div class="card-details" id="details-card-1">
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Expected email</span>
+            <span class="detail-value"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="016b2f676d647562696473416b64676764736864722f626e6c">[email&#160;protected]</a></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Profile</span>
+            <span class="detail-value"><a href="https://www.linkedin.com/in/james-f" target="_blank" rel="noopener noreferrer">linkedin.com/in/james-f</a></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Relation</span>
+            <span class="detail-value">UCL alumni · Class of 2019</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Opening date</span>
+            <span class="detail-value">25 Mar 2026</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MATCH 2 — Finance: Platinum Peak (PE) -->
+    <div class="match-card" id="card-2">
+      <div class="card-main">
+        <div class="avatar">OM</div>
+        <div class="card-info">
+          <div class="card-name-row">
+            <span class="card-name">Oliver M.</span>
+          </div>
+          <div class="card-position">Associate · Platinum Peak Holdings</div>
+          <a class="card-role-tag has-link"
+             href="https://www.linkedin.com/jobs/view/private-equity-m-a-intern-at-platinum-peak-holdings-ltd-4389484469/"
+             target="_blank" rel="noopener noreferrer">
+            <div class="role-dot"></div>
+            Private Equity (M&A) Intern ↗
+          </a>
+          <div class="card-posted">Posted 24 Mar 2026 · Finance · UK</div>
+        </div>
+        <div class="card-action">
+          <button class="draft-btn" onclick="openModal('card-2')">Draft email →</button>
+        </div>
+      </div>
+      <button class="card-toggle" onclick="toggleDetails('card-2', this)">
+        <span class="toggle-label">Contact details</span>
+        <span class="toggle-icon">▾</span>
+      </button>
+      <div class="card-details" id="details-card-2">
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Expected email</span>
+            <span class="detail-value"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3f501152504d585e517f4f535e4b56514a524f5a5e545750535b5651584c115c5052">[email&#160;protected]</a></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Profile</span>
+            <span class="detail-value"><a href="https://www.linkedin.com/in/oliver-m" target="_blank" rel="noopener noreferrer">linkedin.com/in/oliver-m</a></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Relation</span>
+            <span class="detail-value">No shared connection</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Opening date</span>
+            <span class="detail-value">24 Mar 2026</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MATCH 3 — Finance: E.ON Quant Risk -->
+    <div class="match-card" id="card-3">
+      <div class="card-main">
+        <div class="avatar">SP</div>
+        <div class="card-info">
+          <div class="card-name-row">
+            <span class="card-name">Sara P.</span>
+            <span class="alumni-badge">Alumni</span>
+          </div>
+          <div class="card-position">Quant Risk Analyst · E.ON</div>
+          <a class="card-role-tag has-link"
+             href="https://careers.eon.com/uk/job/Solihull-Quantitative-Risk-Intern/1376873533/"
+             target="_blank" rel="noopener noreferrer">
+            <div class="role-dot"></div>
+            Quantitative Risk Intern ↗
+          </a>
+          <div class="card-posted">Posted 24 Mar 2026 · Finance · UK</div>
+        </div>
+        <div class="card-action">
+          <button class="draft-btn" onclick="openModal('card-3')">Draft email →</button>
+        </div>
+      </div>
+      <button class="card-toggle" onclick="toggleDetails('card-3', this)">
+        <span class="toggle-label">Contact details</span>
+        <span class="toggle-icon">▾</span>
+      </button>
+      <div class="card-details" id="details-card-3">
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Expected email</span>
+            <span class="detail-value"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="54277a243520313814313b3a7a373b39">[email&#160;protected]</a></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Profile</span>
+            <span class="detail-value"><a href="https://www.linkedin.com/in/sara-p" target="_blank" rel="noopener noreferrer">linkedin.com/in/sara-p</a></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Relation</span>
+            <span class="detail-value">UCL alumni · Class of 2021</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Opening date</span>
+            <span class="detail-value">24 Mar 2026</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- EMAIL DRAFT MODAL -->
+<div class="modal-backdrop" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">Draft email</div>
+        <div class="modal-to" id="modal-to"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-subject">
+        <span class="modal-subject-label">Subject</span>
+        <input
+          type="text"
+          class="modal-subject-input"
+          id="modal-subject-input"
+          spellcheck="true"
+        />
+      </div>
+      <textarea
+        class="email-textarea"
+        id="email-body"
+        oninput="updateWordCount()"
+        spellcheck="true"
+      ></textarea>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <span class="word-count" id="word-count">0 words</span>
+        <a class="view-role-link" id="modal-role-link" href="#" target="_blank" rel="noopener noreferrer">View role ↗</a>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-regenerate" onclick="regenerate()">↺ Regenerate</button>
+        <button class="btn-copy" id="btn-copy" onclick="copyEmail()">Copy email</button>
+        <button class="btn-mark-sent" id="btn-mark-sent" onclick="markAsSent()">Mark as sent</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SENT SUCCESS OVERLAY -->
+<div class="sent-overlay" id="sent-overlay">
+  <div class="sent-checkmark-wrap">
+    <div class="sent-ring"></div>
+    <div class="sent-tick">
+      <svg viewBox="0 0 48 48">
+        <polyline class="tick-path" points="10,26 20,36 38,14"/>
+      </svg>
+    </div>
+  </div>
+  <p class="sent-label-text">Email ready to send</p>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // ── INIT: name, date, live match loading ──
+  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? `${window.location.protocol}//${window.location.hostname}:5001`
+    : window.location.origin;
+
+  (async function init() {
+    // Greeting period
+    const hour = new Date().getHours();
+    const period = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+    const greetingEl = document.getElementById('greeting-text');
+    if (greetingEl) greetingEl.childNodes[0].textContent = `Good ${period}, `;
+
+    // Today's date
+    const today = new Date();
+    const dayName = today.toLocaleDateString('en-GB', {weekday:'long'});
+    const dateStr = today.toLocaleDateString('en-GB', {day:'numeric', month:'long'});
+    const sub = document.getElementById('page-sub');
+    if (sub) sub.textContent = `${dayName}, ${dateStr} · Here are today's matches.`;
+
+    // Read name from URL param or /api/me session
+    const params = new URLSearchParams(window.location.search);
+    let studentName = params.get('name') || '';
+    let studentId   = params.get('student_id') || null;
+
+    // Try to load identity from session cookie
+    try {
+      const me = await fetch(`${API_BASE}/api/me`, { credentials: 'include' });
+      if (me.ok) {
+        const meData = await me.json();
+        const student = meData.data?.student || meData.student;
+        if (student) {
+          studentName = student.first_name || studentName;
+          studentId   = student.id || studentId;
+          // Update profile initials
+          const prof = document.querySelector('.nav-profile');
+          if (prof && student.first_name) {
+            const parts = student.first_name.split(' ');
+            prof.textContent = (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Update greeting name
+    const nameEl = document.getElementById('user-name');
+    if (nameEl && studentName) nameEl.textContent = decodeURIComponent(studentName);
+
+    // Try to load live matches from API
+    if (studentId) {
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 8000);
+        const r = await fetch(`${API_BASE}/api/matches/today/${studentId}`, {
+          credentials: 'include',
+          signal: controller.signal
+        });
+        if (r.ok) {
+          const data = await r.json();
+          const liveMatches = data.data?.matches || [];
+          if (liveMatches.length > 0) {
+            renderLiveCards(liveMatches);
+          }
+        }
+      } catch (_) {
+        // No server or timeout — keep mock cards
+      }
+    }
+  })();
+
+  function renderLiveCards(liveMatches) {
+    const container = document.querySelector('.matches');
+    if (!container || !liveMatches.length) return;
+    container.innerHTML = '';
+    liveMatches.slice(0, 3).forEach((m, idx) => {
+      const cardId = `live-card-${idx}`;
+      const initials = (m.person_name || 'XX').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+      const isAlumni = m.is_alumni;
+      const linkedinUrl = m.person_linkedin_url || '#';
+      const jobUrl = m.job_url || '#';
+
+      // Register in matches object for modal
+      matches[cardId] = {
+        name:    m.person_name || '',
+        to:      m.person_email || '',
+        applyUrl: jobUrl,
+        subject: m.email_subject || `Student reaching out about the ${m.job_title || 'role'} at ${m.person_company || ''}`,
+        body:    m.email_body || `Hi ${(m.person_name||'').split(' ')[0]},
+
+I came across the ${m.job_title || 'role'} at ${m.person_company || ''} and would love to hear more.
+
+Would you be open to a 20 minute chat?
+
+Thanks`
+      };
+
+      container.insertAdjacentHTML('beforeend', `
+        <div class="match-card" id="${cardId}" style="animation-delay:${idx*0.06}s">
+          <div class="card-main">
+            <div class="avatar">${initials}</div>
+            <div class="card-info">
+              <div class="card-name-row">
+                <span class="card-name">${m.person_name || ''}</span>
+                ${isAlumni ? '<span class="alumni-badge">Alumni</span>' : ''}
+              </div>
+              <div class="card-position">${m.person_title || ''} · ${m.person_company || ''}</div>
+              ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer">
+                <div class="role-dot"></div>${m.job_title || 'Open role'} ↗</a>` : ''}
+              <div class="card-posted">${m.match_date || ''} · ${m.industry || ''}</div>
+            </div>
+            <div class="card-action">
+              <button class="draft-btn" onclick="openModal('${cardId}')">Draft email →</button>
+            </div>
+          </div>
+          <button class="card-toggle" onclick="toggleDetails('${cardId}', this)">
+            <span class="toggle-label">Contact details</span>
+            <span class="toggle-icon">▾</span>
+          </button>
+          <div class="card-details" id="details-${cardId}">
+            <div class="details-grid">
+              <div class="detail-item"><span class="detail-label">Expected email</span><span class="detail-value">${m.person_email || '—'}</span></div>
+              <div class="detail-item"><span class="detail-label">Profile</span><span class="detail-value">${linkedinUrl !== '#' ? `<a href="${linkedinUrl}" target="_blank">${linkedinUrl.replace('https://','')}</a>` : '—'}</span></div>
+              <div class="detail-item"><span class="detail-label">Relation</span><span class="detail-value">${isAlumni ? 'Alumni' : 'No shared connection'}</span></div>
+              <div class="detail-item"><span class="detail-label">Posted</span><span class="detail-value">${m.job_posted_date || '—'}</span></div>
+            </div>
+          </div>
+        </div>`);
+    });
+  }
+
+  // ── MATCH DATA ──
+  const matches = {
+    'card-1': {
+      name: 'James F.',
+      to: 'j.fletcher@jefferies.com',
+      applyUrl: 'https://jefferies.tal.net/vx/lang-en-GB/mobile-0/appcentre-1/brand-4/user-415213/xf-5ac368c85a0a/candidate/so/pm/1/pl/2/opp/1666-2026-Risk-Management-Quant-Summer-Associate-Programme-London/en-GB',
+      subject: 'UCL student reaching out about the Jefferies Risk Management Summer Associate role',
+      body: `Hi James,
+
+I noticed you studied at UCL before joining Jefferies and came across the 2026 Risk Management (Quant) Summer Associate Programme that just opened.
+
+I am in my final year studying Economics at UCL with a strong interest in quantitative finance. I would love to hear how you made the move from university into the risk side of a bulge bracket and what the programme is actually like day to day.
+
+Would you be open to a 20 minute chat? You can grab a time here: cal.com/alex/coffee-chat
+
+Thanks,
+Alex`
+    },
+    'card-2': {
+      name: 'Oliver M.',
+      to: 'o.morgan@platinumpeakholdings.com',
+      applyUrl: 'https://www.linkedin.com/jobs/view/private-equity-m-a-intern-at-platinum-peak-holdings-ltd-4389484469/',
+      subject: 'UCL student reaching out about the Private Equity Intern role at Platinum Peak',
+      body: `Hi Oliver,
+
+I came across the Private Equity (M&A) Intern role at Platinum Peak Holdings and your profile stood out as someone who could give genuine insight into the deal work there.
+
+I am a final year Economics student at UCL with a strong interest in M&A and private equity. I would love to hear about your experience and what the internship actually involves day to day.
+
+Would you be open to a 20 minute chat? Here is a booking link: cal.com/alex/coffee-chat
+
+Thanks,
+Alex`
+    },
+    'card-3': {
+      name: 'Sara P.',
+      to: 's.patel@eon.com',
+      applyUrl: 'https://careers.eon.com/uk/job/Solihull-Quantitative-Risk-Intern/1376873533/',
+      subject: 'UCL student reaching out about the E.ON Quantitative Risk Intern role',
+      body: `Hi Sara,
+
+I noticed you studied at UCL before joining E.ON and came across the Quantitative Risk Intern role that opened this week.
+
+I am finishing my final year in Economics at UCL with a focus on financial modelling and risk. I would love to hear how you made the move into energy finance and what the quant work at E.ON is like.
+
+Would you have 20 minutes for a quick chat? Here is a booking link: cal.com/alex/coffee-chat
+
+Thanks,
+Alex`
+    }
+  };
+
+  let activeCard = null;
+  let sentCount = 0;
+
+  // ── TOGGLE CONTACT DETAILS ──
+  function toggleDetails(cardId, btn) {
+    const details = document.getElementById('details-' + cardId);
+    const icon = btn.querySelector('.toggle-icon');
+    const isOpen = details.classList.contains('open');
+
+    details.classList.toggle('open', !isOpen);
+    icon.classList.toggle('open', !isOpen);
+    btn.querySelector('.toggle-label').textContent = isOpen ? 'Contact details' : 'Hide details';
+  }
+
+  // ── MODAL ──
+  function openModal(cardId) {
+    activeCard = cardId;
+    const data = matches[cardId];
+    if (!data) return;
+
+    document.getElementById('modal-title').textContent = 'Draft email to ' + data.name;
+    document.getElementById('modal-to').textContent = 'To: ' + data.to;
+    document.getElementById('modal-subject-input').value = data.subject;
+    document.getElementById('email-body').value = data.body;
+
+    const roleLink = document.getElementById('modal-role-link');
+    if (data.applyUrl) {
+      roleLink.href = data.applyUrl;
+      roleLink.style.display = 'inline';
+    } else {
+      roleLink.style.display = 'none';
+    }
+
+    // Reset buttons
+    const copyBtn = document.getElementById('btn-copy');
+    const markBtn = document.getElementById('btn-mark-sent');
+    copyBtn.textContent = 'Copy email';
+    copyBtn.classList.remove('copied');
+    markBtn.textContent = 'Mark as sent';
+    markBtn.classList.remove('done');
+
+    updateWordCount();
+    document.getElementById('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('email-body').focus(), 100);
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    document.body.style.overflow = '';
+    // Reset mark-sent button unless it was actually sent
+    const markBtn = document.getElementById('btn-mark-sent');
+    if (markBtn && !markBtn.classList.contains('done')) {
+      markBtn.disabled = false;
+    }
+    activeCard = null;
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modal')) closeModal();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  function updateWordCount() {
+    const text = document.getElementById('email-body').value.trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    const wc = document.getElementById('word-count');
+    wc.textContent = words + ' word' + (words !== 1 ? 's' : '');
+    wc.style.color = words > 150 ? '#B91C1C' : 'var(--subtle)';
+  }
+
+  function regenerate() {
+    const btn = document.querySelector('.btn-regenerate');
+    btn.textContent = '↺ Regenerating…';
+    btn.disabled = true;
+    // In production: call Claude API for a fresh draft
+    setTimeout(() => {
+      btn.textContent = '↺ Regenerate';
+      btn.disabled = false;
+    }, 1000);
+  }
+
+  function copyEmail() {
+    const subject = document.getElementById('modal-subject-input').value;
+    const body = document.getElementById('email-body').value;
+    const full = 'Subject: ' + subject + '\n\n' + body;
+
+    navigator.clipboard.writeText(full).then(() => {
+      const btn = document.getElementById('btn-copy');
+      btn.textContent = 'Copied ✓';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy email';
+        btn.classList.remove('copied');
+      }, 2000);
+    }).catch(() => {
+      // Fallback for older browsers
+      const ta = document.createElement('textarea');
+      ta.value = full;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const btn = document.getElementById('btn-copy');
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = 'Copy email'; }, 2000);
+    });
+  }
+
+  function markAsSent() {
+    if (!activeCard) return;
+
+    const cardId = activeCard;
+    const data = matches[cardId];
+
+    // Freeze mark-sent button
+    const markBtn = document.getElementById('btn-mark-sent');
+    markBtn.textContent = 'Sent ✓';
+    markBtn.classList.add('done');
+    markBtn.disabled = true;
+
+    // Close modal
+    closeModal();
+
+    // Show Apple Pay success overlay
+    const overlay = document.getElementById('sent-overlay');
+    overlay.classList.add('visible');
+
+    // After animation completes, hide overlay and update card
+    setTimeout(() => {
+      overlay.classList.remove('visible');
+
+      // Rebuild the ring/tick so it re-animates next time
+      const wrap = overlay.querySelector('.sent-checkmark-wrap');
+      wrap.innerHTML = `
+        <div class="sent-ring"></div>
+        <div class="sent-tick">
+          <svg viewBox="0 0 48 48">
+            <polyline class="tick-path" points="10,26 20,36 38,14"/>
+          </svg>
+        </div>`;
+
+      // Mark card as sent
+      const card = document.getElementById(cardId);
+      card.classList.add('sent');
+
+      // Replace draft button with sent label + review link
+      const action = card.querySelector('.card-action');
+      action.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <div class="sent-label">
+            <div class="sent-check">✓</div>
+            Sent
+          </div>
+          <button class="card-review-link" onclick="reviewDraft('${cardId}')">Review draft</button>
+        </div>`;
+
+      // Update quota bar
+      sentCount++;
+      updateQuota(sentCount);
+
+    }, 1600);
+  }
+
+  function reviewDraft(cardId) {
+    // Re-open modal in read-only review mode
+    activeCard = cardId;
+    const data = matches[cardId];
+    if (!data) return;
+
+    document.getElementById('modal-title').textContent = 'Sent email to ' + data.name;
+    document.getElementById('modal-to').textContent = 'To: ' + data.to;
+    document.getElementById('modal-subject-input').value = data.subject;
+    document.getElementById('email-body').value = data.body;
+
+    const roleLink = document.getElementById('modal-role-link');
+    roleLink.href = data.applyUrl || '#';
+
+    // Reset copy button, hide mark-sent (already sent)
+    const copyBtn = document.getElementById('btn-copy');
+    copyBtn.textContent = 'Copy email';
+    copyBtn.classList.remove('copied');
+
+    const markBtn = document.getElementById('btn-mark-sent');
+    markBtn.textContent = 'Already sent ✓';
+    markBtn.classList.add('done');
+    markBtn.disabled = true;
+
+    updateWordCount();
+    document.getElementById('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function updateQuota(sent) {
+ 
