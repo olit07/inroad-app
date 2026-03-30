@@ -24,7 +24,7 @@ SMTP_PORT      = int(os.environ.get("SMTP_PORT", "465"))
 SMTP_USER      = os.environ.get("SMTP_USER", "resend")
 SMTP_PASS      = os.environ.get("SMTP_PASS", "")
 FROM_EMAIL     = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
-FROM_NAME      = os.environ.get("FROM_NAME", "Coffee Chat Connect")
+FROM_NAME      = os.environ.get("FROM_NAME", "inroad")
 
 # ── APIs ────────────────────────────────────────────────────────────────────
 

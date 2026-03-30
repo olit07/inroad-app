@@ -42,6 +42,9 @@ app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), ".."
 
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
+# Initialise DB tables on startup — must be at module level so Gunicorn picks it up
+init_db()
+
 # Determine if we're on a secure host (Railway / any https origin)
 IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
 
@@ -121,12 +124,12 @@ def send_magic_link(email: str, token: str):
     html = f"""
     <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#ffffff;">
       <div style="background:#1F4530;border-radius:12px;padding:28px 24px;margin-bottom:24px;text-align:center;">
-        <span style="font-size:1.8rem;">☕</span>
-        <p style="color:#ffffff;font-size:1.1rem;font-weight:700;margin:8px 0 0;letter-spacing:-0.01em;">Coffee<span style="font-style:italic;font-weight:300;">Chat</span>Connect</p>
+        <svg width="36" height="36" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;"><rect width="88" height="88" rx="22" fill="rgba(255,255,255,0.15)"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+        <p style="color:#ffffff;font-size:1.1rem;font-weight:700;margin:8px 0 0;letter-spacing:-0.02em;font-family:Georgia,serif;">inroad</p>
       </div>
       <h2 style="font-size:1.4rem;font-weight:700;color:#111110;margin:0 0 12px;letter-spacing:-0.01em;">Your magic link is ready.</h2>
       <p style="color:#6E6860;font-size:0.9rem;line-height:1.7;margin:0 0 24px;">Click the button below to sign in. The link expires in {MAGIC_LINK_EXPIRY_MINUTES} minutes.</p>
-      <a href="{verify_url}" style="display:inline-block;background:#1F4530;color:#ffffff;font-size:0.9rem;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">Sign in to Coffee Chat Connect →</a>
+      <a href="{verify_url}" style="display:inline-block;background:#1F4530;color:#ffffff;font-size:0.9rem;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">Sign in to inroad →</a>
       <p style="color:#A8A09A;font-size:0.75rem;margin:24px 0 0;line-height:1.6;">If you didn't request this, you can safely ignore this email.<br>Link: <a href="{verify_url}" style="color:#1F4530;">{verify_url}</a></p>
     </div>
     """
@@ -141,7 +144,7 @@ def send_magic_link(email: str, token: str):
             json={
                 "from": f"{FROM_NAME} <{FROM_EMAIL}>",
                 "to": [email],
-                "subject": "Your Coffee Chat Connect magic link",
+                "subject": "Your inroad magic link",
                 "html": html,
             },
             timeout=10,
