@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Coffee Chat Connect — Get into the workforce the smart way</title>
+<title>Inroad — Get into the workforce the smart way</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet">
@@ -519,49 +519,13 @@
     .ticker-label { padding: 0 16px 0 24px; }
   }
 </style>
-<script>
-// Smart file navigation — works with Chrome's _N download suffixes
-// Finds sibling HTML files in the same directory by trying common suffixes
-function smartNavigate(baseName) {
-  const base = window.location.href.replace(/[^/]*$/, '');
-  const suffixes = ['', '_1','_2','_3','_4','_5','_6','_7','_8','_9',
-                    '_10','_11','_12','_13','_14','_15','_16','_17','_18','_19','_20'];
-  const name = baseName.replace('.html','');
-  let tried = 0;
-  function tryNext() {
-    if (tried >= suffixes.length) { alert('Could not find ' + baseName + '. Make sure all CCC files are in the same folder.'); return; }
-    const url = base + name + suffixes[tried] + '.html';
-    tried++;
-    const img = new Image();
-    img.onload = img.onerror = function(e) {
-      // For file:// we can't use fetch; use iframe trick instead
-      const ifr = document.createElement('iframe');
-      ifr.style.display = 'none';
-      ifr.src = url;
-      ifr.onload = function() {
-        try {
-          // If we can read the title, it loaded
-          const t = ifr.contentDocument && ifr.contentDocument.title;
-          if (t && t.length > 0) { document.body.removeChild(ifr); window.location.href = url; return; }
-        } catch(e2) {}
-        document.body.removeChild(ifr);
-        tryNext();
-      };
-      ifr.onerror = function() { document.body.removeChild(ifr); tryNext(); };
-      document.body.appendChild(ifr);
-    };
-  }
-  tryNext();
-}
-</script>
 </head>
 <body>
 
 <!-- NAV -->
 <nav>
   <a href="#" class="wordmark">
-    <div class="wm-icon">☕</div>
-    <span class="wm-text">Coffee<em>Chat</em>Connect</span>
+    <span class="wm-text">In<em>road</em></span>
   </a>
   <ul class="nav-center">
     <li><a href="#how">How it works</a></li>
@@ -569,8 +533,8 @@ function smartNavigate(baseName) {
     <li><a href="#stories">Stories</a></li>
   </ul>
   <div class="nav-right">
-    <a href="ccc-signup.html" class="btn-login" onclick="event.preventDefault();smartNavigate('ccc-signup.html')">Log in</a>
-    <a href="ccc-signup.html" class="btn-nav-cta" onclick="event.preventDefault();smartNavigate('ccc-signup.html')">Get started free →</a>
+    <a href="/signup" class="btn-login">Log in</a>
+    <a href="/signup" class="btn-nav-cta">Get started free →</a>
   </div>
 </nav>
 
@@ -583,10 +547,10 @@ function smartNavigate(baseName) {
     </div>
     <h1>Stop applying<br>into <em>the void.</em><br>Your next job<br>starts with a <em>match.</em></h1>
     <p class="hero-sub">
-      The graduate job market is broken. Applications are a lottery. Coffee Chat Connect gives you a smarter wedge into the workforce. Three targeted, AI personalised outreach emails a day, matched to real openings and the people who can get you in.
+      The graduate job market is broken. Applications are a lottery. Inroad gives you a smarter wedge into the workforce. Three targeted, AI personalised outreach emails a day, matched to real openings and the people who can get you in.
     </p>
     <div class="hero-actions">
-      <a href="ccc-signup.html" class="btn-hero-primary" onclick="event.preventDefault();smartNavigate('ccc-signup.html')">Get started free →</a>
+      <a href="/signup" class="btn-hero-primary">Get started free →</a>
       <a href="#how" class="btn-hero-ghost">See how it works</a>
     </div>
     <p class="hero-free-note">
@@ -769,7 +733,7 @@ function smartNavigate(baseName) {
       <div class="tcard-author"><div class="tav">MK</div><div><div class="tname">Maya K.</div><div class="tuni">LSE · Finance · Class of 2025</div></div></div>
     </div>
     <div class="tcard">
-      <div><div class="tcard-open">"</div><p class="tcard-text">Four months of applications going nowhere. First week on Coffee Chat Connect I had three real conversations with people actually doing the job I wanted.</p></div>
+      <div><div class="tcard-open">"</div><p class="tcard-text">Four months of applications going nowhere. First week on Inroad I had three real conversations with people actually doing the job I wanted.</p></div>
       <div class="tcard-author"><div class="tav">TW</div><div><div class="tname">Tom W.</div><div class="tuni">Manchester · CS · Class of 2025</div></div></div>
     </div>
     <div class="tcard">
@@ -788,7 +752,7 @@ function smartNavigate(baseName) {
   <h2>Your next job starts with<br>a <em>conversation.</em></h2>
   <p>Free to sign up. Get your first matches in under a minute.</p>
   <div class="cta-actions">
-    <a href="ccc-signup.html" class="btn-cta" onclick="event.preventDefault();smartNavigate('ccc-signup.html')">Get started free →</a>
+    <a href="/signup" class="btn-cta">Get started free →</a>
     <p class="cta-note">Free, no credit card needed.</p>
   </div>
 </div>
@@ -796,8 +760,7 @@ function smartNavigate(baseName) {
 <!-- FOOTER -->
 <footer>
   <a href="#" class="footer-wordmark">
-    <div class="footer-wm-icon">☕</div>
-    <span class="footer-wm-text">Coffee<em>Chat</em>Connect</span>
+    <span class="footer-wm-text">In<em>road</em></span>
   </a>
   <ul class="footer-links">
     <li><a href="#">Privacy</a></li>
@@ -805,7 +768,7 @@ function smartNavigate(baseName) {
     <li><a href="/universities">For Universities</a></li>
     <li><a href="/cdn-cgi/l/email-protection#e48c8188888ba4878b82828181878c8590878b8a8a818790ca878b89">Contact</a></li>
   </ul>
-  <p class="footer-copy">© 2026 Coffee Chat Connect</p>
+  <p class="footer-copy">© 2026 Inroad</p>
 </footer>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
