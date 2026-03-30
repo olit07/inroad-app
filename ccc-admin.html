@@ -6,7 +6,7 @@
 <title>Admin — inroad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg:         #FFFFFF;
@@ -25,7 +25,7 @@
     --amber-bg:   #FEF3C7;
     --red:        #B91C1C;
     --red-bg:     #FEF2F2;
-    --serif: 'Playfair Display', Georgia, serif;
+    --serif: 'Lora', Georgia, serif;
     --sans:  'Lato', system-ui, sans-serif;
     --green-mint: #A8D8B8;
     --surface-2: #EEECEA;
@@ -43,7 +43,7 @@
     position: sticky; top: 0; z-index: 50;
   }
   .wordmark { display: flex; align-items: center; gap: 9px; text-decoration: none; }
-  .wordmark-text { font-size: 1rem; font-weight: 700; color: var(--text); }
+  .wordmark-text { font-family: 'Lora', Georgia, serif; font-size: 1.25rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
   .wordmark-text em { font-style: normal; color: var(--green); }
   .admin-badge { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: var(--green-lite); color: var(--green); border: 1px solid var(--green-mid); padding: 3px 10px; border-radius: 4px; }
 
@@ -119,7 +119,7 @@
 
 <nav>
   <a href="/" class="wordmark">
-    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Playfair Display',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.1rem;color:var(--text);">inroad</span>
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
   </a>
   <span class="admin-badge">Admin</span>
 </nav>
