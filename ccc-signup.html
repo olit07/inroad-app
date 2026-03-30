@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign up — Coffee Chat Connect</title>
+<title>Sign up — inroad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg:        #FFFFFF;
@@ -25,6 +25,14 @@
     --error:     #B91C1C;
     --error-bg:  #FEF2F2;
     --error-border: #FECACA;
+    --serif: 'Playfair Display', Georgia, serif;
+    --sans:  'Lato', system-ui, sans-serif;
+    --green-mint: #A8D8B8;
+    --surface-2: #EEECEA;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-xl: 24px;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -420,11 +428,10 @@
 
 <!-- NAV -->
 <nav>
-  <a href="ccc-landing-final.html" class="wordmark">
-    <div style="width:28px;height:28px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">☕</div>
-    <span class="wordmark-text">Coffee<em>Chat</em>Connect</span>
+  <a href="/" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Playfair Display',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.1rem;color:var(--text);">inroad</span>
   </a>
-  <a href="ccc-landing-final.html" class="nav-back">← Back</a>
+  <a href="/" class="nav-back">← Back</a>
 </nav>
 
 <!-- MAIN -->
@@ -434,7 +441,7 @@
     <!-- Default form state -->
     <div id="form-state">
       <div class="signup-header">
-        <span class="signup-icon">☕</span>
+        <svg width="40" height="40" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin: 0 auto 16px; display: block;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
         <h1 class="signup-title">Start your <em>journey.</em></h1>
         <p class="signup-sub">Enter your email to get started.<br>Takes less than a minute.</p>
       </div>
@@ -497,7 +504,7 @@
 <!-- FOOTER -->
 <footer>
   <a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Contact</a>
-  &nbsp;·&nbsp; © 2026 Coffee Chat Connect
+  &nbsp;·&nbsp; © 2026 inroad
 </footer>
 
 <script>
