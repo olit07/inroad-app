@@ -488,12 +488,7 @@
         We've sent a magic link to <strong id="success-email"></strong>.<br>
         Click the link to verify your email and set up your profile.
       </p>
-      <!-- Dev mode: shown when SMTP not configured, hidden in production -->
-      <div id="dev-link-box" style="display:none; width:100%; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-top:4px; text-align:left;">
-        <p style="font-size:0.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Dev mode — no SMTP configured</p>
-        <p style="font-size:0.8rem; color:var(--text-mid); margin-bottom:12px;">Click this link to verify your email and continue:</p>
-        <a id="dev-magic-link" href="#" style="display:block; font-size:0.78rem; color:var(--green); word-break:break-all; text-decoration:underline; text-underline-offset:3px; font-weight:700;">—</a>
-      </div>
+      <!-- dev-link-box intentionally removed for production -->
       <p class="trust-line" id="resend-line">Didn't get it? <a href="#" onclick="resend(event)">Resend the link</a></p>
       <p class="trust-line" style="margin-top:6px"><a href="#" id="wrong-address" onclick="wrongAddress(event)">Wrong address? Start over</a></p>
     </div>

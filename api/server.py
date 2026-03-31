@@ -134,82 +134,85 @@ def send_magic_link(email: str, token: str):
 <div style="background:#FFFFFF;border-radius:16px;max-width:520px;margin:0 auto;overflow:hidden;border:1px solid #E2DED8;">
 
   <!-- Header -->
-  <div style="background:#1F4530;padding:32px 40px;">
-    <div style="display:inline-flex;align-items:center;gap:10px;">
-      <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="88" height="88" rx="22" fill="rgba(255,255,255,0.15)"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
-      <span style="font-family:Georgia,serif;font-weight:700;font-size:1.2rem;color:#FFFFFF;letter-spacing:-0.02em;">inroad</span>
+  <div style="background:#1F4530;padding:36px 40px;">
+    <div style="display:inline-flex;align-items:center;gap:12px;">
+      <svg width="32" height="32" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="88" height="88" rx="22" fill="rgba(255,255,255,0.18)"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+      <span style="font-family:Georgia,serif;font-weight:700;font-size:1.4rem;color:#FFFFFF;letter-spacing:-0.02em;">inroad</span>
     </div>
-    <div style="margin-top:20px;font-size:13px;color:rgba(255,255,255,0.55);font-weight:400;letter-spacing:0.02em;">Get into the workforce the smart way</div>
+    <div style="margin-top:16px;font-size:13px;color:rgba(255,255,255,0.5);font-weight:400;letter-spacing:0.02em;">Get into the workforce the smart way</div>
   </div>
 
   <!-- Body -->
-  <div style="padding:40px;">
+  <div style="padding:44px 40px 36px;">
 
-    <div style="display:inline-flex;align-items:center;gap:6px;background:#EBF4EE;border:1px solid #A8C9B0;border-radius:100px;padding:4px 12px;font-size:11px;font-weight:700;color:#1F4530;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:20px;">
+    <div style="display:inline-flex;align-items:center;gap:7px;background:#EBF4EE;border:1px solid #A8C9B0;border-radius:100px;padding:6px 14px;font-size:11px;font-weight:700;color:#1F4530;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:28px;">
       <span style="width:5px;height:5px;background:#1F4530;border-radius:50%;display:inline-block;"></span>
       Magic link
     </div>
 
-    <h1 style="font-size:24px;font-weight:900;color:#111110;letter-spacing:-0.02em;line-height:1.1;margin:0 0 12px;">Your sign-in link<br>is <em style="font-style:italic;font-weight:300;color:#1F4530;">ready.</em></h1>
+    <h1 style="font-size:26px;font-weight:900;color:#111110;letter-spacing:-0.02em;line-height:1.15;margin:0 0 14px;">Your sign-in link<br>is <em style="font-style:italic;font-weight:300;color:#1F4530;">ready.</em></h1>
 
-    <p style="font-size:15px;color:#6E6860;line-height:1.65;margin:0 0 32px;font-weight:400;">
+    <p style="font-size:15px;color:#6E6860;line-height:1.7;margin:0 0 36px;font-weight:400;">
       Click below to verify your email and start getting matched to real people
       at companies you want to work at &mdash; alumni first.
     </p>
 
-    <div style="margin-bottom:32px;">
-      <a href="{verify_url}" style="display:inline-block;background:#1F4530;color:#FFFFFF;font-size:15px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;letter-spacing:0.01em;">Sign in to inroad &rarr;</a>
+    <div style="margin-bottom:40px;">
+      <a href="{verify_url}" style="display:inline-block;background:#1F4530;color:#FFFFFF;font-size:15px;font-weight:700;padding:15px 32px;border-radius:10px;text-decoration:none;letter-spacing:0.01em;">Sign in to inroad &rarr;</a>
     </div>
 
     <!-- What happens next -->
-    <div style="background:#F5F5F2;border-radius:12px;padding:20px 24px;margin-bottom:28px;">
-      <div style="font-size:11px;font-weight:700;color:#6E6860;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">What happens next</div>
-      <div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;">
-        <div style="width:20px;height:20px;min-width:20px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">1</div>
-        <div style="font-size:13px;color:#3A3733;line-height:1.5;"><strong style="font-weight:700;color:#111110;">Set up your profile</strong> &mdash; tell us your target role, industry, and company size.</div>
+    <div style="background:#F5F5F2;border-radius:14px;padding:28px 28px;margin-bottom:32px;">
+      <div style="font-size:11px;font-weight:700;color:#6E6860;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:22px;">What happens next</div>
+      <div style="display:flex;gap:14px;margin-bottom:20px;align-items:flex-start;">
+        <div style="width:24px;height:24px;min-width:24px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">1</div>
+        <div style="font-size:14px;color:#3A3733;line-height:1.6;"><strong style="font-weight:700;color:#111110;">Set up your profile</strong> &mdash; tell us your target role, industry, and company size.</div>
       </div>
-      <div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;">
-        <div style="width:20px;height:20px;min-width:20px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">2</div>
-        <div style="font-size:13px;color:#3A3733;line-height:1.5;"><strong style="font-weight:700;color:#111110;">Get 3 matches every day</strong> &mdash; real people at companies with open roles, alumni prioritised.</div>
+      <div style="display:flex;gap:14px;margin-bottom:20px;align-items:flex-start;">
+        <div style="width:24px;height:24px;min-width:24px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">2</div>
+        <div style="font-size:14px;color:#3A3733;line-height:1.6;"><strong style="font-weight:700;color:#111110;">Get 3 matches every day</strong> &mdash; real people at companies with open roles, alumni prioritised.</div>
       </div>
-      <div style="display:flex;gap:12px;align-items:flex-start;">
-        <div style="width:20px;height:20px;min-width:20px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">3</div>
-        <div style="font-size:13px;color:#3A3733;line-height:1.5;"><strong style="font-weight:700;color:#111110;">Send, they book</strong> &mdash; AI drafts the email, you approve, a scheduling link handles the rest.</div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="width:24px;height:24px;min-width:24px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">3</div>
+        <div style="font-size:14px;color:#3A3733;line-height:1.6;"><strong style="font-weight:700;color:#111110;">Send, they book</strong> &mdash; AI drafts the email, you approve, a scheduling link handles the rest.</div>
       </div>
     </div>
 
     <!-- Stats -->
-    <table style="width:100%;border-collapse:separate;border-spacing:8px;margin-bottom:28px;">
+    <table style="width:100%;border-collapse:separate;border-spacing:8px;margin-bottom:32px;">
       <tr>
-        <td style="background:#F5F5F2;border-radius:10px;padding:14px 16px;text-align:center;width:33%;">
-          <div style="font-size:22px;font-weight:900;color:#1F4530;letter-spacing:-0.02em;line-height:1;">20%</div>
-          <div style="font-size:11px;color:#6E6860;font-weight:400;margin-top:3px;line-height:1.3;">Average reply rate from alumni</div>
+        <td style="background:#F5F5F2;border-radius:10px;padding:16px;text-align:center;width:33%;">
+          <div style="font-size:24px;font-weight:900;color:#1F4530;letter-spacing:-0.02em;line-height:1;">20%</div>
+          <div style="font-size:11px;color:#6E6860;font-weight:400;margin-top:5px;line-height:1.4;">Average reply rate from alumni</div>
         </td>
-        <td style="background:#F5F5F2;border-radius:10px;padding:14px 16px;text-align:center;width:33%;">
-          <div style="font-size:22px;font-weight:900;color:#1F4530;letter-spacing:-0.02em;line-height:1;">3</div>
-          <div style="font-size:11px;color:#6E6860;font-weight:400;margin-top:3px;line-height:1.3;">Targeted matches per day</div>
+        <td style="background:#F5F5F2;border-radius:10px;padding:16px;text-align:center;width:33%;">
+          <div style="font-size:24px;font-weight:900;color:#1F4530;letter-spacing:-0.02em;line-height:1;">3</div>
+          <div style="font-size:11px;color:#6E6860;font-weight:400;margin-top:5px;line-height:1.4;">Targeted matches per day</div>
         </td>
-        <td style="background:#F5F5F2;border-radius:10px;padding:14px 16px;text-align:center;width:33%;">
-          <div style="font-size:22px;font-weight:900;color:#1F4530;letter-spacing:-0.02em;line-height:1;">72h</div>
-          <div style="font-size:11px;color:#6E6860;font-weight:400;margin-top:3px;line-height:1.3;">Avg. time to first coffee chat</div>
+        <td style="background:#F5F5F2;border-radius:10px;padding:16px;text-align:center;width:33%;">
+          <div style="font-size:24px;font-weight:900;color:#1F4530;letter-spacing:-0.02em;line-height:1;">72h</div>
+          <div style="font-size:11px;color:#6E6860;font-weight:400;margin-top:5px;line-height:1.4;">Avg. time to first coffee chat</div>
         </td>
       </tr>
     </table>
 
-    <hr style="border:none;border-top:1px solid #E2DED8;margin:28px 0;">
+    <hr style="border:none;border-top:1px solid #E2DED8;margin:32px 0;">
 
     <!-- Fallback link -->
-    <div style="background:#F5F5F2;border:1px solid #E2DED8;border-radius:8px;padding:12px 14px;margin-bottom:28px;">
-      <div style="font-size:10px;font-weight:700;color:#A8A09A;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Button not working? Copy this link</div>
-      <div style="font-size:11px;color:#6E6860;word-break:break-all;font-family:'Courier New',monospace;line-height:1.4;">{verify_url}</div>
+    <div style="background:#F5F5F2;border:1px solid #E2DED8;border-radius:8px;padding:14px 16px;margin-bottom:8px;">
+      <div style="font-size:10px;font-weight:700;color:#A8A09A;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:7px;">Button not working? Copy this link</div>
+      <div style="font-size:11px;color:#6E6860;word-break:break-all;font-family:'Courier New',monospace;line-height:1.5;">{verify_url}</div>
     </div>
 
   </div>
 
   <!-- Footer -->
   <div style="padding:24px 40px;border-top:1px solid #E2DED8;text-align:center;">
-    <div style="font-size:12px;font-weight:700;color:#3A3733;margin-bottom:6px;">inroad</div>
-    <div style="font-size:12px;color:#A8A09A;line-height:1.6;">
+    <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <svg width="18" height="18" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+      <span style="font-family:Georgia,serif;font-size:13px;font-weight:700;color:#3A3733;letter-spacing:-0.01em;">inroad</span>
+    </div>
+    <div style="font-size:12px;color:#A8A09A;line-height:1.7;">
       This link expires in {MAGIC_LINK_EXPIRY_MINUTES} minutes and can only be used once.<br>
       If you didn&rsquo;t request this, you can safely ignore it.<br><br>
       <a href="#" style="color:#6E6860;text-decoration:underline;text-underline-offset:2px;">Privacy</a> &middot;
