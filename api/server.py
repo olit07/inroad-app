@@ -40,6 +40,7 @@ from db.database import (
     get_queued_cards, mark_card_consumed
 )
 from api.auth import make_access_token, make_refresh_token_str, require_jwt
+from utils.university_lookup import detect_university
 
 # ── App setup ────────────────────────────────────────────────────────────────
 
@@ -323,6 +324,12 @@ def verify():
 
     student_id = student["id"]
 
+    # Auto-detect university from email domain and store it (once, for new users)
+    if is_new_user or not student.get("university"):
+        uni_info = detect_university(email)
+        if uni_info:
+            update_student_fields(student_id, {"university": uni_info["name"]})
+
     # New users with no profile → onboarding. Everyone else → dashboard.
     # (Existing users in the DB always go to dashboard even if name isn't set yet.)
     has_profile = bool(student.get("name"))
@@ -501,6 +508,36 @@ def register_student():
         university=data.get("university", student.get("university", "")),
     )
     return jsonify(student)
+
+
+# ── Email draft regeneration ──────────────────────────────────────────────────
+
+@app.route("/api/draft/regenerate", methods=["POST"])
+@require_jwt
+def regenerate_draft():
+    data = request.get_json(silent=True) or {}
+    student = get_student_by_id(g.student_id)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
+
+    lead = {
+        "name":           data.get("person_name", ""),
+        "title":          data.get("person_title", ""),
+        "company":        data.get("company", ""),
+        "is_alumni":      bool(data.get("is_alumni", False)),
+        "university":     "",
+        "tenure_months":  0,
+    }
+    job = {
+        "title":        data.get("job_title", ""),
+        "company_name": data.get("company", ""),
+        "url":          data.get("job_url", ""),
+        "industries":   student.get("industries", []),
+    }
+
+    from pipeline.daily_cards import generate_email_draft
+    subject, body = generate_email_draft(student, lead, job)
+    return jsonify({"subject": subject, "body": body})
 
 
 # ── Matches ───────────────────────────────────────────────────────────────────

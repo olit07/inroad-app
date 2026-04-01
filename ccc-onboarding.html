@@ -636,6 +636,19 @@
         />
       </div>
 
+      <div class="field" style="margin-top:18px;">
+        <label for="uni-input">University <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(optional)</span></label>
+        <input
+          type="text"
+          id="uni-input"
+          class="text-input"
+          placeholder="e.g. University of Edinburgh"
+          autocomplete="organization"
+          autocapitalize="words"
+        />
+        <p id="uni-detected-hint" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--green);font-weight:500;">Detected from your email ✓</p>
+      </div>
+
       <div class="step-actions">
         <button class="btn-next" onclick="nextStep(1)">Continue →</button>
       </div>
@@ -823,7 +836,7 @@
   }
 
   // Initialise track fill on load + read URL params from magic link
-  window.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('DOMContentLoaded', async () => {
     updateAge(document.getElementById('age-input').value);
 
     const params = new URLSearchParams(window.location.search);
@@ -839,6 +852,27 @@
       // Store email for use in finish()
       window._verifiedEmail = decodeURIComponent(verifiedEmail);
     }
+
+    // Pre-fill university if auto-detected from email
+    try {
+      const rr = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' });
+      if (rr.ok) {
+        const { access_token } = await rr.json();
+        const mr = await fetch('/api/me', {
+          credentials: 'include',
+          headers: { 'Authorization': 'Bearer ' + access_token },
+        });
+        if (mr.ok) {
+          const profile = await mr.json();
+          const uni = profile.university || profile.data?.university || '';
+          if (uni) {
+            const uniInput = document.getElementById('uni-input');
+            uniInput.value = uni;
+            document.getElementById('uni-detected-hint').style.display = 'block';
+          }
+        }
+      }
+    } catch (_) {}
   });
 
   const TOTAL = 6;
@@ -1004,6 +1038,7 @@
       industries:  [...document.querySelectorAll('.industry-pill.selected')].map(p => p.textContent),
       companySize: document.querySelector('[data-group="size"].selected')?.dataset.value,
       bio:         document.getElementById('bio-input').value.trim(),
+      university:  document.getElementById('uni-input').value.trim(),
     };
 
     // Show loading overlay immediately
@@ -1034,6 +1069,7 @@
               industries:  data.industries,
               companySize: data.companySize,
               bio:         data.bio,
+              university:  data.university,
             }),
           });
         } catch (_) {}

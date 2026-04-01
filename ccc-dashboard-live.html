@@ -607,6 +607,11 @@
     min-width: 0;
   }
 
+  .modal-subject:focus-within {
+    border-color: var(--green-mid);
+    background: var(--bg);
+  }
+
   .modal-subject-input:focus {
     box-shadow: none;
   }
@@ -1128,13 +1133,15 @@
   // ── GREETING HELPER ──
   function updateGreeting(student) {
     if (!student) return;
+    const firstName = student.first_name || (student.name || '').split(' ')[0] || '';
     const nameEl = document.getElementById('user-name');
-    if (nameEl && student.first_name) {
-      nameEl.textContent = student.first_name;
+    if (nameEl && firstName) {
+      nameEl.textContent = firstName;
     }
     const prof = document.querySelector('.nav-profile');
-    if (prof && student.first_name) {
-      const parts = student.first_name.split(' ');
+    if (prof && firstName) {
+      const fullName = student.name || firstName;
+      const parts = fullName.trim().split(' ');
       prof.textContent = (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
     }
   }
@@ -1188,6 +1195,9 @@
       window.location.href = '/login';
       return;
     }
+
+    // Store token globally so regenerate() can use it
+    window._dashboardToken = accessToken;
 
     // Helper for authenticated requests
     function authFetch(url) {
@@ -1245,19 +1255,21 @@
       const linkedinUrl = m.person_linkedin_url || '#';
       const jobUrl = m.job_url || '#';
 
+      // Job company takes priority over person_company (guaranteed same company)
+      const jobCompany = m.company || m.person_company || '';
+
       // Register in matches object for modal
       matches[cardId] = {
-        name:    m.person_name || '',
-        to:      m.person_email || '',
-        applyUrl: jobUrl,
-        subject: m.email_subject || `Student reaching out about the ${m.job_title || 'role'} at ${m.person_company || ''}`,
-        body:    m.email_body || `Hi ${(m.person_name||'').split(' ')[0]},
-
-I came across the ${m.job_title || 'role'} at ${m.person_company || ''} and would love to hear more.
-
-Would you be open to a 20 minute chat?
-
-Thanks`
+        name:        m.person_name || '',
+        to:          m.person_email || '',
+        applyUrl:    jobUrl,
+        subject:     m.email_subject || `Student reaching out about the ${m.job_title || 'role'} at ${jobCompany}`,
+        body:        m.email_body || `Hi ${(m.person_name||'').split(' ')[0]},\n\nI came across the ${m.job_title || 'role'} at ${jobCompany} and would love to hear more.\n\nWould you be open to a 20 minute chat?\n\nThanks`,
+        // Extra context for regenerate
+        personTitle: m.person_title || '',
+        company:     jobCompany,
+        jobTitle:    m.job_title || '',
+        isAlumni:    !!m.is_alumni,
       };
 
       container.insertAdjacentHTML('beforeend', `
@@ -1269,7 +1281,7 @@ Thanks`
                 <span class="card-name">${m.person_name || ''}</span>
                 ${isAlumni ? '<span class="alumni-badge">Alumni</span>' : ''}
               </div>
-              <div class="card-position">${m.person_title || ''} · ${m.person_company || ''}</div>
+              <div class="card-position">${m.person_title || ''} · ${jobCompany}</div>
               ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer">
                 <div class="role-dot"></div>${m.job_title || 'Open role'} ↗</a>` : ''}
               <div class="card-posted">${m.match_date || ''} · ${m.industry || ''}</div>
@@ -1420,15 +1432,53 @@ Alex`
     wc.style.color = words > 150 ? '#B91C1C' : 'var(--subtle)';
   }
 
-  function regenerate() {
+  async function regenerate() {
     const btn = document.querySelector('.btn-regenerate');
     btn.textContent = '↺ Regenerating…';
     btn.disabled = true;
-    // In production: call Claude API for a fresh draft
-    setTimeout(() => {
+
+    const card = matches[activeCard];
+    if (!card) {
       btn.textContent = '↺ Regenerate';
       btn.disabled = false;
-    }, 1000);
+      return;
+    }
+
+    try {
+      const r = await fetch('/api/draft/regenerate', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (window._dashboardToken || ''),
+        },
+        body: JSON.stringify({
+          person_name:  card.name,
+          person_title: card.personTitle || '',
+          company:      card.company || '',
+          job_title:    card.jobTitle || '',
+          is_alumni:    card.isAlumni || false,
+          job_url:      card.applyUrl || '',
+        }),
+      });
+      if (r.ok) {
+        const { subject, body } = await r.json();
+        if (subject) {
+          document.getElementById('modal-subject-input').value = subject;
+          card.subject = subject;
+        }
+        if (body) {
+          document.getElementById('email-body').value = body;
+          card.body = body;
+          updateWordCount();
+        }
+      }
+    } catch (e) {
+      console.error('Regenerate failed:', e);
+    }
+
+    btn.textContent = '↺ Regenerate';
+    btn.disabled = false;
   }
 
   function copyEmail() {

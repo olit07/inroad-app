@@ -1,0 +1,233 @@
+name,domain,country
+University of Aberdeen,abdn.ac.uk,UK
+Abertay University,abertay.ac.uk,UK
+Aberystwyth University,aber.ac.uk,UK
+Anglia Ruskin University,anglia.ac.uk,UK
+Aston University,aston.ac.uk,UK
+Bangor University,bangor.ac.uk,UK
+Bath Spa University,bathspa.ac.uk,UK
+University of Bath,bath.ac.uk,UK
+University of Bedfordshire,beds.ac.uk,UK
+Birkbeck University of London,bbk.ac.uk,UK
+University of Birmingham,bham.ac.uk,UK
+Birmingham City University,bcu.ac.uk,UK
+Bournemouth University,bournemouth.ac.uk,UK
+University of Bradford,bradford.ac.uk,UK
+University of Brighton,brighton.ac.uk,UK
+University of Bristol,bris.ac.uk,UK
+Brunel University London,brunel.ac.uk,UK
+University of Buckingham,buckingham.ac.uk,UK
+University of Cambridge,cam.ac.uk,UK
+Cardiff University,cardiff.ac.uk,UK
+Cardiff Metropolitan University,cardiffmet.ac.uk,UK
+University of Chester,chester.ac.uk,UK
+University of Chichester,chi.ac.uk,UK
+City University London,city.ac.uk,UK
+Coventry University,coventry.ac.uk,UK
+Cranfield University,cranfield.ac.uk,UK
+University of Cumbria,cumbria.ac.uk,UK
+De Montfort University,dmu.ac.uk,UK
+University of Derby,derby.ac.uk,UK
+University of Dundee,dundee.ac.uk,UK
+Durham University,dur.ac.uk,UK
+University of East Anglia,uea.ac.uk,UK
+University of East London,uel.ac.uk,UK
+Edge Hill University,edgehill.ac.uk,UK
+University of Edinburgh,ed.ac.uk,UK
+Edinburgh Napier University,napier.ac.uk,UK
+University of Essex,essex.ac.uk,UK
+University of Exeter,exeter.ac.uk,UK
+Falmouth University,falmouth.ac.uk,UK
+University of Glasgow,gla.ac.uk,UK
+Glasgow Caledonian University,gcu.ac.uk,UK
+Goldsmiths University of London,gold.ac.uk,UK
+University of Gloucestershire,glos.ac.uk,UK
+Harper Adams University,harper.ac.uk,UK
+Heriot-Watt University,hw.ac.uk,UK
+University of Hertfordshire,herts.ac.uk,UK
+University of Huddersfield,hud.ac.uk,UK
+University of Hull,hull.ac.uk,UK
+Imperial College London,imperial.ac.uk,UK
+Keele University,keele.ac.uk,UK
+University of Kent,kent.ac.uk,UK
+King's College London,kcl.ac.uk,UK
+Kingston University,kingston.ac.uk,UK
+Lancaster University,lancs.ac.uk,UK
+University of Leeds,leeds.ac.uk,UK
+Leeds Beckett University,leedsbeckett.ac.uk,UK
+Leeds Trinity University,leedstrinity.ac.uk,UK
+University of Leicester,le.ac.uk,UK
+University of Lincoln,lincoln.ac.uk,UK
+University of Liverpool,liverpool.ac.uk,UK
+Liverpool Hope University,hope.ac.uk,UK
+Liverpool John Moores University,ljmu.ac.uk,UK
+London Metropolitan University,londonmet.ac.uk,UK
+London School of Economics,lse.ac.uk,UK
+London South Bank University,lsbu.ac.uk,UK
+Loughborough University,lboro.ac.uk,UK
+University of Manchester,manchester.ac.uk,UK
+Manchester Metropolitan University,mmu.ac.uk,UK
+Middlesex University,mdx.ac.uk,UK
+Newcastle University,newcastle.ac.uk,UK
+University of Northampton,northampton.ac.uk,UK
+Northumbria University,northumbria.ac.uk,UK
+University of Nottingham,nottingham.ac.uk,UK
+Nottingham Trent University,ntu.ac.uk,UK
+Open University,open.ac.uk,UK
+University of Oxford,ox.ac.uk,UK
+Oxford Brookes University,brookes.ac.uk,UK
+University of Plymouth,plymouth.ac.uk,UK
+University of Portsmouth,port.ac.uk,UK
+Queen Mary University of London,qmul.ac.uk,UK
+Queen Margaret University,qmu.ac.uk,UK
+Queen's University Belfast,qub.ac.uk,UK
+University of Reading,reading.ac.uk,UK
+Robert Gordon University,rgu.ac.uk,UK
+Royal Holloway University of London,rhul.ac.uk,UK
+University of Salford,salford.ac.uk,UK
+University of Sheffield,shef.ac.uk,UK
+Sheffield Hallam University,shu.ac.uk,UK
+SOAS University of London,soas.ac.uk,UK
+University of Southampton,soton.ac.uk,UK
+University of St Andrews,st-andrews.ac.uk,UK
+Staffordshire University,staffs.ac.uk,UK
+University of Stirling,stir.ac.uk,UK
+University of Strathclyde,strath.ac.uk,UK
+University of Suffolk,uos.ac.uk,UK
+University of Sunderland,sunderland.ac.uk,UK
+University of Surrey,surrey.ac.uk,UK
+University of Sussex,sussex.ac.uk,UK
+Swansea University,swansea.ac.uk,UK
+Teesside University,tees.ac.uk,UK
+Ulster University,ulster.ac.uk,UK
+University College London,ucl.ac.uk,UK
+University of Warwick,warwick.ac.uk,UK
+University of the West of England,uwe.ac.uk,UK
+University of West London,uwl.ac.uk,UK
+University of Westminster,westminster.ac.uk,UK
+University of Winchester,winchester.ac.uk,UK
+University of Wolverhampton,wlv.ac.uk,UK
+University of Worcester,worcester.ac.uk,UK
+University of York,york.ac.uk,UK
+York St John University,yorksj.ac.uk,UK
+Harvard University,harvard.edu,US
+Yale University,yale.edu,US
+Princeton University,princeton.edu,US
+University of Pennsylvania,upenn.edu,US
+Columbia University,columbia.edu,US
+Cornell University,cornell.edu,US
+Dartmouth College,dartmouth.edu,US
+Brown University,brown.edu,US
+Stanford University,stanford.edu,US
+Massachusetts Institute of Technology,mit.edu,US
+University of Chicago,uchicago.edu,US
+Northwestern University,northwestern.edu,US
+Duke University,duke.edu,US
+Johns Hopkins University,jhu.edu,US
+University of California Berkeley,berkeley.edu,US
+University of California Los Angeles,ucla.edu,US
+University of California San Diego,ucsd.edu,US
+University of California Santa Barbara,ucsb.edu,US
+University of California Davis,ucdavis.edu,US
+University of California Irvine,uci.edu,US
+University of California Riverside,ucr.edu,US
+University of California Santa Cruz,ucsc.edu,US
+California Institute of Technology,caltech.edu,US
+University of Michigan,umich.edu,US
+Michigan State University,msu.edu,US
+University of Illinois Urbana-Champaign,illinois.edu,US
+University of Wisconsin Madison,wisc.edu,US
+University of Minnesota,umn.edu,US
+University of Iowa,uiowa.edu,US
+Iowa State University,iastate.edu,US
+University of Texas at Austin,utexas.edu,US
+Rice University,rice.edu,US
+University of Washington,uw.edu,US
+University of Southern California,usc.edu,US
+Arizona State University,asu.edu,US
+University of Arizona,arizona.edu,US
+University of Colorado Boulder,colorado.edu,US
+University of Florida,ufl.edu,US
+University of Georgia,uga.edu,US
+Emory University,emory.edu,US
+Vanderbilt University,vanderbilt.edu,US
+University of Virginia,virginia.edu,US
+University of North Carolina,unc.edu,US
+Ohio State University,osu.edu,US
+Purdue University,purdue.edu,US
+Indiana University Bloomington,indiana.edu,US
+University of Pittsburgh,pitt.edu,US
+Georgia Institute of Technology,gatech.edu,US
+Rutgers University,rutgers.edu,US
+Carnegie Mellon University,cmu.edu,US
+Boston University,bu.edu,US
+Boston College,bc.edu,US
+Brandeis University,brandeis.edu,US
+Tufts University,tufts.edu,US
+Case Western Reserve University,cwru.edu,US
+University of Notre Dame,nd.edu,US
+Wake Forest University,wfu.edu,US
+Tulane University,tulane.edu,US
+University of Rochester,rochester.edu,US
+Northeastern University,northeastern.edu,US
+Rensselaer Polytechnic Institute,rpi.edu,US
+University at Buffalo,buffalo.edu,US
+Binghamton University,binghamton.edu,US
+Stony Brook University,stonybrook.edu,US
+University of Delaware,delaware.edu,US
+Marquette University,marquette.edu,US
+Drexel University,drexel.edu,US
+Stevens Institute of Technology,stevens.edu,US
+New Jersey Institute of Technology,njit.edu,US
+Temple University,temple.edu,US
+University of South Carolina,sc.edu,US
+Louisiana State University,lsu.edu,US
+University of Alabama,ua.edu,US
+Auburn University,auburn.edu,US
+Clemson University,clemson.edu,US
+University of South Florida,usf.edu,US
+University of Central Florida,ucf.edu,US
+Texas A&M University,tamu.edu,US
+University of Houston,uh.edu,US
+University of Kansas,ku.edu,US
+Kansas State University,k-state.edu,US
+University of Missouri,missouri.edu,US
+University of Nebraska Lincoln,unl.edu,US
+Oklahoma State University,okstate.edu,US
+Texas Tech University,ttu.edu,US
+Southern Methodist University,smu.edu,US
+University of Cincinnati,uc.edu,US
+University of Illinois Chicago,uic.edu,US
+University of Idaho,uidaho.edu,US
+Boise State University,boisestate.edu,US
+University of New Mexico,unm.edu,US
+New Mexico State University,nmsu.edu,US
+University of Utah,utah.edu,US
+Brigham Young University,byu.edu,US
+Utah State University,usu.edu,US
+University of Wyoming,uwyo.edu,US
+University of Nevada Las Vegas,unlv.edu,US
+University of Nevada Reno,unr.edu,US
+University of Montana,umt.edu,US
+Montana State University,montana.edu,US
+University of Hawaii,hawaii.edu,US
+Florida State University,fsu.edu,US
+University of Miami,miami.edu,US
+Florida International University,fiu.edu,US
+George Mason University,gmu.edu,US
+Virginia Polytechnic Institute,vt.edu,US
+University of Maryland,umd.edu,US
+George Washington University,gwu.edu,US
+Howard University,howard.edu,US
+American University,american.edu,US
+Georgetown University,georgetown.edu,US
+New York University,nyu.edu,US
+Fordham University,fordham.edu,US
+Syracuse University,syr.edu,US
+Lehigh University,lehigh.edu,US
+University of Connecticut,uconn.edu,US
+University of Rhode Island,uri.edu,US
+University of Massachusetts Amherst,umass.edu,US
+University of New Hampshire,unh.edu,US
+University of Vermont,uvm.edu,US
+University of Maine,maine.edu,US

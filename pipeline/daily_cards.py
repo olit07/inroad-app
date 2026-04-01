@@ -136,6 +136,24 @@ def score_job(job: dict, student: dict, already_selected: list | None = None) ->
     return round(pref * 0.40 + rec * 0.30 + div * 0.30, 1)
 
 
+def _lead_company_matches(lead_company: str, job_company: str) -> bool:
+    """
+    Return True if the lead's company matches the job company.
+    Allows empty lead_company through (couldn't be parsed from snippet).
+    """
+    if not lead_company:
+        return True  # can't verify — let through; company is set from job at write time
+    lc = lead_company.lower().strip()
+    jc = job_company.lower().strip()
+    if jc in lc or lc in jc:
+        return True
+    # Word-level overlap: any significant word from job company found in lead company
+    for word in jc.split():
+        if len(word) > 3 and word in lc:
+            return True
+    return False
+
+
 def get_seen_history(conn, student_id: int) -> set:
     """Return set of job_ids already shown to this student."""
     rows = conn.execute(
@@ -433,6 +451,9 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
             student_university = student.get("university", ""),
             n                  = 6,
         )
+
+        # Filter leads not at the job's company (LinkedIn search can return noise)
+        leads = [l for l in leads if _lead_company_matches(l.get("company", ""), company)]
 
         # Filter suppressed
         leads = [l for l in leads if l.get("linkedin_url", "") not in suppressed]
