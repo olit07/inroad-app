@@ -23,8 +23,8 @@ from pathlib import Path
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config.settings    import DAILY_MATCH_QUOTA, CLOSING_SOON_DAYS, FRESHNESS_DECAY_DAYS, DB_PATH
-from db.database        import db_conn, get_active_jobs
+from config.settings    import DAILY_MATCH_QUOTA, DB_PATH
+from db.database        import db_conn, get_active_jobs, get_card_count_today, USE_POSTGRES
 from pipeline.matcher   import LinkedInMatcher, score_lead
 from pipeline.email_infer import EmailInferrer
 
@@ -33,51 +33,107 @@ logger = logging.getLogger(__name__)
 
 # ── Score a job for a student ─────────────────────────────────────────────────
 
-def score_job(job: dict, student: dict) -> float:
+def _preference_score(job: dict, student: dict) -> float:
     """
-    Score a job 0–100 for a given student.
-    Recency bonus / decay baked in here.
+    Preference Match component (0–100).
+    Measures how well the job matches the student's stated preferences.
     """
-    score = 50.0  # base
+    score = 0.0
 
-    # Freshness decay
-    posted = job.get("posted_date", "")
-    if posted:
-        try:
-            days_old = (date.today() - date.fromisoformat(posted)).days
-            if days_old > FRESHNESS_DECAY_DAYS:
-                score *= 0.6
-        except Exception:
-            pass
+    # Industry match: student.industries is a JSON list of strings;
+    # job.industry is a single string
+    student_industries = json.loads(student.get("industries") or "[]")
+    if job.get("industry") in student_industries:
+        score += 50.0
+    elif any(ind.lower() in (job.get("industry") or "").lower() for ind in student_industries):
+        score += 25.0
 
-    # Closing soon boost
-    closing = job.get("closing_date", "")
-    if closing:
-        try:
-            days_left = (date.fromisoformat(closing) - date.today()).days
-            if 0 < days_left <= CLOSING_SOON_DAYS:
-                score *= 1.4
-        except Exception:
-            pass
+    # Company size match
+    if student.get("company_size") and job.get("company_size"):
+        if student["company_size"] == job["company_size"]:
+            score += 30.0
 
-    # Company size preference match
-    student_size = student.get("company_size", "")
-    # (Would use company size from companies table — skipping enrichment for now)
+    # Seniority fit (use job title keywords)
+    student_status = student.get("status", "")  # "intern", "junior", "mid", "senior"
+    job_title = (job.get("title") or "").lower()
+    if student_status in ("intern", "junior"):
+        if any(kw in job_title for kw in ("junior", "graduate", "analyst", "associate", "entry")):
+            score += 20.0
+    elif student_status == "mid":
+        if any(kw in job_title for kw in ("senior", "lead", "manager", "principal")):
+            score += 20.0
 
-    # Industry overlap
-    job_industries     = set(job.get("industries", []))
-    student_industries = set(json.loads(student.get("industries") or "[]"))
-    overlap = len(job_industries & student_industries)
-    score += overlap * 10
+    return min(score, 100.0)
 
-    # Seniority fit — students want intern/junior/mid roles
-    seniority = job.get("seniority", "")
-    if seniority in ("intern", "junior"):
-        score += 15
-    elif seniority == "mid":
-        score += 8
 
-    return round(min(score, 100), 1)
+def _recency_score(job: dict) -> float:
+    """
+    Recency component (0–100).
+    Newer postings score higher.
+      0–3 days:   100
+      4–7 days:    80
+      8–14 days:   60
+      15–21 days:  40
+      >21 days:    20
+    """
+    posted_at = job.get("posted_at")
+    if not posted_at:
+        return 40.0  # neutral if unknown
+    try:
+        posted_date = date.fromisoformat(str(posted_at)[:10])
+        days_old = (date.today() - posted_date).days
+    except Exception:
+        return 40.0
+
+    if days_old <= 3:
+        return 100.0
+    elif days_old <= 7:
+        return 80.0
+    elif days_old <= 14:
+        return 60.0
+    elif days_old <= 21:
+        return 40.0
+    else:
+        return 20.0
+
+
+def _diversity_score(job: dict, already_selected: list) -> float:
+    """
+    Diversity component (0–100).
+    Rewards jobs that differ from those already selected today.
+      100 if no jobs selected yet.
+      -30 per already-selected job from the same company.
+      -20 per already-selected job from the same industry.
+      Minimum 0.
+    """
+    if not already_selected:
+        return 100.0
+
+    score = 100.0
+    job_company  = job.get("company_name", "")
+    job_industry = job.get("industry", "")
+
+    for selected in already_selected:
+        if job_company and selected.get("company_name", "") == job_company:
+            score -= 30.0
+        if job_industry and selected.get("industry", "") == job_industry:
+            score -= 20.0
+
+    return max(score, 0.0)
+
+
+def score_job(job: dict, student: dict, already_selected: list | None = None) -> float:
+    """
+    Score a job for a student using the roadmap formula:
+      Score = (Preference Match × 0.40) + (Recency × 0.30) + (Diversity × 0.30)
+
+    Returns a float 0–100.
+    """
+    already_selected = already_selected or []
+    pref = _preference_score(job, student)
+    rec  = _recency_score(job)
+    div  = _diversity_score(job, already_selected)
+    return round(pref * 0.40 + rec * 0.30 + div * 0.30, 1)
 
 
 def get_seen_history(conn, student_id: int) -> set:
@@ -311,12 +367,8 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         student = dict(student)
 
         # Check if today's cards already generated
-        existing = conn.execute(
-            "SELECT COUNT(*) FROM matches WHERE student_id=? AND match_date=?",
-            (student_id, today_str),
-        ).fetchone()[0]
-        if existing >= DAILY_MATCH_QUOTA:
-            logger.info(f"Student {student_id} already has {existing} cards for {today_str}")
+        if get_card_count_today(student_id) >= DAILY_MATCH_QUOTA:
+            logger.info(f"Student {student_id} already has {DAILY_MATCH_QUOTA} cards for {today_str}")
             return []
 
         seen_job_ids  = get_seen_history(conn, student_id)
@@ -335,10 +387,6 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
     # Filter already seen
     jobs = [j for j in jobs if j["id"] not in seen_job_ids]
 
-    # Score jobs
-    scored_jobs = [(score_job(j, student), j) for j in jobs]
-    scored_jobs.sort(key=lambda x: -x[0])
-
     matcher  = LinkedInMatcher()
     inferrer = EmailInferrer()
 
@@ -346,18 +394,37 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
     companies_used: set  = set()
     industries_used: dict = {}
 
-    for _, job in scored_jobs:
-        if len(cards_written) >= DAILY_MATCH_QUOTA:
+    # Re-score and re-sort after each selection so the diversity component
+    # reflects the jobs already chosen this round.
+    remaining_jobs = list(jobs)
+
+    while len(cards_written) < DAILY_MATCH_QUOTA and remaining_jobs:
+        scored_jobs = [
+            (score_job(j, student, already_selected=cards_written), j)
+            for j in remaining_jobs
+        ]
+        scored_jobs.sort(key=lambda x: -x[0])
+
+        # Walk the sorted list to find the first job that passes diversity rules
+        picked = False
+        for _, job in scored_jobs:
+            company   = job["company_name"]
+            job_inds  = job.get("industries", [])
+
+            # Remove from remaining regardless so we never revisit
+            remaining_jobs = [j for j in remaining_jobs if j["id"] != job["id"]]
+
+            # Diversity rules (hard caps enforced independently of score)
+            if company in companies_used:
+                continue
+            if any(industries_used.get(ind, 0) >= 2 for ind in job_inds):
+                continue
+
+            picked = True
             break
 
-        company   = job["company_name"]
-        job_inds  = job.get("industries", [])
-
-        # Diversity rules
-        if company in companies_used:
-            continue
-        if any(industries_used.get(ind, 0) >= 2 for ind in job_inds):
-            continue
+        if not picked:
+            break  # no more eligible jobs
 
         # Find leads for this job
         leads = matcher.find_leads(
@@ -424,22 +491,41 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
 
         with db_conn(db_path) as conn:
             try:
-                conn.execute(
-                    """INSERT OR IGNORE INTO matches
-                       (student_id, job_id, match_date, person_name, person_title,
-                        person_company, person_linkedin_url, person_university,
-                        person_tenure_months, is_alumni, relevance_score,
-                        expected_email, email_confidence, email_subject, email_body)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (
-                        card["student_id"], card["job_id"], card["match_date"],
-                        card["person_name"], card["person_title"], card["person_company"],
-                        card["person_linkedin_url"], card["person_university"],
-                        card["person_tenure_months"], card["is_alumni"],
-                        card["relevance_score"], card["expected_email"],
-                        card["email_confidence"], card["email_subject"], card["email_body"],
+                if USE_POSTGRES:
+                    conn.execute(
+                        """INSERT INTO matches
+                           (student_id, job_id, match_date, person_name, person_title,
+                            person_company, person_linkedin_url, person_university,
+                            person_tenure_months, is_alumni, relevance_score,
+                            expected_email, email_confidence, email_subject, email_body)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                           ON CONFLICT (student_id, job_id) DO NOTHING""",
+                        (
+                            card["student_id"], card["job_id"], card["match_date"],
+                            card["person_name"], card["person_title"], card["person_company"],
+                            card["person_linkedin_url"], card["person_university"],
+                            card["person_tenure_months"], card["is_alumni"],
+                            card["relevance_score"], card["expected_email"],
+                            card["email_confidence"], card["email_subject"], card["email_body"],
+                        )
                     )
-                )
+                else:
+                    conn.execute(
+                        """INSERT OR IGNORE INTO matches
+                           (student_id, job_id, match_date, person_name, person_title,
+                            person_company, person_linkedin_url, person_university,
+                            person_tenure_months, is_alumni, relevance_score,
+                            expected_email, email_confidence, email_subject, email_body)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        (
+                            card["student_id"], card["job_id"], card["match_date"],
+                            card["person_name"], card["person_title"], card["person_company"],
+                            card["person_linkedin_url"], card["person_university"],
+                            card["person_tenure_months"], card["is_alumni"],
+                            card["relevance_score"], card["expected_email"],
+                            card["email_confidence"], card["email_subject"], card["email_body"],
+                        )
+                    )
             except Exception as e:
                 logger.error(f"Failed to insert card: {e}")
                 continue

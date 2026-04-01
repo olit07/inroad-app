@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — inroad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #FFFFFF;
+    --white:     #FDFDFC;
+    --surface:   #F3F1EE;
+    --border:    #E6E2DB;
+    --border-md: #CEC8BF;
+    --green:     #2D5A3D;
+    --green-lite:#EAF2EC;
+    --green-mid: #A8C9B0;
+    --green-deep:#122B1E;
+    --text:      #1A1714;
+    --text-mid:  #3D3831;
+    --muted:     #7A7068;
+    --subtle:    #ADA79F;
+    --error:     #B91C1C;
+    --error-bg:  #FEF2F2;
+    --error-border: #FECACA;
+    --serif: 'Lora', Georgia, serif;
+    --sans:  'Lato', system-ui, sans-serif;
+    --green-mint: #A8D8B8;
+    --surface-2: #EEECEA;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-xl: 24px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* --- NAV --- */
+  nav {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 52px;
+    border-bottom: 1px solid var(--border);
+    background: var(--white);
+    flex-shrink: 0;
+  }
+
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+  }
+
+  .nav-back {
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.15s;
+  }
+
+  .nav-back:hover { color: var(--text); }
+
+  /* --- MAIN --- */
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    opacity: 0;
+    animation: rise 0.45s ease forwards;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* --- HEADER --- */
+  .login-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .login-title {
+    font-family: 'Lato', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .login-title em {
+    font-style: italic;
+    color: var(--green);
+  }
+
+  .login-sub {
+    font-size: 0.875rem;
+    color: var(--muted);
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  /* --- FORM --- */
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .input-wrap {
+    position: relative;
+  }
+
+  .email-input {
+    width: 100%;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 0.95rem;
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+  }
+
+  .email-input::placeholder {
+    color: var(--subtle);
+    font-weight: 400;
+  }
+
+  .email-input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(45, 90, 61, 0.08);
+  }
+
+  .email-input.error {
+    border-color: var(--error);
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.07);
+  }
+
+  /* --- ERROR STATE --- */
+  .error-msg {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    color: var(--error);
+    font-weight: 500;
+  }
+
+  .error-msg.visible { display: flex; }
+
+  /* --- SUBMIT --- */
+  .submit-btn {
+    width: 100%;
+    background: var(--text);
+    color: var(--white);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .submit-btn:hover {
+    background: var(--text-mid);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(26,23,20,0.14);
+  }
+
+  .submit-btn:active { transform: translateY(0); }
+
+  .submit-btn:disabled,
+  .submit-btn.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* --- FOOTER LINK --- */
+  .switch-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.82rem;
+    color: var(--subtle);
+  }
+
+  .switch-link a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .switch-link a:hover { color: var(--text); }
+
+  /* --- SUCCESS STATE --- */
+  .success-state {
+    display: none;
+    text-align: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: rise 0.4s ease forwards;
+  }
+
+  .success-state.visible { display: flex; }
+
+  .success-icon {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--green-lite);
+    border: 2px solid var(--green-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  .success-title {
+    font-family: 'Lato', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .success-sub {
+    font-size: 0.875rem;
+    color: var(--muted);
+    max-width: 320px;
+    line-height: 1.65;
+  }
+
+  .success-sub strong { color: var(--text); font-weight: 600; }
+
+  .back-link {
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'Lato', sans-serif;
+    padding: 0;
+  }
+
+  .back-link:hover { color: var(--text); }
+
+  /* --- FOOTER --- */
+  footer {
+    text-align: center;
+    padding: 20px 24px;
+    font-size: 0.74rem;
+    color: var(--subtle);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  footer a { color: var(--subtle); text-decoration: underline; text-underline-offset: 2px; }
+
+  @media (max-width: 480px) {
+    nav { padding: 0 20px; }
+    .login-title { font-size: 1.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
+  </a>
+  <a href="/" class="nav-back">← Back</a>
+</nav>
+
+<!-- MAIN -->
+<main>
+  <div class="login-card">
+
+    <!-- Form state -->
+    <div id="form-state">
+      <div class="login-header">
+        <svg width="40" height="40" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin: 0 auto 16px; display: block;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+        <h1 class="login-title">Welcome <em>back.</em></h1>
+        <p class="login-sub">Enter your email and we'll send you a sign-in link.</p>
+      </div>
+
+      <div class="login-form">
+        <div class="input-wrap">
+          <input
+            type="email"
+            id="email-input"
+            class="email-input"
+            placeholder="your@email.com"
+            autocomplete="email"
+            autocapitalize="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="error-msg" id="error-msg">
+          <span>&#9888;</span>
+          <span id="error-text">Please enter a valid email address.</span>
+        </div>
+
+        <button class="submit-btn" id="submit-btn" onclick="handleSubmit()">
+          Send me a link
+        </button>
+      </div>
+
+      <p class="switch-link">
+        Don't have an account? <a href="/signup">Sign up</a>
+      </p>
+    </div>
+
+    <!-- Success state -->
+    <div class="success-state" id="success-state">
+      <div class="success-icon">&#10003;</div>
+      <h2 class="success-title">Check your inbox.</h2>
+      <p class="success-sub">
+        We've sent a magic link to <strong id="success-email"></strong>.<br>
+        Click the link to sign in — it expires in 15 minutes.
+      </p>
+      <p class="switch-link" style="margin-top:8px;">
+        Wrong address? <button class="back-link" onclick="startOver()">Start over</button>
+      </p>
+    </div>
+
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Contact</a>
+  &nbsp;·&nbsp; &copy; 2026 inroad
+</footer>
+
+<script>
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? `${window.location.protocol}//${window.location.hostname}:5001`
+    : '';
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  }
+
+  const input   = document.getElementById('email-input');
+  const errBox  = document.getElementById('error-msg');
+  const errText = document.getElementById('error-text');
+  const btn     = document.getElementById('submit-btn');
+
+  input.addEventListener('input', () => {
+    input.classList.remove('error');
+    errBox.classList.remove('visible');
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSubmit();
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => input.focus(), 100);
+  });
+
+  function showError(msg) {
+    errText.textContent = msg;
+    input.classList.add('error');
+    errBox.classList.add('visible');
+    input.focus();
+  }
+
+  function setLoading(loading) {
+    btn.disabled = loading;
+    btn.classList.toggle('loading', loading);
+    btn.textContent = loading ? 'Sending…' : 'Send me a link';
+  }
+
+  async function handleSubmit() {
+    const email = input.value.trim();
+
+    if (!email) { showError('Please enter your email address.'); return; }
+    if (!isValidEmail(email)) { showError('Please enter a valid email address.'); return; }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/magic-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (res.status === 429) {
+        showError('Too many attempts — please wait a few minutes.');
+        setLoading(false);
+        return;
+      }
+
+      if (!res.ok) {
+        showError('Something went wrong — please try again.');
+        setLoading(false);
+        return;
+      }
+    } catch (_) {
+      showError('Something went wrong — please try again.');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(false);
+
+    // Show success state
+    document.getElementById('form-state').style.display = 'none';
+    document.getElementById('success-email').textContent = email;
+    const ss = document.getElementById('success-state');
+    ss.dataset.email = email;
+    ss.classList.add('visible');
+  }
+
+  function startOver() {
+    document.getElementById('success-state').classList.remove('visible');
+    document.getElementById('form-state').style.display = '';
+    input.value = '';
+    input.focus();
+  }
+</script>
+
+</body>
+</html>

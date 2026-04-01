@@ -3,12 +3,14 @@ CCC Backend — Full daily scheduler
 
 06:00 UTC — scrape all sources, ingest new jobs
 07:00 UTC — generate daily 3-card matches for all students
+23:00 UTC — pre-generate tomorrow's card queue for all students
 
 Usage:
     python scheduler/run.py            # run daemon
     python scheduler/run.py --once     # single immediate full run
     python scheduler/run.py --scrape   # scrape only
     python scheduler/run.py --cards    # cards only
+    python scheduler/run.py --queue    # queue build only
 """
 import sys
 import time
@@ -34,6 +36,7 @@ from pipeline.daily_cards import generate_all_students_cards
 
 SCRAPE_HOUR = 6
 CARDS_HOUR  = 7
+QUEUE_HOUR  = 23
 
 
 def run_scrape_job():
@@ -53,6 +56,14 @@ def run_cards_job():
     logger.info("CARDS JOB done")
 
 
+def run_queue_build_job():
+    from pipeline.queue_builder import build_queue_all_students
+    logger.info("─" * 50)
+    logger.info("QUEUE JOB starting — building tomorrow's card queue")
+    result = build_queue_all_students()
+    logger.info(f"QUEUE JOB done — {result['cards_queued']} cards queued for {result['date']}")
+
+
 def seconds_until(hour: int, minute: int = 0) -> float:
     now      = datetime.utcnow()
     target   = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -63,7 +74,10 @@ def seconds_until(hour: int, minute: int = 0) -> float:
 
 def run_daemon():
     init_db(DB_PATH)
-    logger.info(f"CCC Scheduler started — scrape@{SCRAPE_HOUR:02d}:00  cards@{CARDS_HOUR:02d}:00 UTC")
+    logger.info(
+        f"CCC Scheduler started — "
+        f"scrape@{SCRAPE_HOUR:02d}:00  cards@{CARDS_HOUR:02d}:00  queue@{QUEUE_HOUR:02d}:00 UTC"
+    )
 
     stop = {"flag": False}
     def _handler(sig, frame):
@@ -79,11 +93,13 @@ def run_daemon():
         # Determine which job to wait for next
         scrape_wait = seconds_until(SCRAPE_HOUR)
         cards_wait  = seconds_until(CARDS_HOUR)
-        next_wait   = min(scrape_wait, cards_wait)
+        queue_wait  = seconds_until(QUEUE_HOUR)
+        next_wait   = min(scrape_wait, cards_wait, queue_wait)
 
         logger.info(
             f"Next run in {next_wait/3600:.1f}h  "
-            f"(scrape in {scrape_wait/3600:.1f}h, cards in {cards_wait/3600:.1f}h)"
+            f"(scrape in {scrape_wait/3600:.1f}h, cards in {cards_wait/3600:.1f}h, "
+            f"queue in {queue_wait/3600:.1f}h)"
         )
 
         elapsed = 0.0
@@ -105,6 +121,11 @@ def run_daemon():
                 run_cards_job()
             except Exception as e:
                 logger.error(f"Cards job crashed: {e}", exc_info=True)
+        elif now_h == QUEUE_HOUR:
+            try:
+                run_queue_build_job()
+            except Exception as e:
+                logger.error(f"Queue build job crashed: {e}", exc_info=True)
 
     logger.info("Scheduler stopped")
 
@@ -120,5 +141,7 @@ if __name__ == "__main__":
         run_scrape_job()
     elif "--cards" in args:
         run_cards_job()
+    elif "--queue" in args:
+        run_queue_build_job()
     else:
         run_daemon()

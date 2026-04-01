@@ -38,6 +38,10 @@ MAGIC_LINK_RATE_WINDOW    = int(os.environ.get("MAGIC_LINK_RATE_WINDOW", "10")) 
 
 SESSION_DAYS = int(os.environ.get("SESSION_DAYS", "30"))
 
+JWT_SECRET = os.environ.get("JWT_SECRET", "change-jwt-secret-in-production")
+JWT_ACCESS_TTL_MINUTES = int(os.environ.get("JWT_ACCESS_TTL_MINUTES", "15"))
+JWT_REFRESH_TTL_DAYS = int(os.environ.get("JWT_REFRESH_TTL_DAYS", "30"))
+
 # ── CORS ────────────────────────────────────────────────────────────────────
 
 # Comma-separated list of allowed origins, e.g. https://coffeechatconnect.com
@@ -50,3 +54,12 @@ ALLOWED_ORIGINS = [
 # ── Feature flags ───────────────────────────────────────────────────────────
 
 DEV_MODE = os.environ.get("DEV_MODE", "false").lower() == "true"
+
+# ── Pipeline ─────────────────────────────────────────────────────────────────
+
+DAILY_MATCH_QUOTA   = int(os.environ.get("DAILY_MATCH_QUOTA",   "3"))
+CLOSING_SOON_DAYS   = int(os.environ.get("CLOSING_SOON_DAYS",   "7"))
+FRESHNESS_DECAY_DAYS = int(os.environ.get("FRESHNESS_DECAY_DAYS", "30"))
+
+# Path to the SQLite database (ignored when DATABASE_URL is set)
+DB_PATH = os.environ.get("DB_PATH", "")

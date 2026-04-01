@@ -6,6 +6,7 @@ Falls back to SQLite at ccc.db if DATABASE_URL is not set.
 """
 
 import os
+import json
 import sqlite3
 import contextlib
 
@@ -97,17 +98,18 @@ def _ph():
 
 SCHEMA_POSTGRES = """
 CREATE TABLE IF NOT EXISTS students (
-    id          SERIAL PRIMARY KEY,
-    email       TEXT UNIQUE NOT NULL,
-    name        TEXT,
-    age         INTEGER,
-    status      TEXT,
-    industries  TEXT,
-    company_size TEXT,
-    bio         TEXT,
-    university  TEXT,
-    created_at  TIMESTAMPTZ DEFAULT NOW(),
-    last_seen   TIMESTAMPTZ
+    id             SERIAL PRIMARY KEY,
+    email          TEXT UNIQUE NOT NULL,
+    name           TEXT,
+    age            INTEGER,
+    status         TEXT,
+    industries     TEXT,
+    company_size   TEXT,
+    bio            TEXT,
+    university     TEXT,
+    created_at     TIMESTAMPTZ DEFAULT NOW(),
+    last_seen      TIMESTAMPTZ,
+    deactivated_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS magic_tokens (
@@ -137,6 +139,7 @@ CREATE TABLE IF NOT EXISTS matches (
     id              SERIAL PRIMARY KEY,
     student_id      INTEGER REFERENCES students(id),
     job_id          INTEGER REFERENCES jobs(id),
+    match_date      DATE,
     contact_name    TEXT,
     contact_email   TEXT,
     contact_linkedin TEXT,
@@ -146,7 +149,8 @@ CREATE TABLE IF NOT EXISTS matches (
     status          TEXT DEFAULT 'pending',
     sent_at         TIMESTAMPTZ,
     replied_at      TIMESTAMPTZ,
-    created_at      TIMESTAMPTZ DEFAULT NOW()
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(student_id, job_id)
 );
 
 CREATE TABLE IF NOT EXISTS email_log (
@@ -173,25 +177,49 @@ CREATE TABLE IF NOT EXISTS suppressions (
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id          SERIAL PRIMARY KEY,
+    token       TEXT UNIQUE NOT NULL,
+    student_id  INTEGER REFERENCES students(id),
+    expires_at  TIMESTAMPTZ NOT NULL,
+    revoked_at  TIMESTAMPTZ,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS card_queue (
+    id          SERIAL PRIMARY KEY,
+    student_id  INTEGER NOT NULL REFERENCES students(id),
+    job_id      INTEGER NOT NULL REFERENCES jobs(id),
+    score       REAL NOT NULL,
+    queued_for  DATE NOT NULL,
+    consumed    BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(student_id, job_id, queued_for)
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token   ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email   ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student      ON matches(student_id);
 CREATE INDEX IF NOT EXISTS idx_signals_match        ON signals(match_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token   ON refresh_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_student ON refresh_tokens(student_id);
+CREATE INDEX IF NOT EXISTS idx_card_queue_student_date ON card_queue(student_id, queued_for);
 """
 
 SCHEMA_SQLITE = """
 CREATE TABLE IF NOT EXISTS students (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    email        TEXT UNIQUE NOT NULL,
-    name         TEXT,
-    age          INTEGER,
-    status       TEXT,
-    industries   TEXT,
-    company_size TEXT,
-    bio          TEXT,
-    university   TEXT,
-    created_at   TEXT DEFAULT (datetime('now')),
-    last_seen    TEXT
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    email          TEXT UNIQUE NOT NULL,
+    name           TEXT,
+    age            INTEGER,
+    status         TEXT,
+    industries     TEXT,
+    company_size   TEXT,
+    bio            TEXT,
+    university     TEXT,
+    created_at     TEXT DEFAULT (datetime('now')),
+    last_seen      TEXT,
+    deactivated_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS magic_tokens (
@@ -221,6 +249,7 @@ CREATE TABLE IF NOT EXISTS matches (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id       INTEGER REFERENCES students(id),
     job_id           INTEGER REFERENCES jobs(id),
+    match_date       TEXT,
     contact_name     TEXT,
     contact_email    TEXT,
     contact_linkedin TEXT,
@@ -230,7 +259,8 @@ CREATE TABLE IF NOT EXISTS matches (
     status           TEXT DEFAULT 'pending',
     sent_at          TEXT,
     replied_at       TEXT,
-    created_at       TEXT DEFAULT (datetime('now'))
+    created_at       TEXT DEFAULT (datetime('now')),
+    UNIQUE(student_id, job_id)
 );
 
 CREATE TABLE IF NOT EXISTS email_log (
@@ -257,10 +287,33 @@ CREATE TABLE IF NOT EXISTS suppressions (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    token      TEXT UNIQUE NOT NULL,
+    student_id INTEGER REFERENCES students(id),
+    expires_at TEXT NOT NULL,
+    revoked_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS card_queue (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id  INTEGER NOT NULL REFERENCES students(id),
+    job_id      INTEGER NOT NULL REFERENCES jobs(id),
+    score       REAL NOT NULL,
+    queued_for  TEXT NOT NULL,
+    consumed    INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT DEFAULT (datetime('now')),
+    UNIQUE(student_id, job_id, queued_for)
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student    ON matches(student_id);
 CREATE INDEX IF NOT EXISTS idx_signals_match      ON signals(match_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token   ON refresh_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_student ON refresh_tokens(student_id);
+CREATE INDEX IF NOT EXISTS idx_card_queue_student_date ON card_queue(student_id, queued_for);
 """
 
 
@@ -364,3 +417,196 @@ def count_recent_tokens(email, minutes=10):
               AND created_at > datetime('now', ? || ' minutes')
         """, (email, f"-{minutes}"))
     return row["cnt"] if row else 0
+
+
+def update_student_fields(student_id: int, fields: dict) -> None:
+    """Update only the provided fields on a student row (partial update)."""
+    if not fields:
+        return
+    # Serialise list values (e.g. industries) to JSON strings
+    normalised = {}
+    for k, v in fields.items():
+        normalised[k] = json.dumps(v) if isinstance(v, list) else v
+    set_clause = ", ".join(f"{col} = ?" for col in normalised)
+    values = list(normalised.values()) + [student_id]
+    execute(
+        f"UPDATE students SET {set_clause} WHERE id = ?",
+        values,
+    )
+
+
+def create_refresh_token(student_id, token, expires_at):
+    execute(
+        "INSERT INTO refresh_tokens (student_id, token, expires_at) VALUES (?, ?, ?)",
+        (student_id, token, expires_at)
+    )
+
+
+def get_refresh_token(token):
+    """Fetch a refresh token row by token string. Returns dict or None."""
+    return fetchone("SELECT * FROM refresh_tokens WHERE token = ?", (token,))
+
+
+def revoke_refresh_token(token):
+    """Set revoked_at = now on a single refresh token."""
+    if USE_POSTGRES:
+        execute(
+            "UPDATE refresh_tokens SET revoked_at = NOW() WHERE token = ?",
+            (token,)
+        )
+    else:
+        execute(
+            "UPDATE refresh_tokens SET revoked_at = datetime('now') WHERE token = ?",
+            (token,)
+        )
+
+
+def revoke_all_tokens_for_student(student_id):
+    """Revoke all refresh tokens belonging to a student."""
+    if USE_POSTGRES:
+        execute(
+            "UPDATE refresh_tokens SET revoked_at = NOW() WHERE student_id = ? AND revoked_at IS NULL",
+            (student_id,)
+        )
+    else:
+        execute(
+            "UPDATE refresh_tokens SET revoked_at = datetime('now') WHERE student_id = ? AND revoked_at IS NULL",
+            (student_id,)
+        )
+
+
+def deactivate_student(student_id):
+    """Set deactivated_at = now on the student row."""
+    if USE_POSTGRES:
+        execute(
+            "UPDATE students SET deactivated_at = NOW() WHERE id = ?",
+            (student_id,)
+        )
+    else:
+        execute(
+            "UPDATE students SET deactivated_at = datetime('now') WHERE id = ?",
+            (student_id,)
+        )
+
+
+# ── Pipeline helpers ─────────────────────────────────────────────────────────
+
+# Alias used by pipeline/daily_cards.py and cli.py
+db_conn = get_conn
+
+
+def get_active_jobs(conn, industries=None, region=None, seniority=None,
+                    days_fresh=21, limit=100):
+    """
+    Return active jobs as a list of dicts, optionally filtered by industries,
+    region, seniority, and recency.
+
+    Designed to be called with an already-open connection so callers can batch
+    it with other queries inside the same transaction.
+    """
+    ph = "%s" if USE_POSTGRES else "?"
+
+    clauses = []
+    params  = []
+
+    if days_fresh:
+        if USE_POSTGRES:
+            clauses.append(f"posted_at > NOW() - INTERVAL '{days_fresh} days'")
+        else:
+            clauses.append(f"posted_at > datetime('now', '-{days_fresh} days')")
+
+    if industries:
+        placeholders = ", ".join([ph] * len(industries))
+        clauses.append(f"industry IN ({placeholders})")
+        params.extend(industries)
+
+    if region:
+        clauses.append(f"location LIKE {ph}")
+        params.append(f"%{region}%")
+
+    if seniority:
+        clauses.append(f"raw LIKE {ph}")
+        params.append(f"%{seniority}%")
+
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    sql   = f"""
+        SELECT id, title, company AS company_name, url, location, industry,
+               company_size, posted_at AS posted_date, source, raw
+        FROM   jobs
+        {where}
+        ORDER  BY posted_at DESC
+        LIMIT  {ph}
+    """
+    params.append(limit)
+
+    if USE_POSTGRES:
+        sql = sql.replace("?", "%s")
+
+    rows = conn.execute(sql, params).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_card_count_today(student_id: int) -> int:
+    """Return how many cards have been generated for this student today."""
+    from datetime import date as _date
+    today = _date.today().isoformat()
+    if USE_POSTGRES:
+        row = fetchone(
+            "SELECT COUNT(*) AS cnt FROM matches WHERE student_id = ? AND match_date = CAST(? AS DATE)",
+            (student_id, today),
+        )
+    else:
+        row = fetchone(
+            "SELECT COUNT(*) AS cnt FROM matches WHERE student_id = ? AND match_date = ?",
+            (student_id, today),
+        )
+    return int(row["cnt"]) if row else 0
+
+
+def enqueue_card(student_id, job_id, score, queued_for):
+    """Insert a card into the queue; ignore if already queued for that date."""
+    if USE_POSTGRES:
+        execute(
+            """INSERT INTO card_queue (student_id, job_id, score, queued_for)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT (student_id, job_id, queued_for) DO NOTHING""",
+            (student_id, job_id, score, queued_for),
+        )
+    else:
+        execute(
+            """INSERT OR IGNORE INTO card_queue (student_id, job_id, score, queued_for)
+               VALUES (?, ?, ?, ?)""",
+            (student_id, job_id, score, queued_for),
+        )
+
+
+def get_queued_cards(student_id, date_str):
+    """Return unconsumed queued cards for a student on a given date, score DESC."""
+    if USE_POSTGRES:
+        return fetchall(
+            """SELECT * FROM card_queue
+               WHERE student_id = ? AND queued_for = ? AND consumed = FALSE
+               ORDER BY score DESC""",
+            (student_id, date_str),
+        )
+    else:
+        return fetchall(
+            """SELECT * FROM card_queue
+               WHERE student_id = ? AND queued_for = ? AND consumed = 0
+               ORDER BY score DESC""",
+            (student_id, date_str),
+        )
+
+
+def mark_card_consumed(card_queue_id):
+    """Mark a card_queue row as consumed."""
+    if USE_POSTGRES:
+        execute(
+            "UPDATE card_queue SET consumed = TRUE WHERE id = ?",
+            (card_queue_id,),
+        )
+    else:
+        execute(
+            "UPDATE card_queue SET consumed = 1 WHERE id = ?",
+            (card_queue_id,),
+        )

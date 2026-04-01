@@ -27,14 +27,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import (
     APP_BASE_URL, SESSION_SECRET, FROM_EMAIL, FROM_NAME,
     MAGIC_LINK_EXPIRY_MINUTES, MAGIC_LINK_RATE_LIMIT,
-    MAGIC_LINK_RATE_WINDOW, SESSION_DAYS, ALLOWED_ORIGINS, DEV_MODE
+    MAGIC_LINK_RATE_WINDOW, SESSION_DAYS, ALLOWED_ORIGINS, DEV_MODE,
+    JWT_REFRESH_TTL_DAYS
 )
 from db.database import (
     init_db, get_student_by_email, get_student_by_id,
-    create_student, upsert_student_profile,
+    create_student, upsert_student_profile, update_student_fields,
+    deactivate_student, revoke_all_tokens_for_student,
     create_magic_token, get_and_consume_token,
-    log_email, count_recent_tokens, fetchall, fetchone
+    log_email, count_recent_tokens, fetchall, fetchone,
+    create_refresh_token, get_refresh_token, revoke_refresh_token,
+    get_queued_cards, mark_card_consumed
 )
+from api.auth import make_access_token, make_refresh_token_str, require_jwt
 
 # ── App setup ────────────────────────────────────────────────────────────────
 
@@ -115,11 +120,15 @@ def require_session(f):
 
 # ── Magic link helpers ───────────────────────────────────────────────────────
 
-def send_magic_link(email: str, token: str):
+def send_magic_link(email: str, token: str, next_url: str = None):
     """Send a magic-link email via Resend REST API."""
     import requests as req
+    from urllib.parse import urlencode
 
-    verify_url = f"{APP_BASE_URL}/auth/verify?token={token}"
+    qs = {"token": token}
+    if next_url:
+        qs["next"] = next_url
+    verify_url = f"{APP_BASE_URL}/verify?{urlencode(qs)}"
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -275,15 +284,19 @@ def magic_link():
     # Store as ISO string — works for both SQLite and Postgres
     expires_at_str = expires_at_dt.isoformat()
 
+    next_url = (data.get("next") or "").strip() or None
     create_magic_token(email, token, expires_at_str)
 
     if DEV_MODE:
-        # In dev mode, print the link to console instead of emailing
+        from urllib.parse import urlencode
+        qs_dev = {"token": token}
+        if next_url:
+            qs_dev["next"] = next_url
         print(f"\n[DEV] Magic link for {email}:")
-        print(f"  {APP_BASE_URL}/auth/verify?token={token}\n")
+        print(f"  {APP_BASE_URL}/verify?{urlencode(qs_dev)}\n")
         return jsonify({"status": "sent", "dev_token": token})
 
-    ok = send_magic_link(email, token)
+    ok = send_magic_link(email, token, next_url=next_url)
     if not ok:
         return jsonify({"error": "Failed to send email. Please try again."}), 500
 
@@ -307,37 +320,160 @@ def verify():
     if not student:
         student = create_student(email)
 
-    # Determine where to redirect
-    has_profile = bool(student and student.get("name"))
-    destination = "/dashboard" if has_profile else "/onboarding"
+    student_id = student["id"]
 
-    resp = make_response(redirect(destination))
-    set_session(resp, student["id"])
+    # Determine where to redirect — caller's `next` param takes precedence for returning users
+    has_profile = bool(student and student.get("name"))
+    next_param = request.args.get("next", "").strip()
+    if has_profile and next_param:
+        destination = next_param
+    else:
+        destination = "/dashboard" if has_profile else "/onboarding"
+
+    # Issue JWT access token
+    access_token = make_access_token(student_id)
+
+    # Issue opaque refresh token and persist it
+    refresh_token_str = make_refresh_token_str()
+    refresh_expires_at = (
+        datetime.now(timezone.utc) + timedelta(days=JWT_REFRESH_TTL_DAYS)
+    ).isoformat()
+    create_refresh_token(student_id, refresh_token_str, refresh_expires_at)
+
+    resp = make_response(jsonify({"access_token": access_token, "redirect": destination}))
+    resp.set_cookie(
+        "ccc_refresh",
+        refresh_token_str,
+        max_age=JWT_REFRESH_TTL_DAYS * 86400,
+        httponly=True,
+        secure=IS_PRODUCTION,
+        samesite="None" if IS_PRODUCTION else "Lax",
+        path="/",
+    )
+    return resp
+
+
+@app.route("/auth/refresh", methods=["POST"])
+def refresh():
+    token_str = request.cookies.get("ccc_refresh", "")
+    if not token_str:
+        return jsonify({"error": "missing refresh token"}), 401
+
+    token_row = get_refresh_token(token_str)
+    if not token_row:
+        return jsonify({"error": "invalid refresh token"}), 401
+    if token_row.get("revoked_at"):
+        return jsonify({"error": "refresh token revoked"}), 401
+
+    # Check expiry — expires_at is stored as an ISO string
+    expires_at_str = token_row["expires_at"]
+    try:
+        # Handle both offset-aware and offset-naive ISO strings from the DB
+        if expires_at_str.endswith("+00:00") or expires_at_str.endswith("Z"):
+            expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
+        else:
+            expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=timezone.utc)
+    except Exception:
+        return jsonify({"error": "invalid refresh token"}), 401
+
+    if datetime.now(timezone.utc) > expires_at:
+        return jsonify({"error": "refresh token expired"}), 401
+
+    student_id = token_row["student_id"]
+
+    # Token rotation: revoke old, issue new
+    revoke_refresh_token(token_str)
+    new_refresh_str = make_refresh_token_str()
+    new_refresh_expires_at = (
+        datetime.now(timezone.utc) + timedelta(days=JWT_REFRESH_TTL_DAYS)
+    ).isoformat()
+    create_refresh_token(student_id, new_refresh_str, new_refresh_expires_at)
+
+    access_token = make_access_token(student_id)
+
+    resp = make_response(jsonify({"access_token": access_token}))
+    resp.set_cookie(
+        "ccc_refresh",
+        new_refresh_str,
+        max_age=JWT_REFRESH_TTL_DAYS * 86400,
+        httponly=True,
+        secure=IS_PRODUCTION,
+        samesite="None" if IS_PRODUCTION else "Lax",
+        path="/",
+    )
     return resp
 
 
 @app.route("/auth/logout", methods=["POST"])
 def logout():
+    token_str = request.cookies.get("ccc_refresh", "")
+    if token_str:
+        revoke_refresh_token(token_str)
     resp = make_response(jsonify({"status": "ok"}))
-    clear_session(resp)
+    resp.delete_cookie("ccc_refresh", path="/")
     return resp
 
 
 # ── Current user ─────────────────────────────────────────────────────────────
 
 @app.route("/api/me")
-@require_session
+@require_jwt
 def me():
-    return jsonify(g.student)
+    student = get_student_by_id(g.student_id)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
+    return jsonify(student)
+
+
+@app.route("/api/me", methods=["PATCH"])
+@require_jwt
+def update_me():
+    data = request.get_json(silent=True) or {}
+
+    # Map request keys to column names; only include keys present in body
+    field_map = {
+        "name":        "name",
+        "age":         "age",
+        "status":      "status",
+        "industries":  "industries",
+        "companySize": "company_size",
+        "bio":         "bio",
+        "university":  "university",
+    }
+    fields = {}
+    for req_key, col in field_map.items():
+        if req_key in data:
+            fields[col] = data[req_key]
+
+    if fields:
+        update_student_fields(g.student_id, fields)
+
+    student = get_student_by_id(g.student_id)
+    if not student:
+        return jsonify({"error": "Student not found"}), 401
+    return jsonify(student)
+
+
+@app.route("/api/me", methods=["DELETE"])
+@require_jwt
+def delete_me():
+    revoke_all_tokens_for_student(g.student_id)
+    deactivate_student(g.student_id)
+    resp = make_response(jsonify({"status": "deactivated"}))
+    resp.delete_cookie("ccc_refresh", path="/")
+    return resp
 
 
 # ── Student profile ───────────────────────────────────────────────────────────
 
 @app.route("/api/students/register", methods=["POST"])
-@require_session
+@require_jwt
 def register_student():
     data = request.get_json(silent=True) or {}
-    email = g.student["email"]
+    student = get_student_by_id(g.student_id)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
+    email = student["email"]
 
     student = upsert_student_profile(
         email=email,
@@ -347,7 +483,7 @@ def register_student():
         industries=json.dumps(data.get("industries", [])),
         company_size=data.get("companySize", ""),
         bio=data.get("bio", ""),
-        university=data.get("university", g.student.get("university", "")),
+        university=data.get("university", student.get("university", "")),
     )
     return jsonify(student)
 
@@ -355,21 +491,45 @@ def register_student():
 # ── Matches ───────────────────────────────────────────────────────────────────
 
 @app.route("/api/matches/today/<int:student_id>")
-@require_session
+@require_jwt
 def matches_today(student_id):
-    if g.student["id"] != student_id:
-        return jsonify({"error": "Forbidden"}), 403
+    if g.student_id != student_id:
+        return jsonify({"error": "forbidden"}), 403
 
-    rows = fetchall("""
-        SELECT m.*, j.title as job_title, j.company, j.url as job_url,
-               j.location, j.industry, j.posted_at
-        FROM matches m
-        JOIN jobs j ON j.id = m.job_id
-        WHERE m.student_id = ?
-          AND DATE(m.created_at) = DATE('now')
-        ORDER BY m.is_alumni DESC, m.created_at ASC
-        LIMIT 3
-    """, (student_id,))
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    queued = get_queued_cards(student_id, today_str)
+
+    if queued:
+        # Build match rows from queued card job_ids (preserving queue order)
+        job_ids = [c["job_id"] for c in queued]
+        placeholders = ", ".join(["?"] * len(job_ids))
+        rows = fetchall(f"""
+            SELECT m.*, j.title as job_title, j.company, j.url as job_url,
+                   j.location, j.industry, j.posted_at
+            FROM matches m
+            JOIN jobs j ON j.id = m.job_id
+            WHERE m.student_id = ?
+              AND m.job_id IN ({placeholders})
+            ORDER BY m.is_alumni DESC, m.created_at ASC
+            LIMIT 3
+        """, [student_id] + job_ids)
+        # Mark each returned queued card as consumed
+        returned_job_ids = {r["job_id"] for r in rows}
+        for card in queued:
+            if card["job_id"] in returned_job_ids:
+                mark_card_consumed(card["id"])
+    else:
+        # Fallback: fetch today's matches by creation date
+        rows = fetchall("""
+            SELECT m.*, j.title as job_title, j.company, j.url as job_url,
+                   j.location, j.industry, j.posted_at
+            FROM matches m
+            JOIN jobs j ON j.id = m.job_id
+            WHERE m.student_id = ?
+              AND DATE(m.created_at) = DATE('now')
+            ORDER BY m.is_alumni DESC, m.created_at ASC
+            LIMIT 3
+        """, (student_id,))
 
     return jsonify(rows)
 
@@ -377,13 +537,13 @@ def matches_today(student_id):
 # ── Signals ───────────────────────────────────────────────────────────────────
 
 @app.route("/api/signals", methods=["POST"])
-@require_session
+@require_jwt
 def record_signal():
     data = request.get_json(silent=True) or {}
     from db.database import execute as db_execute
     db_execute(
         "INSERT INTO signals (match_id, student_id, signal) VALUES (?, ?, ?)",
-        (data.get("match_id"), g.student["id"], data.get("signal", ""))
+        (data.get("match_id"), g.student_id, data.get("signal", ""))
     )
     return jsonify({"status": "ok"})
 
@@ -401,7 +561,7 @@ def match_reply(match_id):
 # ── Jobs ──────────────────────────────────────────────────────────────────────
 
 @app.route("/api/jobs")
-@require_session
+@require_jwt
 def list_jobs():
     rows = fetchall("SELECT * FROM jobs ORDER BY posted_at DESC LIMIT 50")
     return jsonify(rows)
@@ -440,6 +600,11 @@ def landing():
     return _send_html("ccc-landing-final.html")
 
 
+@app.route("/login")
+def login():
+    return _send_html("login.html")
+
+
 @app.route("/signup")
 def signup():
     return _send_html("ccc-signup.html")
@@ -453,6 +618,18 @@ def onboarding():
 @app.route("/dashboard")
 def dashboard():
     return _send_html("ccc-dashboard-live.html")
+
+
+@app.route("/verify")
+def verify_page():
+    """Client-side page that exchanges a magic-link token for a JWT."""
+    return send_from_directory(os.path.join(ROOT, "static"), "verify.html")
+
+
+@app.route("/static/<path:filename>")
+def static_files(filename):
+    """Serve files from the project-level static/ directory."""
+    return send_from_directory(os.path.join(ROOT, "static"), filename)
 
 
 # ── Start ─────────────────────────────────────────────────────────────────────

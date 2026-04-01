@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signing you in — inroad</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #F5F5F2;
+    font-family: 'Lato', system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    color: #1A1714;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    background: #FFFFFF;
+    border: 1px solid #E6E2DB;
+    border-radius: 16px;
+    padding: 48px 40px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+  .logo {
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .logo-text {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: #1A1714;
+    letter-spacing: -0.02em;
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #E6E2DB;
+    border-top-color: #1F4530;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 24px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+    color: #1A1714;
+  }
+  p {
+    font-size: 0.875rem;
+    color: #7A7068;
+    line-height: 1.6;
+  }
+  .error-state { display: none; }
+  .error-state .spinner { display: none; }
+  .error-icon {
+    font-size: 2rem;
+    margin-bottom: 16px;
+  }
+  a.retry {
+    display: inline-block;
+    margin-top: 20px;
+    background: #1F4530;
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  a.retry:hover { background: #122B1E; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="88" height="88" rx="22" fill="#1F4530"/>
+      <path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/>
+    </svg>
+    <span class="logo-text">inroad</span>
+  </div>
+
+  <div id="loading-state">
+    <div class="spinner"></div>
+    <h1>Signing you in&hellip;</h1>
+    <p>Just a moment while we verify your link.</p>
+  </div>
+
+  <div id="error-state" class="error-state">
+    <div class="error-icon">⚠</div>
+    <h1 id="error-title">Link expired</h1>
+    <p id="error-body">That link has expired or has already been used. Request a new one below.</p>
+    <a href="/signup" class="retry">Get a new link</a>
+  </div>
+</div>
+
+<script src="/static/auth.js"></script>
+<script>
+  (async function () {
+    const params = new URLSearchParams(window.location.search);
+    const token  = params.get('token');
+
+    if (!token) {
+      showError('Invalid link', 'No token was found in the link. Please request a new magic link.');
+      return;
+    }
+
+    // Build the verify API URL, forwarding the token and optional next param
+    const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `${window.location.protocol}//${window.location.hostname}:5001`
+      : '';
+
+    const nextParam = params.get('next');
+    let verifyUrl = `${apiBase}/auth/verify?token=${encodeURIComponent(token)}`;
+    if (nextParam) {
+      verifyUrl += `&next=${encodeURIComponent(nextParam)}`;
+    }
+
+    let data;
+    try {
+      const resp = await fetch(verifyUrl, { credentials: 'include' });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        showError(
+          'Link expired',
+          body.error || 'That link has expired or has already been used. Please request a new one.'
+        );
+        return;
+      }
+      data = await resp.json();
+    } catch (err) {
+      showError('Something went wrong', 'We couldn\'t reach the server. Please try again.');
+      return;
+    }
+
+    // Store the access token in memory via auth.js
+    if (data.access_token) {
+      setAccessToken(data.access_token);
+    }
+
+    // Redirect to the destination returned by the server
+    const destination = data.redirect || '/dashboard';
+    window.location.href = destination;
+  })();
+
+  function showError(title, body) {
+    document.getElementById('loading-state').style.display = 'none';
+    const es = document.getElementById('error-state');
+    es.style.display = 'block';
+    document.getElementById('error-title').textContent = title;
+    document.getElementById('error-body').textContent  = body;
+  }
+</script>
+</body>
+</html>
