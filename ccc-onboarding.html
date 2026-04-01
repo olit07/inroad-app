@@ -548,9 +548,50 @@
     .size-grid { grid-template-columns: 1fr; }
     .choice-grid { grid-template-columns: 1fr; }
   }
+
+  /* ─── LOADING OVERLAY ─── */
+  #onboarding-loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  #onboarding-loading-overlay.visible { display: flex; }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .loading-text {
+    font-family: 'Lato', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-mid);
+  }
 </style>
 </head>
 <body>
+
+<!-- LOADING OVERLAY (shown on final step submit) -->
+<div id="onboarding-loading-overlay">
+  <div class="loading-spinner"></div>
+  <p class="loading-text">Setting up your dashboard…</p>
+</div>
 
 <!-- NAV -->
 <nav>
@@ -965,9 +1006,8 @@
       bio:         document.getElementById('bio-input').value.trim(),
     };
 
-    const btn = document.querySelector('#step-6 .btn-next');
-    btn.textContent = 'Finding your matches…';
-    btn.disabled = true;
+    // Show loading overlay immediately
+    document.getElementById('onboarding-loading-overlay').classList.add('visible');
 
     // POST profile to backend if we have a verified email
     const save = data.email
@@ -989,32 +1029,9 @@
       : Promise.resolve();
 
     // Navigate to dashboard regardless of whether save succeeded
-    const encodedName = encodeURIComponent(name || 'there');
-    const emailParam  = window._verifiedEmail ? '&email=' + encodeURIComponent(window._verifiedEmail) : '';
-    // Smart navigate: probe for correct Chrome-suffixed dashboard filename
-    const dashP = '?name=' + encodedName + emailParam;
-    const dashBase = window.location.href.replace(/[^/]*$/, '');
-    const dsfx = ['','_1','_2','_3','_4','_5','_6','_7','_8','_9','_10',
-                  '_11','_12','_13','_14','_15','_16','_17','_18','_19','_20'];
-    let di = 0;
-    function tryDash() {
-      if (di >= dsfx.length) { window.location.href = '/dashboard' + dashP; return; }
-      const url = dashBase + 'ccc-dashboard-live' + dsfx[di] + '.html' + dashP;
-      di++;
-      const ifr = document.createElement('iframe');
-      ifr.style.display='none'; ifr.src=url;
-      ifr.onload=function(){
-        try{ const t=ifr.contentDocument&&ifr.contentDocument.title; if(t&&t.length>0){document.body.removeChild(ifr);window.location.href=url;return;} }catch(e){}
-        document.body.removeChild(ifr); tryDash();
-      };
-      ifr.onerror=function(){document.body.removeChild(ifr);tryDash();};
-      document.body.appendChild(ifr);
-    }
-    if (save && typeof save.finally === 'function') {
-      save.finally(() => tryDash());
-    } else {
-      tryDash();
-    }
+    save.finally(() => {
+      window.location.href = '/dashboard';
+    });
   }
 </script>
 

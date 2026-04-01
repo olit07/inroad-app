@@ -826,9 +826,50 @@
     .details-grid { grid-template-columns: 1fr; }
     .card-main { gap: 10px; }
   }
+
+  /* ─── LOADING OVERLAY ─── */
+  #loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  #loading-overlay.visible { display: flex; }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .loading-text {
+    font-family: 'Lato', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-mid);
+  }
 </style>
 </head>
 <body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay" class="visible">
+  <div class="loading-spinner"></div>
+  <p class="loading-text">Loading your matches…</p>
+</div>
 
 <!-- NAV -->
 <nav>
@@ -1075,74 +1116,115 @@
 </div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-  // ── INIT: name, date, live match loading ──
-  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? `${window.location.protocol}//${window.location.hostname}:5001`
-    : window.location.origin;
+  // ── LOADING OVERLAY HELPERS ──
+  function showLoadingOverlay() {
+    document.getElementById('loading-overlay').classList.add('visible');
+  }
 
-  (async function init() {
-    // Greeting period
+  function hideLoadingOverlay() {
+    document.getElementById('loading-overlay').classList.remove('visible');
+  }
+
+  // ── GREETING HELPER ──
+  function updateGreeting(student) {
+    if (!student) return;
+    const nameEl = document.getElementById('user-name');
+    if (nameEl && student.first_name) {
+      nameEl.textContent = student.first_name;
+    }
+    const prof = document.querySelector('.nav-profile');
+    if (prof && student.first_name) {
+      const parts = student.first_name.split(' ');
+      prof.textContent = (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+    }
+  }
+
+  // ── INIT ──
+  async function init() {
+    // Show loading overlay immediately — page content is hidden until data loads
+    showLoadingOverlay();
+
+    // Set greeting period and date regardless of auth state
     const hour = new Date().getHours();
     const period = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
     const greetingEl = document.getElementById('greeting-text');
     if (greetingEl) greetingEl.childNodes[0].textContent = `Good ${period}, `;
 
-    // Today's date
     const today = new Date();
     const dayName = today.toLocaleDateString('en-GB', {weekday:'long'});
     const dateStr = today.toLocaleDateString('en-GB', {day:'numeric', month:'long'});
     const sub = document.getElementById('page-sub');
     if (sub) sub.textContent = `${dayName}, ${dateStr} · Here are today's matches.`;
 
-    // Read name from URL param or /api/me session
-    const params = new URLSearchParams(window.location.search);
-    let studentName = params.get('name') || '';
-    let studentId   = params.get('student_id') || null;
-
-    // Try to load identity from session cookie
+    // 1. Refresh access token via HttpOnly cookie
+    let accessToken;
     try {
-      const me = await fetch(`${API_BASE}/api/me`, { credentials: 'include' });
-      if (me.ok) {
-        const meData = await me.json();
-        const student = meData.data?.student || meData.student;
+      const resp = await fetch('/auth/refresh', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!resp.ok) {
+        window.location.href = '/login';
+        return;
+      }
+      const data = await resp.json();
+      accessToken = data.access_token;
+    } catch (e) {
+      window.location.href = '/login';
+      return;
+    }
+
+    if (!accessToken) {
+      window.location.href = '/login';
+      return;
+    }
+
+    // Helper for authenticated requests
+    function authFetch(url) {
+      return fetch(url, {
+        credentials: 'include',
+        headers: { 'Authorization': 'Bearer ' + accessToken }
+      });
+    }
+
+    // 2. Load student profile
+    let student = null;
+    try {
+      const meResp = await authFetch('/api/me');
+      if (meResp.ok) {
+        const meData = await meResp.json();
+        student = meData.data?.student || meData.student || null;
         if (student) {
-          studentName = student.first_name || studentName;
-          studentId   = student.id || studentId;
-          // Update profile initials
-          const prof = document.querySelector('.nav-profile');
-          if (prof && student.first_name) {
-            const parts = student.first_name.split(' ');
-            prof.textContent = (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
-          }
+          updateGreeting(student);
         }
       }
-    } catch (_) {}
+    } catch (e) { /* ignore, show defaults */ }
 
-    // Update greeting name
-    const nameEl = document.getElementById('user-name');
-    if (nameEl && studentName) nameEl.textContent = decodeURIComponent(studentName);
-
-    // Try to load live matches from API
-    if (studentId) {
+    // 3. Load today's matches
+    if (student && student.id) {
       try {
         const controller = new AbortController();
         setTimeout(() => controller.abort(), 8000);
-        const r = await fetch(`${API_BASE}/api/matches/today/${studentId}`, {
+        const matchResp = await fetch('/api/matches/today/' + student.id, {
           credentials: 'include',
+          headers: { 'Authorization': 'Bearer ' + accessToken },
           signal: controller.signal
         });
-        if (r.ok) {
-          const data = await r.json();
-          const liveMatches = data.data?.matches || [];
-          if (liveMatches.length > 0) {
+        if (matchResp.ok) {
+          const matchData = await matchResp.json();
+          const liveMatches = matchData.data?.matches || matchData || [];
+          if (Array.isArray(liveMatches) && liveMatches.length > 0) {
             renderLiveCards(liveMatches);
           }
         }
-      } catch (_) {
-        // No server or timeout — keep mock cards
-      }
+      } catch (e) { /* show default/empty state */ }
     }
-  })();
+
+    // 4. Hide loading overlay — content is ready
+    hideLoadingOverlay();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
 
   function renderLiveCards(liveMatches) {
     const container = document.querySelector('.matches');
@@ -1455,4 +1537,20 @@ Alex`
   }
 
   function updateQuota(sent) {
- 
+    const total = 3;
+    const fill = document.getElementById('quota-fill');
+    if (fill) fill.style.width = Math.min(sent / total * 100, 100) + '%';
+
+    const countEl = document.querySelector('.quota-count strong');
+    if (countEl) countEl.textContent = sent;
+
+    const pips = document.querySelectorAll('.pip');
+    pips.forEach((pip, i) => {
+      pip.classList.toggle('on', i < sent);
+      pip.classList.toggle('off', i >= sent);
+    });
+  }
+</script>
+
+</body>
+</html>

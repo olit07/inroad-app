@@ -386,25 +386,34 @@
 
   .success-sub strong { color: var(--text); font-weight: 600; }
 
-  .next-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--green);
-    color: var(--white);
-    border: none;
-    border-radius: 10px;
-    padding: 12px 24px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    font-family: 'Lato', sans-serif;
+  .back-link {
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
     cursor: pointer;
-    text-decoration: none;
-    transition: background 0.15s, transform 0.1s;
-    margin-top: 4px;
+    background: none;
+    border: none;
+    font-family: 'Lato', sans-serif;
+    padding: 0;
   }
 
-  .next-btn:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .back-link:hover { color: var(--text); }
+
+  .switch-link {
+    text-align: center;
+    margin-top: 4px;
+    font-size: 0.82rem;
+    color: var(--subtle);
+  }
+
+  .switch-link a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .switch-link a:hover { color: var(--text); }
 
   /* ─── FOOTER ─── */
   footer {
@@ -482,15 +491,17 @@
 
     <!-- Success state -->
     <div class="success-state" id="success-state">
-      <div class="success-icon">✓</div>
-      <h2 class="success-title" id="success-title">Check your inbox.</h2>
+      <div class="success-icon">&#10003;</div>
+      <h2 class="success-title">Check your inbox.</h2>
       <p class="success-sub">
-        We've sent a magic link to <strong id="success-email"></strong>.<br>
-        Click the link to verify your email and set up your profile.
+        Check your inbox — we've sent a magic link to <strong id="success-email"></strong>.
       </p>
-      <!-- dev-link-box intentionally removed for production -->
-      <p class="trust-line" id="resend-line">Didn't get it? <a href="#" onclick="resend(event)">Resend the link</a></p>
-      <p class="trust-line" style="margin-top:6px"><a href="#" id="wrong-address" onclick="wrongAddress(event)">Wrong address? Start over</a></p>
+      <p class="switch-link">
+        Wrong address? <button class="back-link" onclick="startOver()">Use a different email</button>
+      </p>
+      <p class="switch-link">
+        Already have an account? <a href="/login">Sign in</a>
+      </p>
     </div>
 
   </div>
@@ -527,21 +538,6 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => input.focus(), 100);
-    // Show error banner if redirected from /auth/verify with an error
-    const params = new URLSearchParams(window.location.search);
-    const err = params.get('error');
-    if (err) {
-      const banner = document.getElementById('error-banner');
-      if (banner) {
-        const msgs = {
-          expired: 'That link has expired. Enter your email to get a new one.',
-          invalid: 'That link is invalid or has already been used. Enter your email to get a new one.',
-          used:    'That link has already been used. Enter your email to get a new one.',
-        };
-        banner.textContent = msgs[err] || 'Something went wrong. Please try again.';
-        banner.classList.add('visible');
-      }
-    }
   });
 
   function showError(msg) {
@@ -551,135 +547,59 @@
     input.focus();
   }
 
+  function setLoading(loading) {
+    btn.disabled = loading;
+    btn.classList.toggle('loading', loading);
+    btn.innerHTML = loading ? '<span style="opacity:0.6">Sending…</span>' : 'Continue <span id="btn-arrow">→</span>';
+  }
+
   async function handleSubmit() {
     const email = input.value.trim();
 
-    if (!email)            { showError('Please enter your email address.'); return; }
+    if (!email)               { showError('Please enter your email address.'); return; }
     if (!isValidEmail(email)) { showError('Please enter a valid email address.'); return; }
 
-    btn.classList.add('loading');
-    btn.innerHTML = '<span style="opacity:0.6">Sending magic link…</span>';
+    setLoading(true);
 
-    // Try to hit the backend — give it 4 seconds, silently fall back if down
-    let apiData = null;
     try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 4000);
       const res = await fetch(`${API_BASE}/auth/magic-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
-        signal: ctrl.signal,
       });
-      clearTimeout(t);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.ok) apiData = json.data;
+
+      if (res.status === 429) {
+        showError('Too many attempts — please wait a few minutes.');
+        setLoading(false);
+        return;
       }
-    } catch (_) { /* server not running — handled below */ }
 
-    btn.classList.remove('loading');
-    btn.innerHTML = 'Continue →';
-
-    // Always show success state
-    document.getElementById('form-state').style.display = 'none';
-    const ss = document.getElementById('success-state');
-    document.getElementById('success-email').textContent = email;
-    ss.dataset.email = email;
-
-    const box   = document.getElementById('dev-link-box');
-    const dlink = document.getElementById('dev-magic-link');
-
-    if (apiData && apiData.magic_url) {
-      // Backend up, dev mode (no SMTP) — show clickable token link
-      d// magic_url is absolute (http://localhost:5001/auth/verify?token=...)
-      // Replace the origin so it navigates on the same server if needed
-      link.href = apiData.magic_url;
-      dlink.textContent = apiData.magic_url;
-      box.style.display = 'block';
-      document.getElementById('success-title').textContent = 'Dev mode — click link below.';
-      document.getElementById('resend-line').style.display = 'none';
-    } else if (!apiData) {
-      // No backend running — generate a direct onboarding link so testing still works
-      const emailEnc2 = encodeURIComponent(email);
-      const params2 = '?verified=1&email=' + emailEnc2;
-      const base2 = window.location.href.replace(/[^/]*$/, '');
-      // Try all Chrome download suffix variants to find the onboarding file
-      const sfx = ['','_1','_2','_3','_4','_5','_6','_7','_8','_9','_10',
-                   '_11','_12','_13','_14','_15','_16','_17','_18','_19','_20'];
-      let si = 0;
-      function tryOnboard() {
-        if (si >= sfx.length) { window.location.href = 'ccc-onboarding.html' + params2; return; }
-        const url = base2 + 'ccc-onboarding' + sfx[si] + '.html' + params2;
-        si++;
-        const ifr = document.createElement('iframe');
-        ifr.style.display='none'; ifr.src=url;
-        ifr.onload=function(){
-          try{const t=ifr.contentDocument&&ifr.contentDocument.title;if(t&&t.length>0){document.body.removeChild(ifr);window.location.href=url;return;}}catch(e2){}
-          document.body.removeChild(ifr);tryOnboard();
-        };
-        ifr.onerror=function(){document.body.removeChild(ifr);tryOnboard();};
-        document.body.appendChild(ifr);
+      if (!res.ok) {
+        showError('Something went wrong — please try again.');
+        setLoading(false);
+        return;
       }
-      dlink.href = '#';
-      dlink.textContent = 'Click here to continue →';
-      dlink.onclick = function(e){ e.preventDefault(); tryOnboard(); };
-      box.style.display = 'block';
-      document.getElementById('success-title').textContent = 'Almost there — click below.';
-      document.getElementById('resend-line').style.display = 'none';
+    } catch (_) {
+      showError('Something went wrong — please try again.');
+      setLoading(false);
+      return;
     }
-    // else: backend sent real email — show normal "check inbox" state
 
+    setLoading(false);
+
+    // Show success state
+    document.getElementById('form-state').style.display = 'none';
+    document.getElementById('success-email').textContent = email;
+    const ss = document.getElementById('success-state');
+    ss.dataset.email = email;
     ss.classList.add('visible');
-    startResendCountdown();
   }
 
-  let resendCooldown = 0;
-  function startResendCountdown() {
-    resendCooldown = 60;
-    const link = document.querySelector('#resend-line a');
-    if (!link) return;
-    const orig = link.textContent;
-    const tick = setInterval(() => {
-      resendCooldown--;
-      if (resendCooldown <= 0) {
-        clearInterval(tick);
-        link.textContent = orig;
-        link.style.pointerEvents = '';
-        link.style.opacity = '';
-      } else {
-        link.textContent = `Resend in ${resendCooldown}s`;
-        link.style.pointerEvents = 'none';
-        link.style.opacity = '0.5';
-      }
-    }, 1000);
-  }
-
-  function wrongAddress(e) {
-    e.preventDefault();
+  function startOver() {
     document.getElementById('success-state').classList.remove('visible');
     document.getElementById('form-state').style.display = '';
-    document.getElementById('email-input').value = '';
-    document.getElementById('email-input').focus();
-  }
-
-  async function resend(e) {
-    e.preventDefault();
-    if (resendCooldown > 0) return;
-    const el = e.target;
-    const email = document.getElementById('success-state').dataset.email;
-    if (!email) return;
-    el.textContent = 'Sending…';
-    try {
-      await fetch(`${API_BASE}/auth/magic-link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-    } catch (_) {}
-    el.textContent = 'Sent!';
-    startResendCountdown();
-    setTimeout(() => {}, 100);
+    input.value = '';
+    input.focus();
   }
 </script>
 
