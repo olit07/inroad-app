@@ -1009,29 +1009,40 @@
     // Show loading overlay immediately
     document.getElementById('onboarding-loading-overlay').classList.add('visible');
 
-    // POST profile to backend if we have a verified email
-    const save = data.email
-      ? fetch('/api/students', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email:           data.email,
-            first_name:      name,
-            university:      '',
-            graduation_year: null,
-            status:          data.status,
-            industries:      JSON.stringify(data.industries),
-            company_size:    data.companySize,
-            bio:             data.bio,
-            region:          'UK',
-          }),
-        }).catch(() => {})
-      : Promise.resolve();
+    async function saveAndGo() {
+      // Get a fresh JWT via the refresh cookie set during magic-link verify
+      let token = null;
+      try {
+        const r = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' });
+        if (r.ok) token = (await r.json()).access_token;
+      } catch (_) {}
 
-    // Navigate to dashboard regardless of whether save succeeded
-    save.finally(() => {
+      // Save profile to the correct authenticated endpoint
+      if (token) {
+        try {
+          await fetch('/api/students/register', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token,
+            },
+            body: JSON.stringify({
+              name:        name,
+              age:         data.age ? parseInt(data.age) : null,
+              status:      data.status,
+              industries:  data.industries,
+              companySize: data.companySize,
+              bio:         data.bio,
+            }),
+          });
+        } catch (_) {}
+      }
+
       window.location.href = '/dashboard';
-    });
+    }
+
+    saveAndGo();
   }
 </script>
 

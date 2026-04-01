@@ -1193,7 +1193,7 @@
       const meResp = await authFetch('/api/me');
       if (meResp.ok) {
         const meData = await meResp.json();
-        student = meData.data?.student || meData.student || null;
+        student = meData.data?.student || meData.student || meData || null;
         if (student) {
           updateGreeting(student);
         }

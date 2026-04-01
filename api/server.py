@@ -315,20 +315,24 @@ def verify():
 
     email = row["email"]
 
-    # Ensure student exists
+    # Ensure student exists — track whether this is a brand-new account
     student = get_student_by_email(email)
+    is_new_user = student is None
     if not student:
         student = create_student(email)
 
     student_id = student["id"]
 
-    # Determine where to redirect — caller's `next` param takes precedence for returning users
-    has_profile = bool(student and student.get("name"))
+    # New users with no profile → onboarding. Everyone else → dashboard.
+    # (Existing users in the DB always go to dashboard even if name isn't set yet.)
+    has_profile = bool(student.get("name"))
     next_param = request.args.get("next", "").strip()
-    if has_profile and next_param:
+    if next_param and not is_new_user:
         destination = next_param
+    elif is_new_user and not has_profile:
+        destination = "/onboarding"
     else:
-        destination = "/dashboard" if has_profile else "/onboarding"
+        destination = "/dashboard"
 
     # Issue JWT access token
     access_token = make_access_token(student_id)
