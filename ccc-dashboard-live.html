@@ -1143,6 +1143,16 @@
   async function init() {
     // Show loading overlay immediately — page content is hidden until data loads
     showLoadingOverlay();
+    try {
+      await _initInner();
+    } catch (e) {
+      console.error('Dashboard init error:', e);
+    } finally {
+      hideLoadingOverlay();
+    }
+  }
+
+  async function _initInner() {
 
     // Set greeting period and date regardless of auth state
     const hour = new Date().getHours();
@@ -1220,9 +1230,7 @@
       } catch (e) { /* show default/empty state */ }
     }
 
-    // 4. Hide loading overlay — content is ready
-    hideLoadingOverlay();
-  }
+  } // end _initInner
 
   document.addEventListener('DOMContentLoaded', init);
 

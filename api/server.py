@@ -344,6 +344,17 @@ def verify():
     ).isoformat()
     create_refresh_token(student_id, refresh_token_str, refresh_expires_at)
 
+    # Kick off card generation in the background so cards are ready when the
+    # dashboard loads. Runs in a daemon thread — won't block the response.
+    import threading
+    def _generate_cards(sid):
+        try:
+            from pipeline.daily_cards import generate_daily_cards
+            generate_daily_cards(sid)
+        except Exception as exc:
+            print(f"[cards] background generation failed for student {sid}: {exc}")
+    threading.Thread(target=_generate_cards, args=(student_id,), daemon=True).start()
+
     resp = make_response(jsonify({"access_token": access_token, "redirect": destination}))
     resp.set_cookie(
         "ccc_refresh",
@@ -534,6 +545,24 @@ def matches_today(student_id):
             ORDER BY m.is_alumni DESC, m.created_at ASC
             LIMIT 3
         """, (student_id,))
+
+        # No cards yet — generate on-demand now (covers first dashboard load)
+        if not rows:
+            try:
+                from pipeline.daily_cards import generate_daily_cards
+                generate_daily_cards(student_id)
+                rows = fetchall("""
+                    SELECT m.*, j.title as job_title, j.company, j.url as job_url,
+                           j.location, j.industry, j.posted_at
+                    FROM matches m
+                    JOIN jobs j ON j.id = m.job_id
+                    WHERE m.student_id = ?
+                      AND DATE(m.created_at) = DATE('now')
+                    ORDER BY m.is_alumni DESC, m.created_at ASC
+                    LIMIT 3
+                """, (student_id,))
+            except Exception as exc:
+                print(f"[cards] on-demand generation failed for student {student_id}: {exc}")
 
     return jsonify(rows)
 
