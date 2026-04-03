@@ -386,7 +386,7 @@ def magic_link():
         print(f"  {APP_BASE_URL}/verify?{urlencode(qs_dev)}\n")
         return jsonify({"status": "sent", "dev_token": token})
 
-    if is_new_user:
+    if is_new_user and data.get("source") != "login":
         ok = send_magic_link(email, token, next_url=next_url)
     else:
         ok = send_login_link(email, token, next_url=next_url)
@@ -785,6 +785,23 @@ def admin_stats():
         "by_source":         by_source,
         "by_industry":       by_industry,
     }})
+
+
+@app.route("/api/admin/scrape", methods=["POST"])
+def admin_scrape():
+    data = request.get_json(silent=True) or {}
+    source_id = data.get("source_id")  # None = run all
+
+    def _run():
+        try:
+            from pipeline.ingest import run_all_scrapers
+            run_all_scrapers(source_ids=[source_id] if source_id else None)
+        except Exception as exc:
+            print(f"[admin/scrape] error: {exc}")
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "triggered"})
 
 
 @app.route("/api/admin/runs")

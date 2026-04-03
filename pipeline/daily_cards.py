@@ -218,7 +218,7 @@ def generate_email_draft(
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
 
     context = {
-        "student_name":       student.get("first_name", "there"),
+        "student_name":       student.get("name") or student.get("first_name", "there"),
         "student_university": student.get("university", "my university"),
         "student_bio":        student.get("bio", ""),
         "recipient_name":     lead.get("name", "").split()[0] if lead.get("name") else "there",
@@ -284,10 +284,15 @@ ROLE: {ctx['job_title']} at {ctx['recipient_company']}
 TONE: {ctx.get('industry_tone', 'Be genuine and concise.')}{tighten_note}
 
 STRICT RULES:
-- Under 100 words total in body
+- Under 120 words total in body
 - Plain text only — no markdown, bullets, or HTML
-- Mention the specific role by name
-- Ask for exactly 20 minutes
+- Start with "Dear {ctx['recipient_name']},"
+- Second line: "I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read."
+- Third paragraph: student's personal background (use their bio if provided, otherwise infer from university and role)
+- Fourth paragraph: one specific, genuine question tied to the role and company
+- Second-to-last paragraph: "I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day."
+- Sign off with "All the best," then student name on next line
+- Do NOT ask for a meeting, coffee chat, or call
 - Do NOT include any booking links, cal.com links, or URLs
 - NEVER use: "I hope this finds you well", "reach out", "touch base", "passionate about", "leverage", "I am writing to"
 
@@ -341,6 +346,7 @@ def _template_draft(ctx: dict) -> tuple[str, str]:
     template_ctx = {
         "student_name":          ctx["student_name"],
         "student_university":    ctx["student_university"],
+        "student_bio":           ctx.get("student_bio", ""),
         "student_cal_link":      "",
         "recipient_first_name":  ctx["recipient_name"],
         "recipient_company":     ctx["recipient_company"],

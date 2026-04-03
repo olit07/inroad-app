@@ -67,71 +67,100 @@ def select_template(student_id: int, match_date: str | None = None) -> int:
 
 # ── Templates ─────────────────────────────────────────────────────────────────
 
+def _bio_line(ctx: dict) -> str:
+    """Return the student's bio if set, otherwise a generic fallback."""
+    bio = (ctx.get("student_bio") or "").strip()
+    if bio:
+        return bio
+    return f"I'm a student at {ctx['student_university']} with a strong interest in {ctx.get('industry_hint', 'this field')}."
+
+
 def template_direct(ctx: dict) -> tuple[str, str]:
-    """Short, confident, direct."""
-    subject = f"Quick question about the {ctx['job_title']} role at {ctx['recipient_company']}"
-    body = f"""Hi {ctx['recipient_first_name']},
+    """Short, direct — specific question about getting into the role."""
+    subject = f"Quick question — {ctx['job_title']} at {ctx['recipient_company']}"
+    body = f"""Dear {ctx['recipient_first_name']},
 
-I came across the {ctx['job_title']} opening at {ctx['recipient_company']} and your background stood out.
+I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
 
-I'm a student at {ctx['student_university']} with a strong interest in this area. Would you be open to 20 minutes to share how you got into your role?
+{_bio_line(ctx)}
 
-Thanks,
+What do you think are the most important things a candidate should demonstrate to stand out for a {ctx['job_title']} role at {ctx['recipient_company']}?
+
+I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
+
+All the best,
 {ctx['student_name']}"""
     return subject, body.strip()
 
 
 def template_narrative(ctx: dict) -> tuple[str, str]:
-    """One story hook, asks for perspective."""
-    tenure = f"{int(ctx.get('tenure_years', 1))} year{'s' if ctx.get('tenure_years', 1) != 1 else ''}"
-    subject = f"{ctx['student_university']} student — your path to {ctx['recipient_company']}"
-    body = f"""Hi {ctx['recipient_first_name']},
+    """Asks about their career path — focuses on the person, not the role."""
+    subject = f"Your path into {ctx['recipient_company']} — quick question"
+    body = f"""Dear {ctx['recipient_first_name']},
 
-After {tenure} at {ctx['recipient_company']}, you've clearly built something real in {ctx.get('industry_hint', 'this space')}. I'm finishing my degree at {ctx['student_university']} and trying to understand what that path actually looks like from the inside.
+I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
 
-I spotted the {ctx['job_title']} role and it caught my attention. Would you spare 20 minutes?
+{_bio_line(ctx)}
 
+I came across your profile while researching the {ctx['job_title']} opening at {ctx['recipient_company']}. What's the one thing you wish you had known before making the move into {ctx.get('industry_hint', 'your field')}?
+
+I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
+
+All the best,
 {ctx['student_name']}"""
     return subject, body.strip()
 
 
 def template_alumni(ctx: dict) -> tuple[str, str]:
-    """Alumni-first. Warmest tone."""
-    subject = f"Fellow {ctx['student_university']} student — {ctx['job_title']} at {ctx['recipient_company']}"
-    body = f"""Hi {ctx['recipient_first_name']},
+    """Alumni connection — warmest tone."""
+    subject = f"Fellow {ctx['student_university']} student — quick question about {ctx['recipient_company']}"
+    body = f"""Dear {ctx['recipient_first_name']},
 
-I noticed you studied at {ctx['student_university']} — I'm currently in my final year there.
+I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
 
-I came across the {ctx['job_title']} opening at {ctx['recipient_company']} and I'd love to hear how you made the transition. Even 20 minutes would be incredibly helpful.
+{_bio_line(ctx)} I noticed you also studied at {ctx['student_university']} before joining {ctx['recipient_company']}.
 
-Thanks so much,
+What attributes do you look for when hiring for the {ctx['job_title']} team, and what would you prioritise developing as a student today?
+
+I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
+
+All the best,
 {ctx['student_name']}"""
     return subject, body.strip()
 
 
 def template_curiosity(ctx: dict) -> tuple[str, str]:
-    """Asks a specific question. Less about student, more about them."""
-    subject = f"Question about your work at {ctx['recipient_company']}"
-    body = f"""Hi {ctx['recipient_first_name']},
+    """Genuine curiosity — asks about skills and market dynamics."""
+    subject = f"Question about the {ctx['job_title']} role at {ctx['recipient_company']}"
+    body = f"""Dear {ctx['recipient_first_name']},
 
-I've been researching {ctx['recipient_company']} and reading about the {ctx['job_title']} team's work. One thing I'm genuinely curious about: what does the day-to-day actually look like compared to what's in the job description?
+I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
 
-I'm a student at {ctx['student_university']} exploring this area seriously. Would you be open to 20 minutes?
+{_bio_line(ctx)}
 
+What do you think are the most critical skills or qualities someone needs to succeed in a {ctx['job_title']} role at {ctx['recipient_company']}, given how much the {ctx.get('industry_hint', 'industry')} space is evolving?
+
+I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
+
+All the best,
 {ctx['student_name']}"""
     return subject, body.strip()
 
 
 def template_referral_prep(ctx: dict) -> tuple[str, str]:
-    """Frames the chat as research before applying. Less pushy."""
-    subject = f"Doing research before applying — {ctx['job_title']} at {ctx['recipient_company']}"
-    body = f"""Hi {ctx['recipient_first_name']},
+    """Research before applying — humble and low-pressure."""
+    subject = f"Considering the {ctx['job_title']} role at {ctx['recipient_company']} — a quick question"
+    body = f"""Dear {ctx['recipient_first_name']},
 
-I'm seriously considering applying for the {ctx['job_title']} role at {ctx['recipient_company']} and wanted to speak to someone who actually works there before I do.
+I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
 
-I'm finishing up at {ctx['student_university']} and would really value your perspective. Would 20 minutes work?
+{_bio_line(ctx)} I am currently considering applying for the {ctx['job_title']} opening at {ctx['recipient_company']}.
 
-Thanks,
+Before I do, I would love to hear — what is one thing you would want an applicant to genuinely understand about the role or the team that the job description doesn't capture?
+
+I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
+
+All the best,
 {ctx['student_name']}"""
     return subject, body.strip()
 
