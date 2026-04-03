@@ -39,12 +39,9 @@ def check_quality(subject: str, body: str, ctx: dict) -> dict:
             score -= 1
             banned_found.append(phrase)
 
-    has_cal  = bool(ctx.get("student_cal_link", "")) and ctx["student_cal_link"].lower() in body.lower()
     has_name = bool(ctx.get("recipient_first_name", "")) and ctx["recipient_first_name"].lower() in body.lower()
     has_role = bool(ctx.get("job_title", "")) and any(w.lower() in body.lower() for w in ctx["job_title"].split()[:3])
 
-    if not has_cal:
-        score -= 2; issues.append("Missing cal link")
     if not has_name:
         score -= 1; issues.append("Missing recipient name")
     if not has_role:
@@ -56,7 +53,6 @@ def check_quality(subject: str, body: str, ctx: dict) -> dict:
         "score":              max(0, score),
         "issues":             issues,
         "word_count":         word_count,
-        "has_cal_link":       has_cal,
         "has_name":           has_name,
         "has_role":           has_role,
         "banned_phrases_found": banned_found,
@@ -80,8 +76,6 @@ I came across the {ctx['job_title']} opening at {ctx['recipient_company']} and y
 
 I'm a student at {ctx['student_university']} with a strong interest in this area. Would you be open to 20 minutes to share how you got into your role?
 
-{ctx['student_cal_link']}
-
 Thanks,
 {ctx['student_name']}"""
     return subject, body.strip()
@@ -97,8 +91,6 @@ After {tenure} at {ctx['recipient_company']}, you've clearly built something rea
 
 I spotted the {ctx['job_title']} role and it caught my attention. Would you spare 20 minutes?
 
-{ctx['student_cal_link']}
-
 {ctx['student_name']}"""
     return subject, body.strip()
 
@@ -111,8 +103,6 @@ def template_alumni(ctx: dict) -> tuple[str, str]:
 I noticed you studied at {ctx['student_university']} — I'm currently in my final year there.
 
 I came across the {ctx['job_title']} opening at {ctx['recipient_company']} and I'd love to hear how you made the transition. Even 20 minutes would be incredibly helpful.
-
-{ctx['student_cal_link']}
 
 Thanks so much,
 {ctx['student_name']}"""
@@ -128,8 +118,6 @@ I've been researching {ctx['recipient_company']} and reading about the {ctx['job
 
 I'm a student at {ctx['student_university']} exploring this area seriously. Would you be open to 20 minutes?
 
-{ctx['student_cal_link']}
-
 {ctx['student_name']}"""
     return subject, body.strip()
 
@@ -142,8 +130,6 @@ def template_referral_prep(ctx: dict) -> tuple[str, str]:
 I'm seriously considering applying for the {ctx['job_title']} role at {ctx['recipient_company']} and wanted to speak to someone who actually works there before I do.
 
 I'm finishing up at {ctx['student_university']} and would really value your perspective. Would 20 minutes work?
-
-{ctx['student_cal_link']}
 
 Thanks,
 {ctx['student_name']}"""
@@ -168,9 +154,6 @@ def get_template(index: int):
 def render_template(index: int, ctx: dict) -> tuple[str, str]:
     fn = get_template(index)
     subject, body = fn(ctx)
-    # Ensure cal link is in body
-    if ctx.get("student_cal_link") and ctx["student_cal_link"] not in body:
-        body += f"\n\n{ctx['student_cal_link']}"
     return subject, body
 
 

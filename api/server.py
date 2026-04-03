@@ -400,11 +400,11 @@ def magic_link():
 def verify():
     token = request.args.get("token", "").strip()
     if not token:
-        return redirect("/signup?error=invalid")
+        return jsonify({"error": "Invalid link. Please request a new one."}), 400
 
     row = get_and_consume_token(token)
     if not row:
-        return redirect("/signup?error=expired")
+        return jsonify({"error": "This link has expired or has already been used. Please request a new one."}), 400
 
     email = row["email"]
 
@@ -739,28 +739,93 @@ def match_reply(match_id):
 # ── Jobs ──────────────────────────────────────────────────────────────────────
 
 @app.route("/api/jobs")
-@require_jwt
 def list_jobs():
-    rows = fetchall("SELECT * FROM jobs ORDER BY posted_at DESC LIMIT 50")
-    return jsonify(rows)
+    limit = min(int(request.args.get("limit", 50)), 1000)
+    rows = fetchall("SELECT * FROM jobs ORDER BY posted_at DESC LIMIT ?", (limit,))
+    jobs = [{
+        "company_name": r.get("company", ""),
+        "title":        r.get("title", ""),
+        "industries":   [r["industry"]] if r.get("industry") else [],
+        "region":       r.get("location", ""),
+        "seniority":    r.get("company_size", ""),
+        "posted_date":  (r.get("posted_at") or "")[:10],
+        "source_name":  r.get("source", ""),
+        "url":          r.get("url", ""),
+    } for r in rows]
+    return jsonify({"data": {"jobs": jobs}})
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
 @app.route("/api/admin/stats")
 def admin_stats():
-    stats = {
-        "students":    (fetchone("SELECT COUNT(*) as n FROM students") or {}).get("n", 0),
-        "matches":     (fetchone("SELECT COUNT(*) as n FROM matches") or {}).get("n", 0),
-        "sent":        (fetchone("SELECT COUNT(*) as n FROM matches WHERE status='sent'") or {}).get("n", 0),
-        "replied":     (fetchone("SELECT COUNT(*) as n FROM matches WHERE replied_at IS NOT NULL") or {}).get("n", 0),
-        "tokens_today": (fetchone(
-            "SELECT COUNT(*) as n FROM magic_tokens WHERE created_at > datetime('now', '-1 day')"
-        ) or {}).get("n", 0),
-    }
-    total_sent = stats["sent"] or 1
-    stats["reply_rate"] = round(stats["replied"] / total_sent * 100, 1)
-    return jsonify(stats)
+    active_jobs  = (fetchone("SELECT COUNT(*) as n FROM jobs") or {}).get("n", 0)
+    companies    = (fetchone("SELECT COUNT(DISTINCT company) as n FROM jobs") or {}).get("n", 0)
+    students     = (fetchone("SELECT COUNT(*) as n FROM students") or {}).get("n", 0)
+    matches_today = (fetchone(
+        "SELECT COUNT(*) as n FROM matches WHERE match_date = date('now')"
+    ) or {}).get("n", 0)
+    emails_sent_week = (fetchone(
+        "SELECT COUNT(*) as n FROM matches WHERE status='sent' AND sent_at > datetime('now', '-7 days')"
+    ) or {}).get("n", 0)
+
+    by_source_rows = fetchall("SELECT source, COUNT(*) as n FROM jobs WHERE source IS NOT NULL GROUP BY source ORDER BY n DESC")
+    by_source = {r["source"]: r["n"] for r in by_source_rows}
+
+    by_industry_rows = fetchall("SELECT industry, COUNT(*) as n FROM jobs WHERE industry IS NOT NULL GROUP BY industry ORDER BY n DESC LIMIT 10")
+    by_industry = {r["industry"]: r["n"] for r in by_industry_rows}
+
+    return jsonify({"data": {
+        "active_jobs":       active_jobs,
+        "total_jobs":        active_jobs,
+        "companies":         companies,
+        "students":          students,
+        "matches_today":     matches_today,
+        "emails_sent_week":  emails_sent_week,
+        "by_source":         by_source,
+        "by_industry":       by_industry,
+    }})
+
+
+@app.route("/api/admin/runs")
+def admin_runs():
+    # No scrape_runs table yet — return empty list
+    return jsonify({"data": {"runs": []}})
+
+
+@app.route("/api/admin/students")
+def admin_students():
+    rows = fetchall("""
+        SELECT s.email, s.university, s.industries, s.created_at,
+               COUNT(CASE WHEN m.status='sent' THEN 1 END) as sent,
+               COUNT(CASE WHEN m.replied_at IS NOT NULL THEN 1 END) as replies
+        FROM students s
+        LEFT JOIN matches m ON m.student_id = s.id
+        WHERE s.deactivated_at IS NULL
+        GROUP BY s.id
+        ORDER BY s.created_at DESC
+    """)
+    return jsonify({"data": {"students": rows}})
+
+
+@app.route("/api/admin/suppressions")
+def admin_suppressions():
+    rows = fetchall("SELECT identifier, identifier_type, created_at as added_at FROM suppression_list ORDER BY created_at DESC")
+    return jsonify({"data": {"suppressions": rows}})
+
+
+@app.route("/api/suppress", methods=["POST"])
+def add_suppression():
+    data = request.get_json(silent=True) or {}
+    identifier = (data.get("identifier") or "").strip()
+    id_type    = (data.get("type") or "linkedin").strip()
+    if not identifier:
+        return jsonify({"error": "identifier required"}), 400
+    execute(
+        "INSERT OR IGNORE INTO suppression_list (identifier, identifier_type) VALUES (?, ?)",
+        (identifier, id_type),
+    )
+    return jsonify({"status": "ok"})
 
 
 # ── HTML page routes ──────────────────────────────────────────────────────────
