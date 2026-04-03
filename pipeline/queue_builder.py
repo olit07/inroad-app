@@ -48,6 +48,27 @@ def build_queue_for_student(student_id: int, target_date: date) -> int:
     if not eligible:
         return 0
 
+    # Filter by company_size preference if the student has one set
+    if student.get("company_size"):
+        student_size = student["company_size"].lower().strip()
+        filtered = []
+        for job in eligible:
+            job_size = (job.get("company_size") or "").lower().strip()
+            if not job_size:
+                filtered.append(job)
+            else:
+                if any(kw in job_size for kw in ("startup", "small", "under 200", "seed", "early")):
+                    norm = "startup"
+                elif any(kw in job_size for kw in ("mid", "medium", "200", "500", "1000", "2000")):
+                    norm = "mid"
+                elif any(kw in job_size for kw in ("large", "enterprise", "2000+", "10000")):
+                    norm = "large"
+                else:
+                    norm = job_size
+                if norm == student_size:
+                    filtered.append(job)
+        eligible = filtered
+
     # Greedy diverse selection
     scored = sorted(
         [(j, score_job(j, student, [])) for j in eligible],
@@ -74,7 +95,8 @@ def build_queue_for_student(student_id: int, target_date: date) -> int:
         industries_count[industry] = industries_count.get(industry, 0) + 1
 
     for job, score in selected:
-        db.enqueue_card(student_id, job["id"], round(score, 2), target_str)
+        breakdown = json.dumps({"job_score": round(score, 2)})
+        db.enqueue_card(student_id, job["id"], round(score, 2), target_str, score_breakdown=breakdown)
 
     return len(selected)
 

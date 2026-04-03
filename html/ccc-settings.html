@@ -116,17 +116,7 @@
     <div class="section-card">
       <div class="field">
         <label>First name</label>
-        <input type="text" id="first-name" placeholder="Alex" autocomplete="given-name">
-      </div>
-      <div class="field">
-        <label>University</label>
-        <input type="text" id="university" placeholder="University College London">
-        <span class="field-hint">Auto-detected from your email. You can edit this.</span>
-      </div>
-      <div class="field">
-        <label>Cal.com link</label>
-        <input type="text" id="cal-link" placeholder="cal.com/you/coffee-chat">
-        <span class="field-hint">Paste this into your emails so professionals can book directly.</span>
+        <input type="text" id="name-input" placeholder="Alex" autocomplete="given-name">
       </div>
     </div>
   </div>
@@ -190,17 +180,22 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API = (window.location.hostname === 'localhost' || window.location.protocol === 'file:') ? 'http://localhost:5001' : '';
 const INDUSTRIES = [
   'Finance','Investment Banking','Technology','Software Engineering','Product Management',
   'Consulting','Strategy','Marketing','Growth','Law','Healthcare','Media & Journalism',
   'Design & UX','Data & Analytics','Real Estate','Non-profit & Policy','Venture Capital','Other'
 ];
 
-// Read student_id from URL
-const params     = new URLSearchParams(window.location.search);
-const studentId  = params.get('student_id') ? parseInt(params.get('student_id')) : null;
-let   currentData = {};
+let _token = null;
+
+async function getToken() {
+  if (_token) return _token;
+  try {
+    const r = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' });
+    if (r.ok) { _token = (await r.json()).access_token; }
+  } catch(_) {}
+  return _token;
+}
 
 // Populate industry pills
 const grid = document.getElementById('industry-grid');
@@ -218,40 +213,34 @@ function selectSize(el) {
   el.classList.add('selected');
 }
 
-// Load current settings
 async function loadSettings() {
-  if (!studentId) {
-    document.getElementById('page-sub').textContent = 'No student ID found — open from your dashboard.';
+  const token = await getToken();
+  if (!token) {
+    document.getElementById('page-sub').textContent = 'Not signed in — please log in first.';
     return;
   }
   try {
-    const r = await fetch(`${API}/api/students/${studentId}`);
+    const r = await fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } });
     if (!r.ok) return;
-    const { data } = await r.json();
-    currentData = data;
+    const data = await r.json();
 
-    document.getElementById('first-name').value = data.first_name || '';
-    document.getElementById('university').value  = data.university  || '';
-    document.getElementById('cal-link').value    = data.cal_link    || '';
-    document.getElementById('bio').value         = data.bio         || '';
+    document.getElementById('name-input').value = data.name || '';
+    document.getElementById('bio').value         = data.bio  || '';
     updateBioCount();
 
-    // Set industry pills
     const selInds = Array.isArray(data.industries) ? data.industries :
       JSON.parse(data.industries || '[]');
     document.querySelectorAll('.industry-pill').forEach(pill => {
       if (selInds.includes(pill.dataset.value)) pill.classList.add('selected');
     });
 
-    // Set size
     const sizeEl = document.querySelector(`[data-value="${data.company_size}"]`);
     if (sizeEl) selectSize(sizeEl);
 
     document.getElementById('page-sub').textContent =
-      `Signed in as ${data.email} · Last updated ${data.updated_at?.slice(0,10) || '—'}`;
-
+      `Signed in as ${data.email}`;
   } catch(e) {
-    document.getElementById('page-sub').textContent = 'API offline — changes saved locally only.';
+    document.getElementById('page-sub').textContent = 'Could not load settings.';
   }
 }
 
@@ -264,55 +253,53 @@ function updateBioCount() {
 document.getElementById('bio').addEventListener('input', updateBioCount);
 
 async function saveSettings() {
-  const industries = [...document.querySelectorAll('.industry-pill.selected')]
-    .map(p => p.dataset.value);
-  const size = document.querySelector('.size-card.selected')?.dataset.value || 'large';
+  const token = await getToken();
+  const industries = [...document.querySelectorAll('.industry-pill.selected')].map(p => p.dataset.value);
+  const size = document.querySelector('.size-card.selected')?.dataset.value || '';
 
   const payload = {
-    first_name:   document.getElementById('first-name').value.trim(),
-    university:   document.getElementById('university').value.trim(),
-    cal_link:     document.getElementById('cal-link').value.trim(),
-    bio:          document.getElementById('bio').value.trim(),
+    name:        document.getElementById('name-input').value.trim(),
+    bio:         document.getElementById('bio').value.trim(),
     industries,
-    company_size: size,
+    companySize: size,
   };
-
-  // Save cal link to localStorage for immediate dashboard use
-  if (payload.cal_link) {
-    localStorage.setItem('ccc_cal_link', payload.cal_link);
-  }
 
   const btn = document.getElementById('save-btn');
   btn.textContent = 'Saving…';
   btn.disabled = true;
 
-  if (studentId) {
-    try {
-      const r = await fetch(`${API}/api/students/${studentId}`, {
-        method: 'PUT', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      if (r.ok) {
-        btn.textContent = 'Saved ✓';
-        btn.classList.add('saved');
-        showToast('Settings saved');
-        setTimeout(() => { btn.textContent = 'Save changes'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
-        return;
-      }
-    } catch(e) { /* API offline */ }
-  }
+  try {
+    const r = await fetch('/api/me', {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(payload),
+    });
+    if (r.ok) {
+      btn.textContent = 'Saved ✓';
+      btn.classList.add('saved');
+      showToast('Settings saved');
+      setTimeout(() => { btn.textContent = 'Save changes'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
+      return;
+    }
+  } catch(_) {}
 
-  // Offline fallback — save to localStorage
-  localStorage.setItem('ccc_settings', JSON.stringify(payload));
-  btn.textContent = 'Saved locally ✓';
-  btn.classList.add('saved');
-  showToast('Saved locally (API offline)');
-  setTimeout(() => { btn.textContent = 'Save changes'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
+  btn.textContent = 'Save changes';
+  btn.disabled = false;
+  showToast('Failed to save — please try again');
 }
 
-function confirmDelete() {
+async function confirmDelete() {
   if (!confirm('Are you sure? This permanently deletes your account and all match history. This cannot be undone.')) return;
-  showToast('Account deletion — contact hello@inroad.com', false);
+  const token = await getToken();
+  try {
+    await fetch('/api/me', {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Authorization': 'Bearer ' + token },
+    });
+  } catch(_) {}
+  window.location.href = '/';
 }
 
 function showToast(msg) {

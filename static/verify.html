@@ -147,9 +147,11 @@
       return;
     }
 
-    // Store the access token in memory via auth.js
+    // Store the access token in memory AND in sessionStorage so the next page
+    // (onboarding or dashboard) can restore it without an extra /auth/refresh round-trip.
     if (data.access_token) {
       setAccessToken(data.access_token);
+      sessionStorage.setItem('inroad_token', data.access_token);
     }
 
     // Redirect to the destination returned by the server

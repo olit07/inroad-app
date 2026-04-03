@@ -636,18 +636,6 @@
         />
       </div>
 
-      <div class="field" style="margin-top:18px;">
-        <label for="uni-input">University <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(optional)</span></label>
-        <input
-          type="text"
-          id="uni-input"
-          class="text-input"
-          placeholder="e.g. University of Edinburgh"
-          autocomplete="organization"
-          autocapitalize="words"
-        />
-        <p id="uni-detected-hint" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--green);font-weight:500;">Detected from your email ✓</p>
-      </div>
 
       <div class="step-actions">
         <button class="btn-next" onclick="nextStep(1)">Continue →</button>
@@ -723,7 +711,7 @@
       <h1 class="step-title">What kind of work <em>excites you?</em></h1>
       <p class="step-sub">Pick all the industries you're open to. We'll find matches across your selections.</p>
 
-      <div class="error-msg" id="err-3"><span>⚠</span><span>Please select at least one industry.</span></div>
+      <div class="error-msg" id="err-4"><span>⚠</span><span>Please select at least one industry.</span></div>
 
       <div class="industry-grid">
         <span class="industry-pill" onclick="togglePill(this)">Finance</span>
@@ -760,7 +748,7 @@
       <h1 class="step-title">What size company <em>suits you?</em></h1>
       <p class="step-sub">We'll prioritise matches at companies that fit your preference.</p>
 
-      <div class="error-msg" id="err-4"><span>⚠</span><span>Please select a company size.</span></div>
+      <div class="error-msg" id="err-5"><span>⚠</span><span>Please select a company size.</span></div>
 
       <div class="size-grid">
         <div class="size-card" data-group="size" data-value="startup" onclick="selectChoice(this)">
@@ -784,6 +772,8 @@
       <div class="step-actions">
         <button class="btn-back" onclick="prevStep(5)">← Back</button>
         <button class="btn-next" onclick="nextStep(5)">Continue →</button>
+      </div>
+      <p class="step-counter">5 of 6</p>
     </div>
 
     <!-- ── STEP 6: ABOUT ── -->
@@ -792,7 +782,7 @@
       <h1 class="step-title">Tell us a little <em>about yourself.</em></h1>
       <p class="step-sub">One or two sentences. This helps us personalise your outreach emails so they feel genuinely written by you.</p>
 
-      <div class="error-msg" id="err-5"><span>⚠</span><span id="err-5-text">Please write a short intro.</span></div>
+      <div class="error-msg" id="err-6"><span>⚠</span><span id="err-6-text">Please write a short intro.</span></div>
 
       <div class="field">
         <label for="bio-input">Your intro</label>
@@ -821,6 +811,7 @@
   © 2026 inroad · <a href="#">Privacy</a> · <a href="#">Terms</a>
 </footer>
 
+<script src="/static/auth.js"></script>
 <script>
   // ── AGE SLIDER ──
   function updateAge(val) {
@@ -853,24 +844,16 @@
       window._verifiedEmail = decodeURIComponent(verifiedEmail);
     }
 
-    // Pre-fill university if auto-detected from email
+    // Restore access token from sessionStorage (set by verify.html) then rotate it
+    const _stored = sessionStorage.getItem('inroad_token');
+    if (_stored) { setAccessToken(_stored); sessionStorage.removeItem('inroad_token'); }
+
+    // Rotate the token (consume the one from verify, get a fresh one)
     try {
       const rr = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' });
       if (rr.ok) {
         const { access_token } = await rr.json();
-        const mr = await fetch('/api/me', {
-          credentials: 'include',
-          headers: { 'Authorization': 'Bearer ' + access_token },
-        });
-        if (mr.ok) {
-          const profile = await mr.json();
-          const uni = profile.university || profile.data?.university || '';
-          if (uni) {
-            const uniInput = document.getElementById('uni-input');
-            uniInput.value = uni;
-            document.getElementById('uni-detected-hint').style.display = 'block';
-          }
-        }
+        setAccessToken(access_token);
       }
     } catch (_) {}
   });
@@ -1029,51 +1012,36 @@
   // ── FINISH ──
 
   function finish() {
-    const name = document.getElementById('name-input').value.trim();
-    const data = {
-      name,
-      email:       window._verifiedEmail || '',
-      age:         document.getElementById('age-input').value,
-      status:      document.querySelector('[data-group="status"].selected')?.dataset.value,
-      industries:  [...document.querySelectorAll('.industry-pill.selected')].map(p => p.textContent),
-      companySize: document.querySelector('[data-group="size"].selected')?.dataset.value,
-      bio:         document.getElementById('bio-input').value.trim(),
-      university:  document.getElementById('uni-input').value.trim(),
-    };
+    const name        = document.getElementById('name-input').value.trim();
+    const age         = document.getElementById('age-input').value;
+    const status      = document.querySelector('[data-group="status"].selected')?.dataset.value;
+    const industries  = [...document.querySelectorAll('.industry-pill.selected')].map(p => p.textContent);
+    const companySize = document.querySelector('[data-group="size"].selected')?.dataset.value;
+    const bio         = document.getElementById('bio-input').value.trim();
 
     // Show loading overlay immediately
     document.getElementById('onboarding-loading-overlay').classList.add('visible');
 
     async function saveAndGo() {
-      // Get a fresh JWT via the refresh cookie set during magic-link verify
-      let token = null;
-      try {
-        const r = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' });
-        if (r.ok) token = (await r.json()).access_token;
-      } catch (_) {}
+      const payload = JSON.stringify({
+        name,
+        age:         age ? parseInt(age) : null,
+        status,
+        industries,
+        companySize,
+        bio,
+      });
 
-      // Save profile to the correct authenticated endpoint
-      if (token) {
-        try {
-          await fetch('/api/students/register', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + token,
-            },
-            body: JSON.stringify({
-              name:        name,
-              age:         data.age ? parseInt(data.age) : null,
-              status:      data.status,
-              industries:  data.industries,
-              companySize: data.companySize,
-              bio:         data.bio,
-              university:  data.university,
-            }),
-          });
-        } catch (_) {}
-      }
+      // apiFetch (from auth.js) adds the Bearer token automatically and handles
+      // 401 → refresh → retry, so the save succeeds even if the in-memory token
+      // has expired during onboarding.
+      try {
+        await apiFetch('/api/students/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+        });
+      } catch (_) {}
 
       window.location.href = '/dashboard';
     }

@@ -25,7 +25,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config.settings    import DAILY_MATCH_QUOTA, DB_PATH
 from db.database        import db_conn, get_active_jobs, get_card_count_today, USE_POSTGRES
-from pipeline.matcher   import LinkedInMatcher, score_lead
+from pipeline.matcher   import LinkedInMatcher, score_lead, score_lead_v2
 from pipeline.email_infer import EmailInferrer
 
 logger = logging.getLogger(__name__)
@@ -405,6 +405,27 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
     # Filter already seen
     jobs = [j for j in jobs if j["id"] not in seen_job_ids]
 
+    # Filter by company_size preference if the student has one set
+    if student.get("company_size"):
+        student_size = student["company_size"].lower().strip()
+        filtered = []
+        for job in jobs:
+            job_size = (job.get("company_size") or "").lower().strip()
+            if not job_size:
+                filtered.append(job)
+            else:
+                if any(kw in job_size for kw in ("startup", "small", "under 200", "seed", "early")):
+                    norm = "startup"
+                elif any(kw in job_size for kw in ("mid", "medium", "200", "500", "1000", "2000")):
+                    norm = "mid"
+                elif any(kw in job_size for kw in ("large", "enterprise", "2000+", "10000")):
+                    norm = "large"
+                else:
+                    norm = job_size
+                if norm == student_size:
+                    filtered.append(job)
+        jobs = filtered
+
     matcher  = LinkedInMatcher()
     inferrer = EmailInferrer()
 
@@ -473,10 +494,10 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
 
         # Score leads
         scored_leads = [
-            (score_lead(lead, job, student), lead) for lead in leads
+            (score_lead_v2(lead, job, student), lead) for lead in leads
         ]
-        scored_leads.sort(key=lambda x: -x[0])
-        best_score, best_lead = scored_leads[0]
+        scored_leads.sort(key=lambda x: -x[0][0])
+        (best_score, best_breakdown), best_lead = scored_leads[0]
 
         # Infer email
         name_parts = best_lead.get("name", "").split()
@@ -504,6 +525,7 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
             "person_tenure_months": best_lead.get("tenure_months", 0),
             "is_alumni":           int(best_lead.get("is_alumni", False)),
             "relevance_score":     round(best_score, 1),
+            "score_breakdown":     json.dumps(best_breakdown),
             "expected_email":      email_result["email"],
             "email_confidence":    email_result["confidence"],
             "email_subject":       subject,
@@ -518,16 +540,18 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
                            (student_id, job_id, match_date, person_name, person_title,
                             person_company, person_linkedin_url, person_university,
                             person_tenure_months, is_alumni, relevance_score,
-                            expected_email, email_confidence, email_subject, email_body)
-                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                            score_breakdown, expected_email, email_confidence,
+                            email_subject, email_body)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                            ON CONFLICT (student_id, job_id) DO NOTHING""",
                         (
                             card["student_id"], card["job_id"], card["match_date"],
                             card["person_name"], card["person_title"], card["person_company"],
                             card["person_linkedin_url"], card["person_university"],
                             card["person_tenure_months"], card["is_alumni"],
-                            card["relevance_score"], card["expected_email"],
-                            card["email_confidence"], card["email_subject"], card["email_body"],
+                            card["relevance_score"], card["score_breakdown"],
+                            card["expected_email"], card["email_confidence"],
+                            card["email_subject"], card["email_body"],
                         )
                     )
                 else:
@@ -536,15 +560,17 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
                            (student_id, job_id, match_date, person_name, person_title,
                             person_company, person_linkedin_url, person_university,
                             person_tenure_months, is_alumni, relevance_score,
-                            expected_email, email_confidence, email_subject, email_body)
-                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            score_breakdown, expected_email, email_confidence,
+                            email_subject, email_body)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (
                             card["student_id"], card["job_id"], card["match_date"],
                             card["person_name"], card["person_title"], card["person_company"],
                             card["person_linkedin_url"], card["person_university"],
                             card["person_tenure_months"], card["is_alumni"],
-                            card["relevance_score"], card["expected_email"],
-                            card["email_confidence"], card["email_subject"], card["email_body"],
+                            card["relevance_score"], card["score_breakdown"],
+                            card["expected_email"], card["email_confidence"],
+                            card["email_subject"], card["email_body"],
                         )
                     )
             except Exception as e:

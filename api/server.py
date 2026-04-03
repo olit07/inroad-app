@@ -258,6 +258,91 @@ def send_magic_link(email: str, token: str, next_url: str = None):
         return False
 
 
+def send_login_link(email: str, token: str, next_url: str = None):
+    """Send a simple sign-in email for returning users."""
+    import requests as req
+    from urllib.parse import urlencode
+
+    qs = {"token": token}
+    if next_url:
+        qs["next"] = next_url
+    verify_url = f"{APP_BASE_URL}/verify?{urlencode(qs)}"
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in to inroad</title>
+</head>
+<body style="margin:0;padding:0;background:#F5F5F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<div style="background:#F5F5F2;padding:40px 20px;">
+<div style="background:#FFFFFF;border-radius:16px;max-width:520px;margin:0 auto;overflow:hidden;border:1px solid #E2DED8;">
+
+  <!-- Header -->
+  <div style="background:#1F4530;padding:36px 40px;">
+    <div style="display:inline-flex;align-items:center;gap:12px;">
+      <svg width="32" height="32" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="88" height="88" rx="22" fill="rgba(255,255,255,0.18)"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+      <span style="font-family:Georgia,serif;font-weight:700;font-size:1.4rem;color:#FFFFFF;letter-spacing:-0.02em;">inroad</span>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div style="padding:44px 40px 36px;">
+
+    <h1 style="font-size:26px;font-weight:900;color:#111110;letter-spacing:-0.02em;line-height:1.2;margin:0 0 14px;">Welcome back.</h1>
+
+    <p style="font-size:15px;color:#6E6860;line-height:1.7;margin:0 0 36px;">
+      Here's your sign-in link. It'll take you straight to your dashboard.
+    </p>
+
+    <div style="margin-bottom:40px;">
+      <a href="{verify_url}" style="display:inline-block;background:#1F4530;color:#FFFFFF;font-size:15px;font-weight:700;padding:15px 32px;border-radius:10px;text-decoration:none;letter-spacing:0.01em;">Sign in to inroad &rarr;</a>
+    </div>
+
+    <div style="background:#F5F5F2;border:1px solid #E2DED8;border-radius:8px;padding:14px 16px;">
+      <div style="font-size:10px;font-weight:700;color:#A8A09A;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:7px;">Button not working? Copy this link</div>
+      <div style="font-size:11px;color:#6E6860;word-break:break-all;font-family:'Courier New',monospace;line-height:1.5;">{verify_url}</div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div style="padding:24px 40px;border-top:1px solid #E2DED8;text-align:center;">
+    <div style="font-size:12px;color:#A8A09A;line-height:1.7;">
+      This link expires in {MAGIC_LINK_EXPIRY_MINUTES} minutes and can only be used once.<br>
+      If you didn&rsquo;t request this, you can safely ignore it.
+    </div>
+  </div>
+
+</div>
+</div>
+</body>
+</html>"""
+
+    try:
+        resp = req.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {os.environ.get('RESEND_API_KEY', '')}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": f"{FROM_NAME} <{FROM_EMAIL}>",
+                "to": [email],
+                "subject": "Your inroad sign-in link",
+                "html": html,
+            },
+            timeout=10,
+        )
+        data = resp.json()
+        log_email(email, "Login link", "login_link", data.get("id"))
+        return True
+    except Exception as e:
+        print(f"[email] Failed to send login link: {e}")
+        return False
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 
 @app.route("/api/health")
@@ -288,16 +373,23 @@ def magic_link():
     next_url = (data.get("next") or "").strip() or None
     create_magic_token(email, token, expires_at_str)
 
+    # Determine whether this is a new sign-up or a returning user login
+    existing_student = get_student_by_email(email)
+    is_new_user = existing_student is None
+
     if DEV_MODE:
         from urllib.parse import urlencode
         qs_dev = {"token": token}
         if next_url:
             qs_dev["next"] = next_url
-        print(f"\n[DEV] Magic link for {email}:")
+        print(f"\n[DEV] Magic link for {email} (new={is_new_user}):")
         print(f"  {APP_BASE_URL}/verify?{urlencode(qs_dev)}\n")
         return jsonify({"status": "sent", "dev_token": token})
 
-    ok = send_magic_link(email, token, next_url=next_url)
+    if is_new_user:
+        ok = send_magic_link(email, token, next_url=next_url)
+    else:
+        ok = send_login_link(email, token, next_url=next_url)
     if not ok:
         return jsonify({"error": "Failed to send email. Please try again."}), 500
 
@@ -551,15 +643,27 @@ def matches_today(student_id):
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     queued = get_queued_cards(student_id, today_str)
 
+    _matches_select = """
+            SELECT m.id, m.student_id, m.job_id, m.match_date,
+                   m.person_name, m.person_title, m.person_company,
+                   m.person_linkedin_url, m.person_university,
+                   m.person_tenure_months, m.is_alumni, m.relevance_score,
+                   m.score_breakdown,
+                   m.expected_email, m.email_confidence,
+                   m.email_subject, m.email_body,
+                   m.status, m.sent_at, m.replied_at, m.created_at,
+                   j.title as job_title, j.company, j.url as job_url,
+                   j.location, j.industry, j.posted_at
+            FROM matches m
+            JOIN jobs j ON j.id = m.job_id
+    """
+
     if queued:
         # Build match rows from queued card job_ids (preserving queue order)
         job_ids = [c["job_id"] for c in queued]
         placeholders = ", ".join(["?"] * len(job_ids))
-        rows = fetchall(f"""
-            SELECT m.*, j.title as job_title, j.company, j.url as job_url,
-                   j.location, j.industry, j.posted_at
-            FROM matches m
-            JOIN jobs j ON j.id = m.job_id
+        rows = fetchall(
+            _matches_select + f"""
             WHERE m.student_id = ?
               AND m.job_id IN ({placeholders})
             ORDER BY m.is_alumni DESC, m.created_at ASC
@@ -572,11 +676,8 @@ def matches_today(student_id):
                 mark_card_consumed(card["id"])
     else:
         # Fallback: fetch today's matches by creation date
-        rows = fetchall("""
-            SELECT m.*, j.title as job_title, j.company, j.url as job_url,
-                   j.location, j.industry, j.posted_at
-            FROM matches m
-            JOIN jobs j ON j.id = m.job_id
+        rows = fetchall(
+            _matches_select + """
             WHERE m.student_id = ?
               AND DATE(m.created_at) = DATE('now')
             ORDER BY m.is_alumni DESC, m.created_at ASC
@@ -588,11 +689,8 @@ def matches_today(student_id):
             try:
                 from pipeline.daily_cards import generate_daily_cards
                 generate_daily_cards(student_id)
-                rows = fetchall("""
-                    SELECT m.*, j.title as job_title, j.company, j.url as job_url,
-                           j.location, j.industry, j.posted_at
-                    FROM matches m
-                    JOIN jobs j ON j.id = m.job_id
+                rows = fetchall(
+                    _matches_select + """
                     WHERE m.student_id = ?
                       AND DATE(m.created_at) = DATE('now')
                     ORDER BY m.is_alumni DESC, m.created_at ASC
@@ -600,6 +698,16 @@ def matches_today(student_id):
                 """, (student_id,))
             except Exception as exc:
                 print(f"[cards] on-demand generation failed for student {student_id}: {exc}")
+
+    for m in rows:
+        raw = m.get("score_breakdown")
+        if isinstance(raw, str):
+            try:
+                m["score_breakdown"] = json.loads(raw)
+            except (ValueError, TypeError):
+                m["score_breakdown"] = {}
+        elif raw is None:
+            m["score_breakdown"] = {}
 
     return jsonify(rows)
 
@@ -657,11 +765,12 @@ def admin_stats():
 
 # ── HTML page routes ──────────────────────────────────────────────────────────
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HTML_DIR = os.path.join(ROOT, "html")
 
 
 def _send_html(filename):
-    return send_from_directory(ROOT, filename)
+    return send_from_directory(HTML_DIR, filename)
 
 
 @app.route("/")
@@ -688,6 +797,16 @@ def onboarding():
 @app.route("/dashboard")
 def dashboard():
     return _send_html("ccc-dashboard-live.html")
+
+
+@app.route("/settings")
+def settings_page():
+    return _send_html("ccc-settings.html")
+
+
+@app.route("/admin")
+def admin_page():
+    return _send_html("ccc-admin.html")
 
 
 @app.route("/verify")

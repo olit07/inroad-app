@@ -63,3 +63,34 @@ FRESHNESS_DECAY_DAYS = int(os.environ.get("FRESHNESS_DECAY_DAYS", "30"))
 
 # Path to the SQLite database (ignored when DATABASE_URL is set)
 DB_PATH = os.environ.get("DB_PATH", "")
+
+# ── Scraper / pipeline constants ──────────────────────────────────────────────
+
+REQUEST_DELAY_SECONDS = float(os.environ.get("REQUEST_DELAY_SECONDS", "1.0"))
+REQUEST_TIMEOUT       = int(os.environ.get("REQUEST_TIMEOUT", "15"))
+MAX_RETRIES           = int(os.environ.get("MAX_RETRIES", "3"))
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+]
+
+SENIORITY_KEYWORDS = {
+    "intern":     ["intern", "internship", "placement", "summer analyst", "spring week"],
+    "junior":     ["junior", "graduate", "grad", "entry level", "new grad", "trainee"],
+    "mid":        ["analyst", "specialist", "engineer", "consultant", "advisor"],
+    "senior":     ["senior", "lead", "principal", "staff", "experienced"],
+    "leadership": ["manager", "director", "vp", "vice president", "head of", "partner",
+                   "managing director", "md", "chief"],
+}
+
+INDUSTRIES = [
+    "Finance", "Investment Banking", "Technology", "Software Engineering",
+    "Product Management", "Consulting", "Strategy", "Marketing", "Growth",
+    "Law", "Healthcare", "Media & Journalism", "Design & UX",
+    "Data & Analytics", "Real Estate", "Non-profit & Policy",
+    "Venture Capital", "Other",
+]

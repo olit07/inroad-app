@@ -30,7 +30,7 @@ else:
 # ── Connection helpers ──────────────────────────────────────────────────────
 
 @contextlib.contextmanager
-def get_conn():
+def get_conn(db_path=None):
     if USE_POSTGRES:
         conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
         try:
@@ -136,20 +136,27 @@ CREATE TABLE IF NOT EXISTS jobs (
 );
 
 CREATE TABLE IF NOT EXISTS matches (
-    id              SERIAL PRIMARY KEY,
-    student_id      INTEGER REFERENCES students(id),
-    job_id          INTEGER REFERENCES jobs(id),
-    match_date      DATE,
-    contact_name    TEXT,
-    contact_email   TEXT,
-    contact_linkedin TEXT,
-    is_alumni       BOOLEAN DEFAULT FALSE,
-    email_subject   TEXT,
-    email_body      TEXT,
-    status          TEXT DEFAULT 'pending',
-    sent_at         TIMESTAMPTZ,
-    replied_at      TIMESTAMPTZ,
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    id                   SERIAL PRIMARY KEY,
+    student_id           INTEGER REFERENCES students(id),
+    job_id               INTEGER REFERENCES jobs(id),
+    match_date           DATE,
+    person_name          TEXT,
+    person_title         TEXT,
+    person_company       TEXT,
+    person_linkedin_url  TEXT,
+    person_university    TEXT,
+    person_tenure_months INTEGER,
+    is_alumni            BOOLEAN DEFAULT FALSE,
+    relevance_score      REAL,
+    score_breakdown      TEXT,
+    expected_email       TEXT,
+    email_confidence     REAL,
+    email_subject        TEXT,
+    email_body           TEXT,
+    status               TEXT DEFAULT 'pending',
+    sent_at              TIMESTAMPTZ,
+    replied_at           TIMESTAMPTZ,
+    created_at           TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(student_id, job_id)
 );
 
@@ -177,6 +184,14 @@ CREATE TABLE IF NOT EXISTS suppressions (
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS suppression_list (
+    id              SERIAL PRIMARY KEY,
+    identifier      TEXT NOT NULL,
+    identifier_type TEXT NOT NULL DEFAULT 'linkedin',
+    reason          TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id          SERIAL PRIMARY KEY,
     token       TEXT UNIQUE NOT NULL,
@@ -187,13 +202,14 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 );
 
 CREATE TABLE IF NOT EXISTS card_queue (
-    id          SERIAL PRIMARY KEY,
-    student_id  INTEGER NOT NULL REFERENCES students(id),
-    job_id      INTEGER NOT NULL REFERENCES jobs(id),
-    score       REAL NOT NULL,
-    queued_for  DATE NOT NULL,
-    consumed    BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    id              SERIAL PRIMARY KEY,
+    student_id      INTEGER NOT NULL REFERENCES students(id),
+    job_id          INTEGER NOT NULL REFERENCES jobs(id),
+    score           REAL NOT NULL,
+    queued_for      DATE NOT NULL,
+    consumed        BOOLEAN NOT NULL DEFAULT FALSE,
+    score_breakdown TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(student_id, job_id, queued_for)
 );
 
@@ -246,20 +262,27 @@ CREATE TABLE IF NOT EXISTS jobs (
 );
 
 CREATE TABLE IF NOT EXISTS matches (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id       INTEGER REFERENCES students(id),
-    job_id           INTEGER REFERENCES jobs(id),
-    match_date       TEXT,
-    contact_name     TEXT,
-    contact_email    TEXT,
-    contact_linkedin TEXT,
-    is_alumni        INTEGER DEFAULT 0,
-    email_subject    TEXT,
-    email_body       TEXT,
-    status           TEXT DEFAULT 'pending',
-    sent_at          TEXT,
-    replied_at       TEXT,
-    created_at       TEXT DEFAULT (datetime('now')),
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id           INTEGER REFERENCES students(id),
+    job_id               INTEGER REFERENCES jobs(id),
+    match_date           TEXT,
+    person_name          TEXT,
+    person_title         TEXT,
+    person_company       TEXT,
+    person_linkedin_url  TEXT,
+    person_university    TEXT,
+    person_tenure_months INTEGER,
+    is_alumni            INTEGER DEFAULT 0,
+    relevance_score      REAL,
+    score_breakdown      TEXT,
+    expected_email       TEXT,
+    email_confidence     REAL,
+    email_subject        TEXT,
+    email_body           TEXT,
+    status               TEXT DEFAULT 'pending',
+    sent_at              TEXT,
+    replied_at           TEXT,
+    created_at           TEXT DEFAULT (datetime('now')),
     UNIQUE(student_id, job_id)
 );
 
@@ -287,6 +310,14 @@ CREATE TABLE IF NOT EXISTS suppressions (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS suppression_list (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    identifier      TEXT NOT NULL,
+    identifier_type TEXT NOT NULL DEFAULT 'linkedin',
+    reason          TEXT,
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     token      TEXT UNIQUE NOT NULL,
@@ -297,13 +328,14 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 );
 
 CREATE TABLE IF NOT EXISTS card_queue (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id  INTEGER NOT NULL REFERENCES students(id),
-    job_id      INTEGER NOT NULL REFERENCES jobs(id),
-    score       REAL NOT NULL,
-    queued_for  TEXT NOT NULL,
-    consumed    INTEGER NOT NULL DEFAULT 0,
-    created_at  TEXT DEFAULT (datetime('now')),
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id      INTEGER NOT NULL REFERENCES students(id),
+    job_id          INTEGER NOT NULL REFERENCES jobs(id),
+    score           REAL NOT NULL,
+    queued_for      TEXT NOT NULL,
+    consumed        INTEGER NOT NULL DEFAULT 0,
+    score_breakdown TEXT,
+    created_at      TEXT DEFAULT (datetime('now')),
     UNIQUE(student_id, job_id, queued_for)
 );
 
@@ -326,6 +358,127 @@ def init_db():
         for statement in [s.strip() for s in schema.split(";") if s.strip()]:
             cur.execute(statement)
     print("[db] Schema initialised.")
+    _run_migrations()
+
+
+def _run_migrations():
+    """
+    Idempotent migrations for existing databases.
+    Renames old contact_* columns → person_* and adds any missing columns
+    to the matches and card_queue tables.
+    """
+    if USE_POSTGRES:
+        _run_migrations_postgres()
+    else:
+        _run_migrations_sqlite()
+
+
+def _run_migrations_postgres():
+    """Postgres migrations — uses ADD COLUMN IF NOT EXISTS and column rename."""
+    migrations = [
+        # Rename contact_name -> person_name if old column still exists
+        """DO $$ BEGIN
+             IF EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name='matches' AND column_name='contact_name')
+             THEN ALTER TABLE matches RENAME COLUMN contact_name TO person_name; END IF;
+           END $$""",
+        # Drop contact_email if it exists (pipeline does not use it)
+        """DO $$ BEGIN
+             IF EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name='matches' AND column_name='contact_email')
+             THEN ALTER TABLE matches DROP COLUMN contact_email; END IF;
+           END $$""",
+        # Rename contact_linkedin -> person_linkedin_url if old column still exists
+        """DO $$ BEGIN
+             IF EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name='matches' AND column_name='contact_linkedin')
+             THEN ALTER TABLE matches RENAME COLUMN contact_linkedin TO person_linkedin_url; END IF;
+           END $$""",
+        # Add missing matches columns
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS person_title TEXT",
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS person_company TEXT",
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS person_university TEXT",
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS person_tenure_months INTEGER",
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS relevance_score REAL",
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS score_breakdown TEXT",
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS expected_email TEXT",
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS email_confidence REAL",
+        # Ensure person_name and person_linkedin_url exist (new installs already have them)
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS person_name TEXT",
+        "ALTER TABLE matches ADD COLUMN IF NOT EXISTS person_linkedin_url TEXT",
+        # Add score_breakdown to card_queue
+        "ALTER TABLE card_queue ADD COLUMN IF NOT EXISTS score_breakdown TEXT",
+    ]
+    with get_conn() as conn:
+        cur = conn.cursor()
+        for stmt in migrations:
+            try:
+                cur.execute(stmt)
+            except Exception as e:
+                print(f"[db] Migration warning (postgres): {e}")
+
+
+def _run_migrations_sqlite():
+    """
+    SQLite migrations — SQLite does not support RENAME COLUMN before 3.25.0
+    or ADD COLUMN IF NOT EXISTS, so we use PRAGMA table_info + try/except.
+    """
+    with get_conn() as conn:
+        cur = conn.cursor()
+
+        # Inspect existing matches columns
+        cur.execute("PRAGMA table_info(matches)")
+        existing_matches_cols = {row[1] for row in cur.fetchall()}
+
+        # Rename contact_name -> person_name (SQLite 3.25+ supports RENAME COLUMN)
+        if "contact_name" in existing_matches_cols and "person_name" not in existing_matches_cols:
+            try:
+                cur.execute("ALTER TABLE matches RENAME COLUMN contact_name TO person_name")
+                existing_matches_cols.add("person_name")
+                existing_matches_cols.discard("contact_name")
+            except Exception as e:
+                print(f"[db] Migration warning (rename contact_name): {e}")
+
+        # Rename contact_linkedin -> person_linkedin_url
+        if "contact_linkedin" in existing_matches_cols and "person_linkedin_url" not in existing_matches_cols:
+            try:
+                cur.execute("ALTER TABLE matches RENAME COLUMN contact_linkedin TO person_linkedin_url")
+                existing_matches_cols.add("person_linkedin_url")
+                existing_matches_cols.discard("contact_linkedin")
+            except Exception as e:
+                print(f"[db] Migration warning (rename contact_linkedin): {e}")
+
+        # Drop contact_email — SQLite <3.35 doesn't support DROP COLUMN; leave it in place
+        # (extra column is harmless; pipeline does not INSERT into it)
+
+        # Add missing matches columns
+        matches_new_cols = [
+            ("person_name",          "TEXT"),
+            ("person_title",         "TEXT"),
+            ("person_company",       "TEXT"),
+            ("person_linkedin_url",  "TEXT"),
+            ("person_university",    "TEXT"),
+            ("person_tenure_months", "INTEGER"),
+            ("relevance_score",      "REAL"),
+            ("score_breakdown",      "TEXT"),
+            ("expected_email",       "TEXT"),
+            ("email_confidence",     "REAL"),
+        ]
+        for col, col_type in matches_new_cols:
+            if col not in existing_matches_cols:
+                try:
+                    cur.execute(f"ALTER TABLE matches ADD COLUMN {col} {col_type}")
+                except Exception as e:
+                    print(f"[db] Migration warning (matches.{col}): {e}")
+
+        # Add score_breakdown to card_queue
+        cur.execute("PRAGMA table_info(card_queue)")
+        existing_cq_cols = {row[1] for row in cur.fetchall()}
+        if "score_breakdown" not in existing_cq_cols:
+            try:
+                cur.execute("ALTER TABLE card_queue ADD COLUMN score_breakdown TEXT")
+            except Exception as e:
+                print(f"[db] Migration warning (card_queue.score_breakdown): {e}")
 
 
 # ── Convenience wrappers used by api/server.py ──────────────────────────────
@@ -563,20 +716,20 @@ def get_card_count_today(student_id: int) -> int:
     return int(row["cnt"]) if row else 0
 
 
-def enqueue_card(student_id, job_id, score, queued_for):
+def enqueue_card(student_id, job_id, score, queued_for, score_breakdown=None):
     """Insert a card into the queue; ignore if already queued for that date."""
     if USE_POSTGRES:
         execute(
-            """INSERT INTO card_queue (student_id, job_id, score, queued_for)
-               VALUES (?, ?, ?, ?)
+            """INSERT INTO card_queue (student_id, job_id, score, queued_for, score_breakdown)
+               VALUES (?, ?, ?, ?, ?)
                ON CONFLICT (student_id, job_id, queued_for) DO NOTHING""",
-            (student_id, job_id, score, queued_for),
+            (student_id, job_id, score, queued_for, score_breakdown),
         )
     else:
         execute(
-            """INSERT OR IGNORE INTO card_queue (student_id, job_id, score, queued_for)
-               VALUES (?, ?, ?, ?)""",
-            (student_id, job_id, score, queued_for),
+            """INSERT OR IGNORE INTO card_queue (student_id, job_id, score, queued_for, score_breakdown)
+               VALUES (?, ?, ?, ?, ?)""",
+            (student_id, job_id, score, queued_for, score_breakdown),
         )
 
 

@@ -352,6 +352,11 @@
     font-weight: 400;
     margin-top: 5px;
   }
+  .tenure-hint {
+    font-size: 0.7rem;
+    color: var(--subtle);
+    margin-top: 3px;
+  }
 
   /* Action area */
   .card-action {
@@ -1120,7 +1125,9 @@
   <p class="sent-label-text">Email ready to send</p>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+<script src="/static/auth.js"></script>
+<script>
   // ── LOADING OVERLAY HELPERS ──
   function showLoadingOverlay() {
     document.getElementById('loading-overlay').classList.add('visible');
@@ -1133,7 +1140,7 @@
   // ── GREETING HELPER ──
   function updateGreeting(student) {
     if (!student) return;
-    const firstName = student.first_name || (student.name || '').split(' ')[0] || '';
+    const firstName = (student.name || '').split(' ')[0] || '';
     const nameEl = document.getElementById('user-name');
     if (nameEl && firstName) {
       nameEl.textContent = firstName;
@@ -1173,44 +1180,21 @@
     const sub = document.getElementById('page-sub');
     if (sub) sub.textContent = `${dayName}, ${dateStr} · Here are today's matches.`;
 
-    // 1. Refresh access token via HttpOnly cookie
-    let accessToken;
-    try {
-      const resp = await fetch('/auth/refresh', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (!resp.ok) {
-        window.location.href = '/login';
-        return;
-      }
-      const data = await resp.json();
-      accessToken = data.access_token;
-    } catch (e) {
+    // 1. Refresh access token via HttpOnly cookie (uses auth.js)
+    // Also check sessionStorage in case we just came from verify.html
+    const _stored = sessionStorage.getItem('inroad_token');
+    if (_stored) { setAccessToken(_stored); sessionStorage.removeItem('inroad_token'); }
+
+    const refreshed = await _tryRefresh();
+    if (!refreshed) {
       window.location.href = '/login';
       return;
-    }
-
-    if (!accessToken) {
-      window.location.href = '/login';
-      return;
-    }
-
-    // Store token globally so regenerate() can use it
-    window._dashboardToken = accessToken;
-
-    // Helper for authenticated requests
-    function authFetch(url) {
-      return fetch(url, {
-        credentials: 'include',
-        headers: { 'Authorization': 'Bearer ' + accessToken }
-      });
     }
 
     // 2. Load student profile
     let student = null;
     try {
-      const meResp = await authFetch('/api/me');
+      const meResp = await apiFetch('/api/me');
       if (meResp.ok) {
         const meData = await meResp.json();
         student = meData.data?.student || meData.student || meData || null;
@@ -1225,9 +1209,7 @@
       try {
         const controller = new AbortController();
         setTimeout(() => controller.abort(), 8000);
-        const matchResp = await fetch('/api/matches/today/' + student.id, {
-          credentials: 'include',
-          headers: { 'Authorization': 'Bearer ' + accessToken },
+        const matchResp = await apiFetch('/api/matches/today/' + student.id, {
           signal: controller.signal
         });
         if (matchResp.ok) {
@@ -1253,6 +1235,10 @@
       const initials = (m.person_name || 'XX').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
       const isAlumni = m.is_alumni;
       const linkedinUrl = m.person_linkedin_url || '#';
+      const tenureMonths = m.person_tenure_months || 0;
+      const tenureStr = tenureMonths >= 12
+        ? (() => { const y = Math.round(tenureMonths / 12 * 10) / 10; return `${y} yr${y !== 1 ? 's' : ''} at ${m.company || m.person_company || ''}`; })()
+        : tenureMonths > 0 ? `${tenureMonths} mo at ${m.company || m.person_company || ''}` : '';
       const jobUrl = m.job_url || '#';
 
       // Job company takes priority over person_company (guaranteed same company)
@@ -1261,7 +1247,7 @@
       // Register in matches object for modal
       matches[cardId] = {
         name:        m.person_name || '',
-        to:          m.person_email || '',
+        to:          m.expected_email || '',
         applyUrl:    jobUrl,
         subject:     m.email_subject || `Student reaching out about the ${m.job_title || 'role'} at ${jobCompany}`,
         body:        m.email_body || `Hi ${(m.person_name||'').split(' ')[0]},\n\nI came across the ${m.job_title || 'role'} at ${jobCompany} and would love to hear more.\n\nWould you be open to a 20 minute chat?\n\nThanks`,
@@ -1282,6 +1268,7 @@
                 ${isAlumni ? '<span class="alumni-badge">Alumni</span>' : ''}
               </div>
               <div class="card-position">${m.person_title || ''} · ${jobCompany}</div>
+              ${tenureStr ? `<div class="tenure-hint">${tenureStr}</div>` : ''}
               ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer">
                 <div class="role-dot"></div>${m.job_title || 'Open role'} ↗</a>` : ''}
               <div class="card-posted">${m.match_date || ''} · ${m.industry || ''}</div>
@@ -1296,7 +1283,7 @@
           </button>
           <div class="card-details" id="details-${cardId}">
             <div class="details-grid">
-              <div class="detail-item"><span class="detail-label">Expected email</span><span class="detail-value">${m.person_email || '—'}</span></div>
+              <div class="detail-item"><span class="detail-label">Expected email</span><span class="detail-value">${m.expected_email || '—'}</span></div>
               <div class="detail-item"><span class="detail-label">Profile</span><span class="detail-value">${linkedinUrl !== '#' ? `<a href="${linkedinUrl}" target="_blank">${linkedinUrl.replace('https://','')}</a>` : '—'}</span></div>
               <div class="detail-item"><span class="detail-label">Relation</span><span class="detail-value">${isAlumni ? 'Alumni' : 'No shared connection'}</span></div>
               <div class="detail-item"><span class="detail-label">Posted</span><span class="detail-value">${m.job_posted_date || '—'}</span></div>
@@ -1445,13 +1432,9 @@ Alex`
     }
 
     try {
-      const r = await fetch('/api/draft/regenerate', {
+      const r = await apiFetch('/api/draft/regenerate', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + (window._dashboardToken || ''),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           person_name:  card.name,
           person_title: card.personTitle || '',

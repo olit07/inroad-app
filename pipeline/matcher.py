@@ -615,6 +615,59 @@ def _company_prestige_score(company: str) -> int:
 
 # ── Upgraded scorer ───────────────────────────────────────────────────────────
 
+# Stop words for title keyword extraction
+_TITLE_STOP_WORDS = {
+    "a", "an", "the", "and", "or", "of", "in", "at", "to", "for",
+    "with", "on", "by", "is", "as", "be", "are", "was", "were",
+}
+
+# Company-size bucket mapping
+_SIZE_MAP: dict[str, str] = {}
+_SIZE_STARTUP_TOKENS  = {"startup", "small", "under", "seed", "early", "series"}
+_SIZE_MID_TOKENS      = {"mid", "medium", "growth", "scale"}
+_SIZE_LARGE_TOKENS    = {"large", "enterprise", "corporate", "big", "multinational"}
+
+
+def _normalise_company_size(raw: str | None) -> str | None:
+    """Map a free-text company size string to 'startup', 'mid', or 'large'."""
+    if not raw:
+        return None
+    r = raw.lower()
+    if any(t in r for t in _SIZE_STARTUP_TOKENS):
+        return "startup"
+    if any(t in r for t in _SIZE_MID_TOKENS):
+        return "mid"
+    if any(t in r for t in _SIZE_LARGE_TOKENS):
+        return "large"
+    # Pass-through for exact values already normalised
+    if r in ("startup", "mid", "large"):
+        return r
+    return None
+
+
+def _title_relevance_pts(job_title: str, lead_title: str) -> float:
+    """Return 0/10/15/20 pts based on keyword overlap between job and lead titles."""
+    if not job_title or not lead_title:
+        return 0.0
+    # Tokenise job title: split on spaces, dashes, commas; filter stop words; up to 3 words
+    raw_words = re.split(r"[\s\-,/]+", job_title.lower())
+    keywords = [
+        w for w in raw_words
+        if w and w not in _TITLE_STOP_WORDS and len(w) > 2
+    ][:3]
+    if not keywords:
+        return 0.0
+    lead_lower = lead_title.lower()
+    matches = sum(1 for k in keywords if k in lead_lower)
+    if matches >= 3:
+        return 20.0
+    elif matches == 2:
+        return 15.0
+    elif matches == 1:
+        return 10.0
+    return 0.0
+
+
 def score_lead_v2(
     lead:    dict,
     job:     dict,
@@ -624,31 +677,64 @@ def score_lead_v2(
     Extended lead scorer returning (score, breakdown_dict).
 
     Components (total 100):
-      title_match        40 pts  — keywords from job title found in lead title
-      alumni             25 pts  — shared university
-      seniority_fit      15 pts  — 2-4 levels above student
-      tenure_fit         10 pts  — sweet spot 12-36 months (recent grad memory)
-      prestige            5 pts  — company tier bonus
-      graduation_prox     5 pts  — graduated 2-5 yrs ago = most relatable
+      industry_match     25 pts  — student industry preferences vs job industry
+      company_size       10 pts  — student size preference vs job company size
+      title_relevance    20 pts  — job title keywords found in lead title
+      alumni             20 pts  — shared university
+      seniority_fit      15 pts  — 1-3 levels above intern
+      tenure_fit         10 pts  — sweet spot 12-36 months
     """
-    breakdown: dict[str, float] = {}
+    breakdown: dict[str, float] = {
+        "industry_match":  0.0,
+        "company_size":    0.0,
+        "title_relevance": 0.0,
+        "alumni":          0.0,
+        "seniority_fit":   0.0,
+        "tenure_fit":      0.0,
+    }
     score = 0.0
 
-    # ── Title match (40pts) ──
-    job_title  = job.get("title", "").lower()
-    lead_title = (lead.get("title") or "").lower()
-    team_kws   = _extract_team_keywords(job_title)
-    title_pts  = 0.0
-    if lead_title and team_kws:
-        matches   = sum(1 for k in team_kws if k in lead_title)
-        title_pts = min(40, matches * 15)
-    if lead.get("company", "").lower() in job.get("company_name", "").lower():
-        title_pts = min(40, title_pts + 5)
-    breakdown["title_match"] = title_pts
-    score += title_pts
+    # ── Industry match (25pts) ──
+    raw_industries = student.get("industries") or "[]"
+    if isinstance(raw_industries, str):
+        try:
+            student_industries = json.loads(raw_industries)
+        except (ValueError, TypeError):
+            student_industries = []
+    else:
+        student_industries = list(raw_industries)
 
-    # ── Alumni (25pts) ──
-    alumni_pts = 25.0 if lead.get("is_alumni") else 0.0
+    job_industry = (job.get("industry") or "").strip()
+    ind_pts = 0.0
+    if job_industry and student_industries:
+        job_ind_lower = job_industry.lower()
+        student_inds_lower = [s.lower() for s in student_industries]
+        if job_ind_lower in student_inds_lower:
+            ind_pts = 25.0
+        elif any(
+            job_ind_lower in si or si in job_ind_lower
+            for si in student_inds_lower
+        ):
+            ind_pts = 12.0
+    breakdown["industry_match"] = ind_pts
+    score += ind_pts
+
+    # ── Company size match (10pts) ──
+    student_size = _normalise_company_size(student.get("company_size"))
+    job_size     = _normalise_company_size(job.get("company_size"))
+    size_pts = 10.0 if (student_size and job_size and student_size == job_size) else 0.0
+    breakdown["company_size"] = size_pts
+    score += size_pts
+
+    # ── Title relevance (20pts) ──
+    job_title  = job.get("title", "") or ""
+    lead_title = lead.get("title") or ""
+    trel_pts   = _title_relevance_pts(job_title, lead_title)
+    breakdown["title_relevance"] = trel_pts
+    score += trel_pts
+
+    # ── Alumni (20pts) ──
+    alumni_pts = 20.0 if lead.get("is_alumni") else 0.0
     breakdown["alumni"] = alumni_pts
     score += alumni_pts
 
@@ -676,24 +762,6 @@ def score_lead_v2(
         ten_pts = 0.0
     breakdown["tenure_fit"] = ten_pts
     score += ten_pts
-
-    # ── Company prestige (5pts) ──
-    pres_pts = min(5.0, _company_prestige_score(job.get("company_name", "")) * 0.5)
-    breakdown["prestige"] = pres_pts
-    score += pres_pts
-
-    # ── Graduation proximity (5pts) ──
-    grad_year = lead.get("graduation_year")
-    if grad_year:
-        years_since = 2026 - int(grad_year)
-        if 2 <= years_since <= 5:
-            grad_pts = 5.0
-        elif years_since == 1 or years_since == 6:
-            grad_pts = 2.0
-        else:
-            grad_pts = 0.0
-        breakdown["graduation_prox"] = grad_pts
-        score += grad_pts
 
     total = round(min(score, 100), 1)
     return total, breakdown
