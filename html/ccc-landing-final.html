@@ -201,7 +201,7 @@
     border: 1px solid var(--border);
     border-radius: 18px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 10px 30px rgba(0,0,0,0.08), 0 24px 60px rgba(0,0,0,0.05);
-    overflow: hidden; width: 100%; max-width: 380px;
+    overflow: hidden; width: 100%; max-width: 440px;
   }
 
   .mock-topbar {
@@ -223,21 +223,21 @@
   .card-quota-track { height: 3px; background: var(--border); border-radius: 100px; overflow: hidden; }
   .card-quota-fill { height: 100%; background: var(--green); border-radius: 100px; }
 
-  .mock-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .mock-list { padding: 14px; display: flex; flex-direction: column; gap: 9px; }
 
   .mock-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px; border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border: 1px solid var(--border);
     border-radius: 11px; background: var(--bg); transition: border-color 0.15s;
   }
 
   .mock-row.active { border-color: var(--green-mid); background: var(--green-lite); }
 
   .mock-av {
-    width: 32px; height: 32px; border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
     background: var(--surface); border: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.65rem; font-weight: 700; color: var(--muted); flex-shrink: 0;
+    font-size: 0.68rem; font-weight: 700; color: var(--muted); flex-shrink: 0;
   }
 
   .mock-row.active .mock-av { background: var(--green-lite); border-color: var(--green-mid); color: var(--green); }
@@ -245,7 +245,7 @@
   .mock-info { flex: 1; min-width: 0; }
 
   .mock-name {
-    font-size: 0.78rem; font-weight: 700; color: var(--text);
+    font-size: 0.82rem; font-weight: 700; color: var(--text);
     display: flex; align-items: center; gap: 5px;
   }
 
@@ -255,9 +255,9 @@
     padding: 1px 6px; border-radius: 100px;
   }
 
-  .mock-sub { font-size: 0.68rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
-  .mock-action { font-size: 0.68rem; font-weight: 700; color: var(--green); white-space: nowrap; flex-shrink: 0; }
-  .mock-sent { font-size: 0.68rem; color: var(--subtle); white-space: nowrap; flex-shrink: 0; font-weight: 400; }
+  .mock-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
+  .mock-action { font-size: 0.72rem; font-weight: 700; color: var(--green); white-space: nowrap; flex-shrink: 0; }
+  .mock-sent { font-size: 0.72rem; color: var(--green); white-space: nowrap; flex-shrink: 0; font-weight: 600; }
 
   /* ── CAROUSEL ── */
   .carousel-wrap {

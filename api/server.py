@@ -370,7 +370,11 @@ def magic_link():
     # Store as ISO string — works for both SQLite and Postgres
     expires_at_str = expires_at_dt.isoformat()
 
-    next_url = (data.get("next") or "").strip() or None
+    # Login page always forces dashboard destination
+    if data.get("source") == "login":
+        next_url = "/dashboard"
+    else:
+        next_url = (data.get("next") or "").strip() or None
     create_magic_token(email, token, expires_at_str)
 
     # Determine whether this is a new sign-up or a returning user login
@@ -422,11 +426,11 @@ def verify():
         if uni_info:
             update_student_fields(student_id, {"university": uni_info["name"]})
 
-    # New users with no profile → onboarding. Everyone else → dashboard.
-    # (Existing users in the DB always go to dashboard even if name isn't set yet.)
+    # next_param always wins (login page sets next=/dashboard).
+    # New users with no next_param → onboarding. Everyone else → dashboard.
     has_profile = bool(student.get("name"))
     next_param = request.args.get("next", "").strip()
-    if next_param and not is_new_user:
+    if next_param:
         destination = next_param
     elif is_new_user and not has_profile:
         destination = "/onboarding"

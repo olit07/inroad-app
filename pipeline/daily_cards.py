@@ -348,12 +348,12 @@ def _template_draft(ctx: dict) -> tuple[str, str]:
         "student_university":    ctx["student_university"],
         "student_bio":           ctx.get("student_bio", ""),
         "student_cal_link":      "",
-        "recipient_first_name":  ctx["recipient_name"],
-        "recipient_company":     ctx["recipient_company"],
+        "recipient_first_name":  ctx["recipient_name"] or "there",
+        "recipient_company":     ctx["recipient_company"] or "your company",
         "is_alumni":             ctx.get("is_alumni", False),
-        "job_title":             ctx["job_title"],
+        "job_title":             ctx["job_title"] or "this role",
         "tenure_years":          0,
-        "industry_hint":         ctx.get("industry_tone", "this field"),
+        "industry_hint":         "this field",
     }
     return random.choice(TEMPLATES)(template_ctx)
 

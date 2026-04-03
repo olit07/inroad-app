@@ -138,7 +138,7 @@ I know you are incredibly busy and get a lot of emails so this will only take 30
 
 {_bio_line(ctx)}
 
-What do you think are the most critical skills or qualities someone needs to succeed in a {ctx['job_title']} role at {ctx['recipient_company']}, given how much the {ctx.get('industry_hint', 'industry')} space is evolving?
+What do you think are the most critical skills or qualities someone needs to succeed in a {ctx['job_title']} role at {ctx['recipient_company']}?
 
 I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
 

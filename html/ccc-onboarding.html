@@ -660,14 +660,14 @@
           type="range"
           id="age-input"
           class="age-slider"
-          min="16"
+          min="18"
           max="35"
           value="21"
           step="1"
           oninput="updateAge(this.value)"
         />
         <div class="slider-labels">
-          <span>16</span>
+          <span>18</span>
           <span>35</span>
         </div>
       </div>
@@ -914,7 +914,7 @@
       }
       case 2: {
         const val = parseInt(document.getElementById('age-input').value);
-        if (!val || val < 16 || val > 35) {
+        if (!val || val < 18 || val > 35) {
           showError(2, 'Please select a valid age.');
           return false;
         }
