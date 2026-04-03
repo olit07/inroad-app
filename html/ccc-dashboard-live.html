@@ -151,7 +151,28 @@
     gap: 20px;
     opacity: 0;
     animation: rise 0.45s ease 0.06s forwards;
+    transition: background 0.4s, border-color 0.4s;
   }
+
+  .quota-card.all-sent {
+    background: var(--green-lite);
+    border-color: var(--green-mid);
+  }
+
+  .congrats-banner {
+    display: none;
+    background: var(--green-lite);
+    border: 1px solid var(--green-mid);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: var(--green);
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .congrats-banner.visible { display: block; }
 
   .quota-left { flex: 1; }
 
@@ -918,6 +939,11 @@
     </div>
   </div>
 
+  <!-- All-sent congrats -->
+  <div class="congrats-banner" id="congrats-banner">
+    That's all 3 done for today. Great work — responses often come in the next 24–48 hours. Check back tomorrow for your next set of matches.
+  </div>
+
   <!-- Section label -->
   <p class="section-label">Today's matches</p>
 
@@ -1121,7 +1147,7 @@
       </svg>
     </div>
   </div>
-  <p class="sent-label-text">Email ready to send</p>
+  <p class="sent-label-text">Email Sent!</p>
 </div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
@@ -1384,6 +1410,7 @@ Alex`
     copyBtn.classList.remove('copied');
     markBtn.textContent = 'Mark as sent';
     markBtn.classList.remove('done');
+    markBtn.disabled = false;
 
     updateWordCount();
     document.getElementById('modal').classList.add('open');
@@ -1589,6 +1616,11 @@ Alex`
       pip.classList.toggle('on', i < sent);
       pip.classList.toggle('off', i >= sent);
     });
+
+    if (sent >= total) {
+      document.querySelector('.quota-card').classList.add('all-sent');
+      document.getElementById('congrats-banner').classList.add('visible');
+    }
   }
 </script>
 

@@ -227,7 +227,6 @@ def generate_email_draft(
         "is_alumni":          lead.get("is_alumni", False),
         "job_title":          job.get("title", ""),
         "job_url":            job.get("url", ""),
-        "cal_link":           student.get("cal_link", "cal.com/me/coffee-chat"),
         "industry_tone":      _get_industry_tone(job),
     }
 
@@ -237,7 +236,6 @@ def generate_email_draft(
         from pipeline.email_templates import check_quality
         q = check_quality(subject, body, {
             "recipient_first_name": context["recipient_name"],
-            "student_cal_link": context["cal_link"],
             "job_title": context["job_title"],
         })
         if q["score"] < 6:
@@ -245,7 +243,6 @@ def generate_email_draft(
             subject, body = _claude_draft(context, api_key, tighten=True)
             q2 = check_quality(subject, body, {
                 "recipient_first_name": context["recipient_name"],
-                "student_cal_link": context["cal_link"],
                 "job_title": context["job_title"],
             })
             if q2["score"] < 6:
@@ -276,7 +273,6 @@ STUDENT:
 - Name: {ctx['student_name']}
 - University: {ctx['student_university']}
 - Bio: {ctx['student_bio']}
-- Cal.com booking link: {ctx['cal_link']}
 
 RECIPIENT:
 - Name: {ctx['recipient_name']}
@@ -292,7 +288,7 @@ STRICT RULES:
 - Plain text only — no markdown, bullets, or HTML
 - Mention the specific role by name
 - Ask for exactly 20 minutes
-- End with the cal.com link on its own line
+- Do NOT include any booking links, cal.com links, or URLs
 - NEVER use: "I hope this finds you well", "reach out", "touch base", "passionate about", "leverage", "I am writing to"
 
 OUTPUT FORMAT:
@@ -338,31 +334,22 @@ BODY:
 
 
 def _template_draft(ctx: dict) -> tuple[str, str]:
-    """Fallback template email when Claude API is unavailable."""
-    uni = ctx["student_university"]
-    alumni_line = (
-        f"I noticed you also studied at {uni} before joining {ctx['recipient_company']}. "
-        if ctx["is_alumni"]
-        else ""
-    )
+    """Fallback template email when Claude API is unavailable. Picks randomly."""
+    import random
+    from pipeline.email_templates import TEMPLATES
 
-    subject = (
-        f"{uni} student reaching out about the "
-        f"{ctx['job_title']} role at {ctx['recipient_company']}"
-    )
-
-    body = f"""Hi {ctx['recipient_name']},
-
-{alumni_line}I'm a student at {uni} and came across the {ctx['job_title']} opening at {ctx['recipient_company']}.
-
-I'd love to hear how you got into your current role and what the work actually looks like day to day. Would you be open to 20 minutes?
-
-{ctx['cal_link']}
-
-Thanks,
-{ctx['student_name']}"""
-
-    return subject, body.strip()
+    template_ctx = {
+        "student_name":          ctx["student_name"],
+        "student_university":    ctx["student_university"],
+        "student_cal_link":      "",
+        "recipient_first_name":  ctx["recipient_name"],
+        "recipient_company":     ctx["recipient_company"],
+        "is_alumni":             ctx.get("is_alumni", False),
+        "job_title":             ctx["job_title"],
+        "tenure_years":          0,
+        "industry_hint":         ctx.get("industry_tone", "this field"),
+    }
+    return random.choice(TEMPLATES)(template_ctx)
 
 
 # ── Main daily card generation ────────────────────────────────────────────────
