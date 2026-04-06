@@ -788,9 +788,9 @@ def list_jobs():
         if not industries and r.get("industry"):
             industries = [r["industry"]]
         seniority    = raw.get("seniority") or ""
-        # Prefer Postgres-computed od/cd columns; fall back to raw JSON parse
-        opening_date = r.get("od") or raw.get("opening_date") or ""
-        closing_date = r.get("cd") or raw.get("closing_date") or ""
+        # od/cd = jsonb-extracted aliases; opening_date/closing_date = dedicated columns
+        opening_date = r.get("od") or r.get("opening_date") or raw.get("opening_date") or ""
+        closing_date = r.get("cd") or r.get("closing_date") or raw.get("closing_date") or ""
         return {
             "company_name": r.get("company") or "",
             "title":        r.get("title") or "",
@@ -817,6 +817,20 @@ def cleanup_blank_jobs():
     count = deleted.get("n", 0)
     db_execute("DELETE FROM jobs WHERE company IS NULL OR company = '' OR title IS NULL OR title = ''")
     return jsonify({"status": "ok", "deleted": count})
+
+
+@app.route("/api/admin/jobs/delete-source", methods=["POST"])
+def delete_jobs_by_source():
+    """Delete all jobs from a given source."""
+    from db.database import execute as db_execute, fetchone
+    data = request.get_json(silent=True) or {}
+    source = (data.get("source") or "").strip()
+    if not source:
+        return jsonify({"error": "source required"}), 400
+    row = fetchone("SELECT COUNT(*) as n FROM jobs WHERE source = ?", (source,)) or {}
+    count = row.get("n", 0)
+    db_execute("DELETE FROM jobs WHERE source = ?", (source,))
+    return jsonify({"status": "ok", "deleted": count, "source": source})
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
