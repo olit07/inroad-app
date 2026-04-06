@@ -458,8 +458,7 @@ class LinkedInMatcher:
         sql = (
             f"SELECT * FROM person "
             f"WHERE job_company_name='{company_clean}' "
-            f"AND job_title_levels IN ('senior', 'manager', 'director', 'vp', 'cxo') "
-            f"LIMIT {min(n, 25)}"
+            f"AND job_title_levels IN ('senior', 'manager', 'director', 'vp', 'cxo')"
         )
 
         payload = json.dumps({"sql": sql, "size": min(n, 25)}).encode()
@@ -485,8 +484,7 @@ class LinkedInMatcher:
             # Retry with looser seniority (include mid-level)
             sql2 = (
                 f"SELECT * FROM person "
-                f"WHERE job_company_name='{company_clean}' "
-                f"LIMIT {min(n, 25)}"
+                f"WHERE job_company_name='{company_clean}'"
             )
             try:
                 payload2 = json.dumps({"sql": sql2, "size": min(n, 25)}).encode()
@@ -525,24 +523,46 @@ class LinkedInMatcher:
                 if (e.get("school") or {}).get("name")
             ]
 
-            # Best email if present
-            emails = rec.get("emails") or []
-            email = emails[0].get("address", "") if emails else ""
+            # Best email if present (PDL can return bool or list)
+            emails = rec.get("emails")
+            email = ""
+            if isinstance(emails, list) and emails:
+                first_email = emails[0]
+                if isinstance(first_email, dict):
+                    email = first_email.get("address", "")
+                elif isinstance(first_email, str):
+                    email = first_email
+
+            # Tenure — calculate from job_start_date if present
+            tenure_months = 0
+            job_start = rec.get("job_start_date") or ""
+            if job_start:
+                try:
+                    parts = job_start.split("-")
+                    start_year  = int(parts[0])
+                    start_month = int(parts[1]) if len(parts) > 1 else 1
+                    today = date.today()
+                    tenure_months = (today.year - start_year) * 12 + (today.month - start_month)
+                    tenure_months = max(0, tenure_months)
+                except Exception:
+                    tenure_months = 0
 
             lead = {
-                "name":          name,
-                "title":         rec.get("job_title") or "",
-                "company":       rec.get("job_company_name") or company,
-                "university":    education[0]["school_name"] if education else "",
-                "linkedin_url":  linkedin_url,
-                "tenure_months": 0,
-                "is_alumni":     any(
+                "name":             name,
+                "title":            rec.get("job_title") or "",
+                "company":          rec.get("job_company_name") or company,
+                "university":       education[0]["school_name"] if education else "",
+                "linkedin_url":     linkedin_url,
+                "tenure_months":    tenure_months,
+                "location_country": (rec.get("location_country") or "").lower().strip(),
+                "location_city":    (rec.get("location_locality") or "").lower().strip(),
+                "is_alumni":        any(
                     is_alumni(e["school_name"], student_university)
                     for e in education
                 ),
-                "snippet":       "",
-                "email":         email,
-                "education":     education,
+                "snippet":          "",
+                "email":            email,
+                "education":        education,
             }
             leads.append(lead)
 
@@ -1042,96 +1062,130 @@ def score_lead_v2(
     student: dict,
 ) -> tuple[float, dict]:
     """
-    Extended lead scorer returning (score, breakdown_dict).
+    Lead scorer — priority order matches product requirements:
 
-    Components (total 100):
-      industry_match     25 pts  — student industry preferences vs job industry
-      company_size       10 pts  — student size preference vs job company size
-      title_relevance    20 pts  — job title keywords found in lead title
-      alumni             20 pts  — shared university
-      seniority_fit      15 pts  — 1-3 levels above intern
-      tenure_fit         10 pts  — sweet spot 12-36 months
+      location    40 pts  — MUST be in same country/city as job
+      seniority   35 pts  — exec title OR 1-4 years at company
+      department  25 pts  — same functional area as the role
+
+    Alumni is tracked in breakdown but does not add points here;
+    it is used as a tiebreaker by the caller.
     """
     breakdown: dict[str, float] = {
-        "industry_match":  0.0,
-        "company_size":    0.0,
-        "title_relevance": 0.0,
-        "alumni":          0.0,
-        "seniority_fit":   0.0,
-        "tenure_fit":      0.0,
+        "location":   0.0,
+        "seniority":  0.0,
+        "department": 0.0,
+        "alumni":     0.0,   # informational tiebreaker only
     }
-    score = 0.0
 
-    # ── Industry match (25pts) ──
-    raw_industries = student.get("industries") or "[]"
-    if isinstance(raw_industries, str):
-        try:
-            student_industries = json.loads(raw_industries)
-        except (ValueError, TypeError):
-            student_industries = []
+    # ── 1. Location (40 pts) ─────────────────────────────────────────
+    # Map job region code → expected country string (PDL format)
+    REGION_COUNTRY = {"UK": "united kingdom", "US": "united states", "EU": None}
+    job_region = (job.get("region") or "UK").upper()
+    expected_country = REGION_COUNTRY.get(job_region)
+
+    lead_country = (lead.get("location_country") or "").lower().strip()
+    lead_city    = (lead.get("location_city") or "").lower().strip()
+
+    if not lead_country:
+        # Unknown location — give partial benefit of the doubt
+        loc_pts = 15.0
+    elif expected_country and lead_country == expected_country:
+        # Same country; bonus if city matches a known hub for this region
+        REGION_HUBS = {
+            "UK": ["london", "manchester", "edinburgh", "bristol", "birmingham"],
+            "US": ["new york", "new york city", "nyc", "chicago", "san francisco",
+                   "boston", "los angeles", "houston"],
+            "EU": ["paris", "frankfurt", "amsterdam", "zurich", "dublin",
+                   "luxembourg", "milan", "madrid"],
+        }
+        hubs = REGION_HUBS.get(job_region, [])
+        if any(h in lead_city for h in hubs):
+            loc_pts = 40.0
+        else:
+            loc_pts = 30.0   # right country, city unknown or non-hub
+    elif job_region == "EU" and lead_country not in ("united states", "united kingdom"):
+        loc_pts = 25.0   # European country, not exact match
     else:
-        student_industries = list(raw_industries)
+        loc_pts = 0.0    # wrong country — hard miss
+    breakdown["location"] = loc_pts
 
-    job_industry = (job.get("industry") or "").strip()
-    ind_pts = 0.0
-    if job_industry and student_industries:
-        job_ind_lower = job_industry.lower()
-        student_inds_lower = [s.lower() for s in student_industries]
-        if job_ind_lower in student_inds_lower:
-            ind_pts = 25.0
-        elif any(
-            job_ind_lower in si or si in job_ind_lower
-            for si in student_inds_lower
-        ):
-            ind_pts = 12.0
-    breakdown["industry_match"] = ind_pts
-    score += ind_pts
+    # ── 2. Seniority + Tenure (35 pts) ──────────────────────────────
+    lead_title    = (lead.get("title") or "").lower()
+    tenure_months = lead.get("tenure_months") or 0
 
-    # ── Company size match (10pts) ──
-    student_size = _normalise_company_size(student.get("company_size"))
-    job_size     = _normalise_company_size(job.get("company_size"))
-    size_pts = 10.0 if (student_size and job_size and student_size == job_size) else 0.0
-    breakdown["company_size"] = size_pts
-    score += size_pts
+    EXEC_KW = ("chief ", "ceo", "cfo", "cto", "coo", "president",
+               "managing director", "head of", " partner", "founding")
+    is_exec = any(kw in lead_title for kw in EXEC_KW)
 
-    # ── Title relevance (20pts) ──
-    job_title  = job.get("title", "") or ""
-    lead_title = lead.get("title") or ""
-    trel_pts   = _title_relevance_pts(job_title, lead_title)
-    breakdown["title_relevance"] = trel_pts
-    score += trel_pts
+    # 1-4 years at company = sweet spot (12-48 months)
+    good_tenure = 12 <= tenure_months <= 48
 
-    # ── Alumni (20pts) ──
-    alumni_pts = 20.0 if lead.get("is_alumni") else 0.0
-    breakdown["alumni"] = alumni_pts
-    score += alumni_pts
-
-    # ── Seniority fit (15pts) ──
-    lead_seniority = _infer_seniority_from_title(lead.get("title") or "")
-    diff = SENIORITY_RANK.get(lead_seniority, 2) - SENIORITY_RANK.get("intern", 0)
-    if 1 <= diff <= 3:
-        sen_pts = 15.0
-    elif diff == 4:
+    if is_exec and good_tenure:
+        sen_pts = 35.0
+    elif is_exec:
+        sen_pts = 30.0
+    elif good_tenure:
+        sen_pts = 35.0
+    elif "director" in lead_title or "vice president" in lead_title or " vp" in lead_title:
+        sen_pts = 25.0
+    elif "manager" in lead_title or "senior" in lead_title or "lead" in lead_title:
+        sen_pts = 20.0
+    elif tenure_months > 48:
+        sen_pts = 10.0   # too senior / too long at company
+    else:
         sen_pts = 5.0
-    else:
-        sen_pts = 0.0
-    breakdown["seniority_fit"] = sen_pts
-    score += sen_pts
+    breakdown["seniority"] = sen_pts
 
-    # ── Tenure fit (10pts) — 12-36 months is sweet spot ──
-    tenure = lead.get("tenure_months") or 0
-    if 12 <= tenure <= 36:
-        ten_pts = 10.0
-    elif 6 <= tenure < 12 or 36 < tenure <= 60:
-        ten_pts = 6.0
-    elif tenure > 0:
-        ten_pts = 3.0
-    else:
-        ten_pts = 0.0
-    breakdown["tenure_fit"] = ten_pts
-    score += ten_pts
+    # ── 3. Department match (25 pts) ─────────────────────────────────
+    # Build keyword set for the job's functional area from its industry + title
+    job_title_lower = (job.get("title") or "").lower()
+    job_industry    = (job.get("industry") or "").lower()
+    job_industries  = [i.lower() for i in (job.get("industries") or [])]
+    combined_job    = " ".join([job_title_lower, job_industry] + job_industries)
 
-    total = round(min(score, 100), 1)
+    DEPT_GROUPS: list[tuple[str, list[str]]] = [
+        ("finance",     ["finance", "financial", "investment", "portfolio", "trading",
+                         "banking", "capital", "fund", "asset", "equity", "quant",
+                         "risk", "treasury", "insurance", "underwriting", "credit",
+                         "markets", "securities", "wealth", "hedge"]),
+        ("technology",  ["engineer", "software", "developer", "data", "product",
+                         "architect", "devops", "infrastructure", "machine learning",
+                         "ai", "analytics", "platform", "technical"]),
+        ("consulting",  ["consulting", "strategy", "advisory", "transformation",
+                         "management consulting"]),
+        ("law",         ["legal", "counsel", "compliance", "regulatory", "litigation",
+                         "contracts"]),
+        ("operations",  ["operations", "ops", "supply chain", "logistics", "programme",
+                         "project manager"]),
+        ("hr",          ["human resources", "people", "talent", "recruiting",
+                         "diversity", "inclusion", "learning"]),
+        ("marketing",   ["marketing", "brand", "communications", "content", "pr",
+                         "growth"]),
+        ("sales",       ["sales", "business development", "bd", "commercial",
+                         "partnerships", "revenue", "account"]),
+    ]
+
+    # Identify job's department group
+    job_dept_kws: list[str] = []
+    for _dept, kws in DEPT_GROUPS:
+        if any(kw in combined_job for kw in kws):
+            job_dept_kws = kws
+            break
+
+    # Score lead against job department
+    if job_dept_kws and any(kw in lead_title for kw in job_dept_kws):
+        dept_pts = 25.0
+    elif job_dept_kws:
+        dept_pts = 0.0
+    else:
+        dept_pts = 10.0   # can't determine job dept — neutral
+    breakdown["department"] = dept_pts
+
+    # ── Alumni tiebreaker (informational) ───────────────────────────
+    breakdown["alumni"] = 1.0 if lead.get("is_alumni") else 0.0
+
+    total = round(min(loc_pts + sen_pts + dept_pts, 100), 1)
     return total, breakdown
 
 
