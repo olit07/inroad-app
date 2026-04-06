@@ -492,16 +492,25 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         scored_leads.sort(key=lambda x: -x[0][0])
         (best_score, best_breakdown), best_lead = scored_leads[0]
 
-        # Infer email
-        name_parts = best_lead.get("name", "").split()
-        first = name_parts[0] if name_parts else ""
-        last  = name_parts[-1] if len(name_parts) > 1 else ""
-        email_result = inferrer.infer(
-            first_name     = first,
-            last_name      = last,
-            company_name   = company,
-            job_url        = job.get("url", ""),
-        )
+        # Infer email — use Apollo-provided email if available, otherwise fall back
+        apollo_email = best_lead.get("email", "")
+        if apollo_email:
+            email_result = {
+                "email":          apollo_email,
+                "confidence":     "HIGH",
+                "all_candidates": [apollo_email],
+                "domain":         "",
+            }
+        else:
+            name_parts = best_lead.get("name", "").split()
+            first = name_parts[0] if name_parts else ""
+            last  = name_parts[-1] if len(name_parts) > 1 else ""
+            email_result = inferrer.infer(
+                first_name     = first,
+                last_name      = last,
+                company_name   = company,
+                job_url        = job.get("url", ""),
+            )
 
         # Generate email draft
         subject, body = generate_email_draft(student, best_lead, job)

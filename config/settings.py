@@ -29,6 +29,8 @@ FROM_NAME      = os.environ.get("FROM_NAME", "inroad")
 # ── APIs ────────────────────────────────────────────────────────────────────
 
 SERPER_API_KEY = os.environ.get("SERPER_API_KEY", "")
+APOLLO_API_KEY = os.environ.get("APOLLO_API_KEY", "")
+PDL_API_KEY    = os.environ.get("PDL_API_KEY", "")
 
 # ── Token / session config ──────────────────────────────────────────────────
 

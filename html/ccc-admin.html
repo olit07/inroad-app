@@ -148,8 +148,6 @@
   <div class="section">
     <div class="section-title">Actions</div>
     <button class="btn-trigger" id="btn-scrape-all" onclick="triggerScrape(null)">▶ Run all scrapers</button>
-    <button class="btn-trigger secondary" id="btn-scrape-gh" onclick="triggerScrape('greenhouse_feed')">Greenhouse only</button>
-    <button class="btn-trigger secondary" id="btn-scrape-lv" onclick="triggerScrape('lever_feed')">Lever only</button>
     <button class="btn-trigger secondary" onclick="loadStats()">↺ Refresh</button>
   </div>
 
@@ -167,27 +165,6 @@
       <div class="bar-list" id="industry-bars"><div class="skeleton" style="width:100%"></div></div>
     </div>
 
-  </div>
-
-  <!-- Scrape runs -->
-  <div class="section">
-    <div class="section-title">Recent scrape runs</div>
-    <table class="runs-table">
-      <thead>
-        <tr>
-          <th>Source</th>
-          <th>Status</th>
-          <th>New jobs</th>
-          <th>Total found</th>
-          <th>Duration</th>
-          <th>Finished</th>
-          <th>Error</th>
-        </tr>
-      </thead>
-      <tbody id="runs-tbody">
-        <tr><td colspan="7" style="color:var(--subtle);padding:16px 0;">Loading…</td></tr>
-      </tbody>
-    </table>
   </div>
 
   <!-- Students -->
@@ -209,6 +186,9 @@
     <div class="section-title">Job browser</div>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
       <input type="text" id="job-search" placeholder="Search title or company…" style="flex:1;min-width:200px;font-family:'Lato',sans-serif;font-size:0.82rem" oninput="filterJobs()">
+      <select id="job-source" onchange="filterJobs()" style="font-family:'Lato',sans-serif;font-size:0.82rem">
+        <option value="">All sources</option>
+      </select>
       <select id="job-industry" onchange="filterJobs()" style="font-family:'Lato',sans-serif;font-size:0.82rem">
         <option value="">All industries</option>
       </select>
@@ -225,7 +205,7 @@
     <table class="runs-table">
       <thead><tr>
         <th>Company</th><th>Title</th><th>Industry</th>
-        <th>Region</th><th>Seniority</th><th>Posted</th><th>Source</th><th>Link</th>
+        <th>Region</th><th>Seniority</th><th>Opening Date</th><th>Closing Date</th><th>Source</th><th>Link</th>
       </tr></thead>
       <tbody id="jobs-tbody"></tbody>
     </table>
@@ -261,7 +241,7 @@
 
       // Status banner
       document.getElementById('api-status').className = 'api-status ok';
-      document.getElementById('api-status').innerHTML = '<div class="status-dot"></div><span>API online — http://localhost:5001</span>';
+      document.getElementById('api-status').innerHTML = '<div class="status-dot"></div><span>API online — ' + window.location.origin + '</span>';
       document.getElementById('last-updated').textContent = 'Last updated ' + new Date().toLocaleTimeString();
 
       // Metrics
@@ -399,19 +379,30 @@
   }
 
   // ── JOB BROWSER ──
-  let allJobs = [], jobPage = 0;
+  let allJobs = [], filteredJobs = [], jobPage = 0;
   const JOB_PAGE_SIZE = 25;
 
   async function loadJobs() {
     try {
-      const r = await fetch(`${API}/api/jobs?limit=500`);
+      const r = await fetch(`${API}/api/jobs?limit=2000`);
       if (!r.ok) return;
       const { data } = await r.json();
       allJobs = data.jobs || [];
+      // Populate source select
+      const srcs = new Set();
+      allJobs.forEach(j => { if (j.source_name) srcs.add(j.source_name); });
+      const srcSel = document.getElementById('job-source');
+      srcSel.innerHTML = '<option value="">All sources</option>';
+      [...srcs].sort().forEach(src => {
+        const opt = document.createElement('option');
+        opt.value = src; opt.textContent = src;
+        srcSel.appendChild(opt);
+      });
       // Populate industry select
       const inds = new Set();
       allJobs.forEach(j => (j.industries || []).forEach(i => inds.add(i)));
       const sel = document.getElementById('job-industry');
+      sel.innerHTML = '<option value="">All industries</option>';
       [...inds].sort().forEach(ind => {
         const opt = document.createElement('option');
         opt.value = ind; opt.textContent = ind;
@@ -423,47 +414,56 @@
 
   function filterJobs() {
     const q   = (document.getElementById('job-search')?.value || '').toLowerCase();
+    const src = document.getElementById('job-source')?.value || '';
     const ind = document.getElementById('job-industry')?.value || '';
     const reg = document.getElementById('job-region')?.value || '';
     const sen = document.getElementById('job-seniority')?.value || '';
-    jobPage   = 0;
-    const filtered = allJobs.filter(j => {
-      const matchQ   = !q || j.company_name.toLowerCase().includes(q) || j.title.toLowerCase().includes(q);
+    jobPage      = 0;
+    filteredJobs = allJobs.filter(j => {
+      const matchQ   = !q   || (j.company_name || '').toLowerCase().includes(q) || (j.title || '').toLowerCase().includes(q);
+      const matchSrc = !src || j.source_name === src;
       const matchInd = !ind || (j.industries || []).includes(ind);
       const matchReg = !reg || j.region === reg;
       const matchSen = !sen || j.seniority === sen;
-      return matchQ && matchInd && matchReg && matchSen;
+      return matchQ && matchSrc && matchInd && matchReg && matchSen;
     });
-    renderJobPage(filtered);
+    renderJobPage();
   }
 
-  function renderJobPage(jobs) {
+  function renderJobPage() {
+    const today  = new Date().toISOString().slice(0, 10);
     const start  = jobPage * JOB_PAGE_SIZE;
-    const page   = jobs.slice(start, start + JOB_PAGE_SIZE);
+    const page   = filteredJobs.slice(start, start + JOB_PAGE_SIZE);
     const tbody  = document.getElementById('jobs-tbody');
     const pagDiv = document.getElementById('jobs-pagination');
 
     tbody.innerHTML = page.length ? page.map(j => {
-      const ind  = (j.industries || [])[0] || '—';
-      const link = j.url ? `<a href="${j.url}" target="_blank" style="color:var(--green)">Apply ↗</a>` : '—';
+      const ind     = (j.industries || [])[0] || '—';
+      const link    = j.url ? `<a href="${j.url}" target="_blank" style="color:var(--green)">Apply ↗</a>` : '—';
+      const opens   = j.opening_date || '—';
+      const closesRaw = j.closing_date || '';
+      const closes  = closesRaw
+        ? (closesRaw > today ? closesRaw : `<span style="color:var(--amber)">${closesRaw}</span>`)
+        : '<span style="color:var(--green)">Active</span>';
       return `<tr>
-        <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${j.company_name}</strong></td>
-        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.title}</td>
+        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${j.company_name}</strong></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.title}</td>
         <td style="color:var(--muted)">${ind}</td>
         <td>${j.region || '—'}</td>
         <td>${j.seniority || '—'}</td>
-        <td style="color:var(--muted)">${j.posted_date || '—'}</td>
+        <td style="color:var(--muted)">${opens}</td>
+        <td style="color:var(--muted)">${closes}</td>
         <td style="color:var(--muted);font-size:0.75rem">${j.source_name || '—'}</td>
         <td>${link}</td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" style="color:var(--subtle);padding:12px 0">No jobs match filters</td></tr>';
+    }).join('') : '<tr><td colspan="9" style="color:var(--subtle);padding:12px 0">No jobs match filters</td></tr>';
 
-    const totalPages = Math.ceil(jobs.length / JOB_PAGE_SIZE);
+    const totalPages = Math.ceil(filteredJobs.length / JOB_PAGE_SIZE);
     pagDiv.innerHTML = totalPages > 1 ? `
-      <button onclick="jobPage=Math.max(0,jobPage-1);filterJobs()" class="btn-trigger secondary" style="padding:5px 12px;font-size:0.75rem" ${jobPage===0?'disabled':''}>← Prev</button>
-      <span>Page ${jobPage+1} of ${totalPages} · ${jobs.length} jobs</span>
-      <button onclick="jobPage=Math.min(${totalPages-1},jobPage+1);filterJobs()" class="btn-trigger secondary" style="padding:5px 12px;font-size:0.75rem" ${jobPage>=totalPages-1?'disabled':''}>Next →</button>
-    ` : `<span>${jobs.length} jobs</span>`;
+      <button onclick="jobPage=Math.max(0,jobPage-1);renderJobPage()" class="btn-trigger secondary" style="padding:5px 12px;font-size:0.75rem" ${jobPage===0?'disabled':''}>← Prev</button>
+      <span>Page ${jobPage+1} of ${totalPages} · ${filteredJobs.length} jobs</span>
+      <button onclick="jobPage=Math.min(${totalPages-1},jobPage+1);renderJobPage()" class="btn-trigger secondary" style="padding:5px 12px;font-size:0.75rem" ${jobPage>=totalPages-1?'disabled':''}>Next →</button>
+    ` : `<span>${filteredJobs.length} jobs</span>`;
   }
 
   // ── SUPPRESSION ──

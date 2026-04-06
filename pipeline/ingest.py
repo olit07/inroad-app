@@ -12,7 +12,7 @@ from pathlib import Path
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config.settings    import DB_PATH, MAX_JOB_AGE_DAYS
+from config.settings    import DB_PATH, FRESHNESS_DECAY_DAYS as MAX_JOB_AGE_DAYS
 from db.database        import db_conn, init_db, upsert_job, log_scrape_run, db_stats
 
 logger = logging.getLogger(__name__)
@@ -63,8 +63,8 @@ def run_single_scraper(scraper, db_path=DB_PATH) -> dict:
 
     with db_conn(db_path) as conn:
         log_scrape_run(
-            conn, source_id, jobs_found, jobs_new, jobs_updated,
-            status, error_msg, duration
+            conn, source_id, source_name, status,
+            jobs_found, jobs_new, error_msg, duration
         )
 
     summary = {
@@ -93,7 +93,7 @@ def run_all_scrapers(db_path=DB_PATH, source_ids: list[str] | None = None) -> li
     """
     from scrapers import get_all_scrapers, get_scraper_by_id
 
-    init_db(db_path)
+    init_db()
 
     if source_ids:
         scrapers = [get_scraper_by_id(sid) for sid in source_ids]
@@ -124,25 +124,20 @@ def run_all_scrapers(db_path=DB_PATH, source_ids: list[str] | None = None) -> li
     return summaries
 
 
-def expire_stale_jobs(db_path=DB_PATH) -> int:
-    """Mark jobs as inactive if not seen in MAX_JOB_AGE_DAYS days."""
-    cutoff = (datetime.utcnow() - timedelta(days=MAX_JOB_AGE_DAYS)).strftime("%Y-%m-%d")
-    with db_conn(db_path) as conn:
-        cur = conn.execute(
-            "UPDATE jobs SET is_active=0 WHERE last_seen_at < ? AND is_active=1",
-            (cutoff,),
-        )
-        return cur.rowcount
+def expire_stale_jobs(db_path=DB_PATH, max_age_days: int = 14) -> int:
+    """
+    Delete jobs whose posted_at is older than max_age_days.
+    Returns the number of rows deleted.
+    """
+    from db.database import USE_POSTGRES, execute as db_execute
+    if USE_POSTGRES:
+        sql = f"DELETE FROM jobs WHERE posted_at < NOW() - INTERVAL '{max_age_days} days'"
+    else:
+        sql = f"DELETE FROM jobs WHERE posted_at < datetime('now', '-{max_age_days} days')"
+    deleted = db_execute(sql) or 0
+    return deleted
 
 
 def expire_past_closing(db_path=DB_PATH) -> int:
-    """Mark jobs as inactive if their closing date has passed."""
-    today = datetime.utcnow().strftime("%Y-%m-%d")
-    with db_conn(db_path) as conn:
-        cur = conn.execute(
-            """UPDATE jobs SET is_active=0
-               WHERE closing_date != '' AND closing_date < ?
-               AND is_active=1""",
-            (today,),
-        )
-        return cur.rowcount
+    """No-op — closing date filtering handled at query time."""
+    return 0

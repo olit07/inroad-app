@@ -1,11 +1,8 @@
 """
-CCC Backend — Welcome to the Jungle Scraper
+CCC Backend — Welcome to the Jungle Scraper  (Gold Standard source #2)
 
-WTTJ exposes a public search API used by their frontend:
-  GET https://api.welcometothejungle.com/api/v1/jobs?page=1&per_page=30&...
-
-Note: WTTJ has Cloudflare. We use their official public search endpoint
-which is less aggressively protected than their main site HTML.
+Searches WTTJ's public API for V0 scope: internships, graduate programmes,
+and entry-level roles in Finance, Technology, and Law only.
 """
 import json
 import logging
@@ -19,35 +16,66 @@ from scrapers.greenhouse import _infer_region, _infer_employment_type
 
 logger = logging.getLogger(__name__)
 
-API_BASE = "https://api.welcometothejungle.com/api/v1/jobs"
+# Ordered list of API base URLs to try. The scraper probes them in sequence
+# and uses the first that returns HTTP 200. Add new candidates at the front
+# when a new endpoint is discovered.
+API_BASE_URLS = [
+    "https://api.welcometothejungle.com/api/v1/jobs",   # original
+    "https://www.welcometothejungle.com/api/v2/jobs",   # v2 candidate
+]
 
-# Search term buckets mapped to industries
+# V0 scope: internships / graduate programmes / entry-level only
+# Finance, Technology, Law
 SEARCH_BUCKETS = [
-    ("software engineer graduate",  ["Software Engineering", "Technology"],   "uk"),
-    ("product manager",             ["Product Management", "Technology"],      "uk"),
-    ("data analyst",                ["Data & Analytics", "Technology"],        "uk"),
-    ("ux designer",                 ["Design & UX", "Technology"],             "uk"),
-    ("marketing manager",           ["Marketing", "Growth"],                   "uk"),
-    ("finance analyst",             ["Finance"],                               "uk"),
-    ("software engineer",           ["Software Engineering", "Technology"],    "us"),
-    ("product manager",             ["Product Management"],                    "us"),
-    ("data scientist",              ["Data & Analytics"],                      "us"),
+    # Finance — UK
+    ("finance internship",                   ["Finance"],                                "uk"),
+    ("investment banking summer analyst",    ["Investment Banking", "Finance"],          "uk"),
+    ("finance graduate programme",           ["Finance", "Investment Banking"],          "uk"),
+    ("financial analyst graduate",           ["Finance"],                                "uk"),
+    # Technology — UK
+    ("software engineer internship",         ["Software Engineering", "Technology"],     "uk"),
+    ("software engineer graduate scheme",    ["Software Engineering", "Technology"],     "uk"),
+    ("data analyst graduate",                ["Data & Analytics", "Technology"],         "uk"),
+    ("product manager graduate",             ["Product Management", "Technology"],       "uk"),
+    ("technology graduate scheme",           ["Technology", "Software Engineering"],     "uk"),
+    # Law — UK
+    ("training contract",                    ["Law"],                                    "uk"),
+    ("paralegal graduate",                   ["Law"],                                    "uk"),
+    ("legal internship",                     ["Law"],                                    "uk"),
+    # Finance — US
+    ("finance internship",                   ["Finance"],                                "us"),
+    ("investment banking analyst",           ["Investment Banking", "Finance"],          "us"),
+    ("summer analyst finance",               ["Finance", "Investment Banking"],          "us"),
+    # Technology — US
+    ("software engineer intern",             ["Software Engineering", "Technology"],     "us"),
+    ("data analyst entry level",             ["Data & Analytics", "Technology"],         "us"),
 ]
 
 
 class WTTJScraper(BaseScraper):
     source_id   = "wttj"
     source_name = "Welcome to the Jungle"
-    tier        = 2
+    tier        = 1  # Gold Standard
 
     def scrape(self) -> Iterator[dict]:
         seen: set = set()
+
+        active_base = self._probe_api_base()
+        if active_base is None:
+            self.logger.error(
+                f"WTTJ: all API base URLs failed probe — skipping scraper. "
+                f"Tried: {API_BASE_URLS}. "
+                "Check DevTools Network on welcometothejungle.com to find the current endpoint."
+            )
+            return
+
+        self.logger.info(f"WTTJ: using API base URL: {active_base}")
 
         for query, industries, country_code in SEARCH_BUCKETS:
             page = 1
             while page <= 3:  # max 3 pages per query
                 url = (
-                    f"{API_BASE}?query={query.replace(' ', '+')}"
+                    f"{active_base}?query={query.replace(' ', '+')}"
                     f"&country_codes[]={country_code.upper()}"
                     f"&page={page}&per_page=30"
                 )
@@ -57,7 +85,15 @@ class WTTJScraper(BaseScraper):
                         "Referer": "https://www.welcometothejungle.com/",
                     })
                 except RequestError as e:
-                    self.logger.warning(f"WTTJ fetch failed [{query}] p{page}: {e}")
+                    err_str = str(e)
+                    if "HTTP 404" in err_str:
+                        self.logger.warning(f"WTTJ 404 [{query}] p{page} — endpoint may have moved: {url}")
+                    elif "HTTP 401" in err_str or "HTTP 403" in err_str:
+                        self.logger.warning(f"WTTJ auth error [{query}] p{page} — endpoint now requires auth")
+                    elif "HTTP 429" in err_str:
+                        self.logger.warning(f"WTTJ rate limited [{query}] p{page}")
+                    else:
+                        self.logger.warning(f"WTTJ fetch failed [{query}] p{page}: {e}")
                     break
                 except Exception as e:
                     self.logger.warning(f"WTTJ error [{query}] p{page}: {e}")
@@ -70,6 +106,10 @@ class WTTJScraper(BaseScraper):
                     jobs_raw = data
 
                 if not jobs_raw:
+                    self.logger.debug(
+                        f"WTTJ [{query} / {country_code}] p{page}: empty — "
+                        f"keys: {list(data.keys()) if isinstance(data, dict) else 'list'}"
+                    )
                     break
 
                 self.logger.info(f"WTTJ [{query} / {country_code}] p{page}: {len(jobs_raw)} jobs")
@@ -92,6 +132,33 @@ class WTTJScraper(BaseScraper):
                 if page >= total_pages:
                     break
                 page += 1
+
+    def _probe_api_base(self) -> str | None:
+        """Try each URL in API_BASE_URLS with a minimal probe request.
+        Returns the first base URL that responds HTTP 200, or None if all fail.
+        """
+        probe_params = "?query=graduate+internship&country_codes[]=UK&page=1&per_page=1"
+        for base in API_BASE_URLS:
+            probe_url = f"{base}{probe_params}"
+            try:
+                data = self.fetch_json(probe_url, headers={
+                    "Accept": "application/json, text/plain, */*",
+                    "Referer": "https://www.welcometothejungle.com/",
+                })
+                # A 200 response (even empty) means the endpoint is live
+                self.logger.debug(f"WTTJ probe OK: {base}")
+                return base
+            except RequestError as e:
+                err_str = str(e)
+                if "HTTP 404" in err_str:
+                    self.logger.info(f"WTTJ probe 404 at {base} — trying next")
+                elif "HTTP 401" in err_str or "HTTP 403" in err_str:
+                    self.logger.info(f"WTTJ probe auth error at {base} — trying next")
+                else:
+                    self.logger.info(f"WTTJ probe failed at {base}: {e} — trying next")
+            except Exception as e:
+                self.logger.info(f"WTTJ probe unexpected error at {base}: {e} — trying next")
+        return None
 
     def _parse_job(self, raw: dict, hint_industries: list, country_code: str) -> dict | None:
         title = raw.get("name", raw.get("title", "")).strip()

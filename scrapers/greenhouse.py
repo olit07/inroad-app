@@ -17,59 +17,55 @@ from scrapers.base import BaseScraper, make_job, infer_seniority, infer_industri
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true"
+BASE_URL = "https://boards-api.greenhouse.io/v1/boards/{token}/jobs"
+
+# V0 scope: only internships, grad programmes, and entry-level roles
+ENTRY_LEVEL_KEYWORDS = {
+    "intern", "internship", "placement", "summer analyst", "spring week",
+    "graduate", "grad", "entry level", "entry-level", "new grad", "trainee",
+    "analyst", "associate", "junior", "apprentice", "scheme", "programme",
+    "program", "training contract",
+}
+
+def _is_entry_level(title: str) -> bool:
+    t = title.lower()
+    return any(k in t for k in ENTRY_LEVEL_KEYWORDS)
 
 # Curated list of (company_name, board_token) — all known to hire UK/US grads
 DEFAULT_TARGETS = [
     # Finance / IB / Quant
-    ("Citadel",              "citadel"),
-    ("Two Sigma",            "twosigma"),
     ("Jane Street",          "janestreet"),
+    ("Point72",              "point72"),
     ("Virtu Financial",      "virtu"),
-    ("Pershing Square",      "pershingsquarecapitalmanagement"),
-    # Technology
+    # Technology — US/Global
     ("Stripe",               "stripe"),
-    ("Airbnb",               "airbnb"),
-    ("Databricks",           "databricks"),
-    ("Figma",                "figma"),
-    ("Notion",               "notion"),
-    ("Airtable",             "airtable"),
-    ("Asana",                "asana"),
-    ("Brex",                 "brex"),
-    ("Plaid",                "plaid"),
-    ("Robinhood",            "robinhood"),
-    ("Coinbase",             "coinbase"),
-    ("Ripple",               "ripple"),
-    ("Scale AI",             "scaleai"),
     ("Anthropic",            "anthropic"),
-    ("OpenAI",               "openai"),
-    ("Cohere",               "cohere"),
-    ("Weights & Biases",     "wandb"),
-    # Consulting / Strategy
-    ("Oliver Wyman",         "oliverwyman"),
-    ("L.E.K. Consulting",    "lek"),
-    ("Parthenon",            "ey-parthenon"),
-    # Product / Growth
-    ("HubSpot",              "hubspot"),
-    ("Zendesk",              "zendesk"),
-    ("Intercom",             "intercom"),
+    ("Cloudflare",           "cloudflare"),
+    ("Databricks",           "databricks"),
+    ("Airbnb",               "airbnb"),
+    ("Figma",                "figma"),
+    ("Brex",                 "brex"),
+    ("Coinbase",             "coinbase"),
+    ("Scale AI",             "scaleai"),
+    ("Robinhood",            "robinhood"),
     ("Klaviyo",              "klaviyo"),
+    ("Intercom",             "intercom"),
+    ("Asana",                "asana"),
+    ("Airtable",             "airtable"),
     ("Attentive",            "attentive"),
-    # Design / UX
-    ("InVision",             "invisionapp"),
-    ("Miro",                 "miro"),
+    ("Ripple",               "ripple"),
+    ("Vercel",               "vercel"),
+    # Technology — AI
+    ("DeepMind",             "deepmind"),
+    # Technology — UK
+    ("Monzo",                "monzo"),
+    ("GoCardless",           "gocardless"),
+    ("Skyscanner",           "skyscanner"),
     # VC
     ("Andreessen Horowitz",  "a16z"),
-    ("Sequoia",              "sequoia"),
-    ("Accel",                "accel"),
-    # Healthcare / Biotech
-    ("23andMe",              "23andme"),
-    ("Tempus",               "tempus"),
-    ("Ro",                   "ro"),
-    # Media / Journalism
+    # Media
     ("Vox Media",            "voxmedia"),
     ("BuzzFeed",             "buzzfeed"),
-    ("Substack",             "substack"),
 ]
 
 
@@ -111,6 +107,9 @@ class GreenhouseScraper(BaseScraper):
     def _parse_job(self, raw: dict, company_name: str) -> dict | None:
         title = raw.get("title", "").strip()
         if not title:
+            return None
+        # V0 scope: skip anything that isn't intern / grad / entry-level
+        if not _is_entry_level(title):
             return None
 
         url = raw.get("absolute_url", "")

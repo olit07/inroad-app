@@ -1,6 +1,6 @@
-# Coffee Chat Connect — Backend
+#inroad — Backend
 
-Scraping, matching, and daily card generation for Coffee Chat Connect.
+Scraping, matching, and daily card generation for inroad.
 Helps university students get jobs via targeted cold-email coffee chats.
 
 ## Quick start
@@ -130,6 +130,8 @@ python3 cli.py init          # create DB schema
 | `ADZUNA_APP_KEY` | optional | developer.adzuna.com | Adzuna job listings |
 | `TRACKR_SESSION_COOKIE` | optional | Browser DevTools | Bristol Trackr (requires login) |
 | `HUNTER_API_KEY` | optional | hunter.io | Email verification |
+| `APOLLO_API_KEY` | ✓ | apollo.io | profile search |
+
 
 *One of Bing or SerpAPI is required for LinkedIn matching.
 
@@ -137,6 +139,7 @@ Set in a `.env` file or export before running:
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 export BRAVE_SEARCH_API_KEY=...
+export APOLLO_API_KEY=gyacBZASeuwsgf0O1ethAQ
 ```
 
 ## CLI usage
@@ -217,6 +220,5 @@ Dashboard reads from:
 
 - Greenhouse and Lever ATS feeds are publicly documented and intended for programmatic access.
 - Reed and Adzuna have official developer APIs with ToS-compliant access.
-- Bristol Trackr scraping requires a valid logged-in session — personal use only.
-- LinkedIn profile data is sourced via Bing Search API from public search results. Profile data is treated as ephemeral (not stored permanently — anonymised after 90 days).
+- Bristol Trackr scraping requires a valid logged-in session.
 - Email inference uses pattern matching. Students send emails manually — CCC is the drafter, not the sender.

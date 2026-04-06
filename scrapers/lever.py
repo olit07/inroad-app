@@ -21,43 +21,8 @@ BASE_URL = "https://api.lever.co/v0/postings/{token}?mode=json"
 
 DEFAULT_TARGETS = [
     # Finance / Quant
-    ("Point72",              "point72"),
-    ("D.E. Shaw",            "deshaw"),
-    ("Millennium",           "millennium"),
-    ("Schonfeld",            "schonfeld"),
-    # Technology
-    ("Canva",                "canva"),
-    ("Rippling",             "rippling"),
-    ("Carta",                "carta"),
-    ("Front",                "front"),
-    ("Loom",                 "loom"),
-    ("Mercury",              "mercury"),
-    ("Linear",               "linear"),
-    ("Retool",               "retool"),
-    ("Amplitude",            "amplitude"),
-    ("Mixpanel",             "mixpanel"),
-    ("Segment",              "segment"),
-    ("Heap",                 "heap"),
-    # Consulting / Strategy
-    ("Bain & Company",       "bain"),
-    ("Booz Allen Hamilton",  "boozallen"),
-    # Growth / Marketing
-    ("Attentive",            "attentive"),
-    ("Iterable",             "iterable"),
-    # Design / UX
-    ("Abstract",             "abstract"),
-    # VC / PE
-    ("General Catalyst",     "generalcatalyst"),
-    ("Bessemer",             "bvp"),
-    # Healthcare
-    ("Oscar Health",         "oscar"),
-    ("Cityblock Health",     "cityblock"),
-    # Non-profit / Policy
-    ("Code for America",     "codeforamerica"),
-    ("Chan Zuckerberg",      "chanzuckerberg"),
-    # Real Estate
-    ("Opendoor",             "opendoor"),
-    ("Compass",              "compass"),
+    ("Palantir",             "palantir"),
+    ("Plaid",                "plaid"),
 ]
 
 

@@ -60,6 +60,7 @@
     cursor:pointer;transition:all 0.15s;user-select:none
   }
   .industry-pill.selected{border-color:var(--green);background:var(--green-lite);color:var(--green-deep)}
+  .industry-pill.locked{color:var(--subtle);border-color:var(--border);background:var(--bg);cursor:not-allowed;opacity:0.55;pointer-events:none}
 
   .size-row{display:flex;gap:10px}
   .size-card{
@@ -182,9 +183,16 @@
 <script>
 const INDUSTRIES = [
   'Finance','Investment Banking','Technology','Software Engineering','Product Management',
-  'Consulting','Strategy','Marketing','Growth','Law','Healthcare','Media & Journalism',
-  'Design & UX','Data & Analytics','Real Estate','Non-profit & Policy','Venture Capital','Other'
+  'Data & Analytics','Law',
+  // Coming soon in V0
+  'Consulting','Strategy','Marketing','Growth','Healthcare','Media & Journalism',
+  'Design & UX','Real Estate','Non-profit & Policy','Venture Capital'
 ];
+const LOCKED_INDUSTRIES = new Set([
+  'Investment Banking','Software Engineering','Product Management','Data & Analytics',
+  'Consulting','Strategy','Marketing','Growth','Healthcare','Media & Journalism',
+  'Design & UX','Real Estate','Non-profit & Policy','Venture Capital','Other'
+]);
 
 let _token = null;
 
@@ -201,10 +209,15 @@ async function getToken() {
 const grid = document.getElementById('industry-grid');
 INDUSTRIES.forEach(ind => {
   const pill = document.createElement('span');
-  pill.className = 'industry-pill';
   pill.textContent = ind;
   pill.dataset.value = ind;
-  pill.onclick = () => { pill.classList.toggle('selected'); };
+  if (LOCKED_INDUSTRIES.has(ind)) {
+    pill.className = 'industry-pill locked';
+    pill.title = 'Coming soon';
+  } else {
+    pill.className = 'industry-pill';
+    pill.onclick = () => { pill.classList.toggle('selected'); };
+  }
   grid.appendChild(pill);
 });
 

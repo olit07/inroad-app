@@ -444,6 +444,12 @@
         body: JSON.stringify({ email, source: 'login' }),
       });
 
+      if (res.status === 404) {
+        showError('No account found — have you signed up yet?');
+        setLoading(false);
+        return;
+      }
+
       if (res.status === 429) {
         showError('Too many attempts — please wait a few minutes.');
         setLoading(false);

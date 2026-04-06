@@ -224,9 +224,12 @@ class LinkedInMatcher:
     """
 
     def __init__(self):
-        self.serper_key = os.environ.get("SERPER_API_KEY", "")   # primary — serper.dev
-        self.brave_key  = os.environ.get("BRAVE_SEARCH_API_KEY", "") # secondary
-        self.serp_key   = os.environ.get("SERPAPI_KEY", "")      # fallback
+        self.pdl_key     = os.environ.get("PDL_API_KEY", "")       # primary — education data
+        self.apollo_key  = os.environ.get("APOLLO_API_KEY", "")    # secondary — verified data
+        self.hunter_key  = os.environ.get("HUNTER_API_KEY", "")    # tertiary — domain people search
+        self.serper_key  = os.environ.get("SERPER_API_KEY", "")    # fallback — serper.dev
+        self.brave_key   = os.environ.get("BRAVE_SEARCH_API_KEY", "") # fallback
+        self.serp_key    = os.environ.get("SERPAPI_KEY", "")       # fallback
         # Warn if someone has the old dead Bing key set
         if os.environ.get("BING_SEARCH_API_KEY"):
             logger.warning(
@@ -234,7 +237,8 @@ class LinkedInMatcher:
                 "decommissioned on August 11 2025 and no longer works. "
                 "Set SERPER_API_KEY instead — free trial at https://serper.dev"
             )
-        self._last_req  = 0.0
+        self._last_req   = 0.0
+        self._pdl_cache  = {}   # company_lower → list[dict], avoids duplicate PDL calls
 
     def _throttle(self):
         elapsed = time.time() - self._last_req
@@ -251,21 +255,78 @@ class LinkedInMatcher:
     ) -> list[dict]:
         """
         Return up to `n` lead dicts for the given company/job.
-        Tries the primary company name first, then falls back to variants if <3 results.
+        Apollo is used as primary source if APOLLO_API_KEY is set — returns verified
+        current employer and education history for reliable alumni detection.
+        Falls back to Serper/Brave/SerpAPI snippet search if Apollo unavailable.
         Each lead: {name, title, company, university, linkedin_url,
-                    tenure_months, is_alumni, snippet}
+                    tenure_months, is_alumni, snippet, email}
         """
+        all_leads = []
+        seen_urls = set()
+
+        # ── PDL primary path (education history mandatory) ───────────────────
+        if self.pdl_key:
+            pdl_leads = self._pdl_search(company, job_title, student_university, n=n * 2)
+            for lead in pdl_leads:
+                url = lead.get("linkedin_url", "")
+                if url and url in seen_urls:
+                    continue
+                seen_urls.add(url or lead["name"])
+                all_leads.append(lead)
+
+            if len(all_leads) >= 3:
+                logger.info(f"PDL returned {len(all_leads)} leads for {company}")
+                return all_leads[:n]
+
+        # ── Apollo secondary path (verified data) ────────────────────────────
+        if self.apollo_key:
+            raw_people = self._apollo_search(company, job_title, n=n * 2)
+            for person in raw_people:
+                lead = self._apollo_person_to_lead(person)
+                if not lead:
+                    continue
+                url = lead.get("linkedin_url", "")
+                if url and url in seen_urls:
+                    continue
+                seen_urls.add(url)
+                # Alumni: check every education entry against student university
+                edu_list = lead.pop("education", [])
+                lead["is_alumni"] = any(
+                    is_alumni(edu.get("school_name", ""), student_university)
+                    for edu in edu_list
+                )
+                # Use first education entry as university string
+                if edu_list:
+                    lead["university"] = edu_list[0].get("school_name", "")
+                all_leads.append(lead)
+
+            if len(all_leads) >= 3:
+                logger.info(f"Apollo returned {len(all_leads)} leads for {company}")
+                return all_leads[:n]
+
+        # ── Hunter.io domain search (secondary) ─────────────────────────────
+        if self.hunter_key and len(all_leads) < 3:
+            hunter_leads = self._hunter_search(company, job_title, student_university, n=n * 2)
+            for lead in hunter_leads:
+                url = lead.get("linkedin_url", "")
+                if url and url in seen_urls:
+                    continue
+                seen_urls.add(url or lead["name"])
+                all_leads.append(lead)
+
+            if len(all_leads) >= 3:
+                logger.info(f"Hunter returned {len(all_leads)} leads for {company}")
+                return all_leads[:n]
+
+        # ── Fallback: snippet search (Serper / Brave / SerpAPI) ─────────────
         if not (self.serper_key or self.brave_key or self.serp_key):
             logger.warning(
-                "No search API key set. LinkedIn matching is disabled. "
-                "Set SERPER_API_KEY — free trial at https://serper.dev (recommended, $0.30/1k queries)."
+                "No search API key set. Set HUNTER_API_KEY (recommended free option) or "
+                "SERPER_API_KEY as fallback."
             )
-            return []
+            return all_leads[:n]
 
-        # Build queries using primary name + variants
-        variants   = company_name_variants(company)
-        all_leads  = []
-        seen_urls  = set()
+        variants = company_name_variants(company)
 
         for variant in variants[:2]:  # max 2 variants to limit API calls
             query = build_search_query(variant, job_title, student_university)
@@ -290,12 +351,319 @@ class LinkedInMatcher:
                 lead["is_alumni"] = is_alumni(
                     lead.get("university", ""), student_university
                 )
+                lead["email"] = ""
                 all_leads.append(lead)
 
             if len(all_leads) >= n:
                 break  # enough results from first variant
 
         return all_leads[:n]
+
+    # ── Apollo People Search backend ─────────────────────────────────────────
+    APOLLO_ENDPOINT = "https://api.apollo.io/api/v1/mixed_people/search"
+
+    def _apollo_search(self, company: str, job_title: str, n: int = 10) -> list[dict]:
+        """
+        Search Apollo People API for professionals at `company` relevant to `job_title`.
+        Auth via x-api-key header (URL param is deprecated per Apollo's notice).
+        Returns raw Apollo person dicts.
+        """
+        import urllib.request as _urlreq
+
+        team_kw = _extract_team_keywords(job_title)
+        title_filters = team_kw[:2] + ["analyst", "associate", "manager", "vice president"]
+
+        payload = json.dumps({
+            "organization_names": [company],
+            "person_titles":      title_filters,
+            "page":               1,
+            "per_page":           min(n, 10),
+        }).encode()
+
+        req = _urlreq.Request(
+            self.APOLLO_ENDPOINT,
+            data=payload,
+            headers={
+                "x-api-key":     self.apollo_key,
+                "Content-Type":  "application/json",
+                "accept":        "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with _urlreq.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read())
+            people = data.get("people", [])
+            logger.info(f"Apollo: {len(people)} results for '{company}'")
+            return people
+        except Exception as e:
+            logger.error(f"Apollo search failed: {e}")
+            return []
+
+    def _apollo_person_to_lead(self, person: dict) -> dict | None:
+        """Convert Apollo API person dict → internal lead dict format."""
+        name = (person.get("name") or "").strip()
+        if not name:
+            return None
+
+        linkedin_url = person.get("linkedin_url") or ""
+        if linkedin_url:
+            linkedin_url = re.sub(r"\?.*$", "", linkedin_url)
+
+        return {
+            "name":          name,
+            "title":         person.get("title") or "",
+            "company":       person.get("organization_name") or "",
+            "university":    "",        # populated from education[] in find_leads()
+            "linkedin_url":  linkedin_url,
+            "tenure_months": 0,         # Apollo doesn't expose tenure reliably
+            "is_alumni":     False,     # set in find_leads() using education[]
+            "snippet":       "",
+            "email":         person.get("email") or "",
+            "education":     person.get("education") or [],
+        }
+
+    # ── PDL (People Data Labs) ────────────────────────────────────────────────
+
+    PDL_ENDPOINT = "https://api.peopledatalabs.com/v5/person/search"
+
+    def _pdl_search(
+        self,
+        company:            str,
+        job_title:          str,
+        student_university: str = "",
+        n:                  int = 10,
+    ) -> list[dict]:
+        """
+        Search PDL Person Search API for employees at `company` relevant to `job_title`.
+        Results are cached per company for the lifetime of this matcher instance to
+        avoid burning quota when multiple students match the same company.
+        Returns leads including education[] for reliable alumni detection.
+        """
+        import urllib.request as _urlreq
+
+        cache_key = company.lower().strip()
+        if cache_key in self._pdl_cache:
+            logger.info(f"PDL cache hit for '{company}'")
+            return self._pdl_cache[cache_key][:n]
+
+        team_kw  = _extract_team_keywords(job_title)
+        # Use title role keywords + seniority levels that are 1-3 levels above student
+        title_sql_parts = []
+        for kw in team_kw[:2]:
+            title_sql_parts.append(f"job_title LIKE '%{kw}%'")
+        seniority_levels = ["'analyst'", "'associate'", "'manager'", "'director'", "'vp'", "'vice president'"]
+        company_clean = company.replace("'", "\\'")
+
+        sql = (
+            f"SELECT * FROM person "
+            f"WHERE job_company_name='{company_clean}' "
+            f"AND job_title_levels IN ('senior', 'manager', 'director', 'vp', 'cxo') "
+            f"LIMIT {min(n, 25)}"
+        )
+
+        payload = json.dumps({"sql": sql, "size": min(n, 25)}).encode()
+        req = _urlreq.Request(
+            self.PDL_ENDPOINT,
+            data=payload,
+            headers={
+                "X-Api-Key":     self.pdl_key,
+                "Content-Type":  "application/json",
+                "Accept":        "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with _urlreq.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read())
+        except Exception as e:
+            logger.error(f"PDL search failed for '{company}': {e}")
+            return []
+
+        records = data.get("data", [])
+        if not records:
+            # Retry with looser seniority (include mid-level)
+            sql2 = (
+                f"SELECT * FROM person "
+                f"WHERE job_company_name='{company_clean}' "
+                f"LIMIT {min(n, 25)}"
+            )
+            try:
+                payload2 = json.dumps({"sql": sql2, "size": min(n, 25)}).encode()
+                req2 = _urlreq.Request(
+                    self.PDL_ENDPOINT, data=payload2,
+                    headers={"X-Api-Key": self.pdl_key, "Content-Type": "application/json", "Accept": "application/json"},
+                    method="POST",
+                )
+                with _urlreq.urlopen(req2, timeout=15) as resp2:
+                    data2 = json.loads(resp2.read())
+                records = data2.get("data", [])
+            except Exception as e:
+                logger.error(f"PDL retry failed for '{company}': {e}")
+
+        leads = []
+        for rec in records:
+            name = (rec.get("full_name") or "").strip()
+            if not name:
+                continue
+
+            linkedin_url = rec.get("linkedin_url") or ""
+            if linkedin_url and not linkedin_url.startswith("http"):
+                linkedin_url = "https://" + linkedin_url
+            if linkedin_url:
+                linkedin_url = re.sub(r"\?.*$", "", linkedin_url)
+
+            # Education — PDL education[].school.name + degrees[] + end_date
+            raw_edu = rec.get("education") or []
+            education = [
+                {
+                    "school_name": (e.get("school") or {}).get("name", ""),
+                    "degree":      (e.get("degrees") or [""])[0],
+                    "end_date":    e.get("end_date", ""),
+                }
+                for e in raw_edu
+                if (e.get("school") or {}).get("name")
+            ]
+
+            # Best email if present
+            emails = rec.get("emails") or []
+            email = emails[0].get("address", "") if emails else ""
+
+            lead = {
+                "name":          name,
+                "title":         rec.get("job_title") or "",
+                "company":       rec.get("job_company_name") or company,
+                "university":    education[0]["school_name"] if education else "",
+                "linkedin_url":  linkedin_url,
+                "tenure_months": 0,
+                "is_alumni":     any(
+                    is_alumni(e["school_name"], student_university)
+                    for e in education
+                ),
+                "snippet":       "",
+                "email":         email,
+                "education":     education,
+            }
+            leads.append(lead)
+
+        logger.info(f"PDL: {len(leads)} leads for '{company}' (used 1 API call)")
+        self._pdl_cache[cache_key] = leads   # cache to protect quota
+        return leads[:n]
+
+    # ── Hunter.io domain people search ───────────────────────────────────────
+
+    def _get_company_domain(self, company: str) -> str:
+        """
+        Resolve company name → email domain.
+        1. Try Apollo organizations/search (already works on free plan).
+        2. Fall back to naive slug (goldmansachs.com).
+        """
+        import urllib.request as _urlreq
+        UA = "Mozilla/5.0 (compatible; inroad/1.0)"
+        if self.apollo_key:
+            try:
+                payload = json.dumps({"q_organization_name": company, "per_page": 1}).encode()
+                req = _urlreq.Request(
+                    "https://api.apollo.io/api/v1/organizations/search",
+                    data=payload,
+                    headers={
+                        "x-api-key": self.apollo_key,
+                        "Content-Type": "application/json",
+                        "accept": "application/json",
+                        "User-Agent": UA,
+                    },
+                    method="POST",
+                )
+                with _urlreq.urlopen(req, timeout=10) as r:
+                    data = json.loads(r.read())
+                orgs = data.get("organizations", [])
+                if orgs:
+                    domain = orgs[0].get("primary_domain") or ""
+                    if domain:
+                        logger.info(f"Domain for '{company}': {domain}")
+                        return domain
+            except Exception as e:
+                logger.debug(f"Apollo org search for domain failed: {e}")
+
+        # Naive fallback
+        slug = re.sub(r"[^a-z0-9]", "", company.lower().strip())
+        return f"{slug}.com" if slug else ""
+
+    def _hunter_search(
+        self,
+        company:            str,
+        job_title:          str,
+        student_university: str = "",
+        n:                  int = 10,
+    ) -> list[dict]:
+        """
+        Use Hunter.io domain search to find people at a company.
+        Returns leads in the standard internal dict format.
+        Hunter returns name, title, email, and sometimes LinkedIn URL per person.
+        """
+        domain = self._get_company_domain(company)
+        if not domain:
+            return []
+
+        import urllib.request as _urlreq, urllib.parse as _uparse
+        url = (
+            f"https://api.hunter.io/v2/domain-search"
+            f"?domain={_uparse.quote(domain)}"
+            f"&limit={min(n, 100)}"
+            f"&api_key={self.hunter_key}"
+        )
+        try:
+            req = _urlreq.Request(url, headers={"Accept": "application/json"})
+            with _urlreq.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+        except Exception as e:
+            logger.error(f"Hunter domain search failed for {domain}: {e}")
+            return []
+
+        emails = data.get("data", {}).get("emails", [])
+        if not emails:
+            logger.info(f"Hunter: 0 results for {domain}")
+            return []
+
+        # Extract job-relevant keywords to filter by title
+        team_kw = _extract_team_keywords(job_title)
+
+        leads = []
+        for entry in emails:
+            first = (entry.get("first_name") or "").strip()
+            last  = (entry.get("last_name") or "").strip()
+            if not first or not last:
+                continue
+
+            title   = (entry.get("position") or "").strip()
+            email   = (entry.get("value") or "").strip()
+            linkedin = (entry.get("linkedin") or "").strip()
+            if linkedin:
+                linkedin = re.sub(r"\?.*$", "", linkedin)
+
+            # Soft title filter — prefer relevant titles but don't discard all others
+            title_lower = title.lower()
+            relevant = any(kw in title_lower for kw in team_kw) or any(
+                s in title_lower for s in ["analyst", "associate", "manager", "director", "vice president"]
+            )
+            if not relevant and len(leads) >= 3:
+                continue   # enough good leads already; skip irrelevant extras
+
+            lead = {
+                "name":           f"{first} {last}",
+                "title":          title,
+                "company":        company,
+                "university":     "",
+                "linkedin_url":   linkedin,
+                "tenure_months":  0,
+                "is_alumni":      False,  # Hunter has no education data
+                "snippet":        "",
+                "email":          email,
+            }
+            leads.append(lead)
+
+        logger.info(f"Hunter: {len(leads)} leads for {domain}")
+        return leads
 
     # ── Brave Search backend (PRIMARY) ───────────────────────────────────────
     def _brave_search(self, query: str, count: int = 10) -> list[dict]:

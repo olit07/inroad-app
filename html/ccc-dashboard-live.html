@@ -292,6 +292,16 @@
     background: var(--surface);
     border: 1.5px solid var(--border);
     color: var(--muted);
+    overflow: hidden;
+  }
+
+  .avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: blur(6px) brightness(0.88);
+    transform: scale(1.18);
+    border-radius: 50%;
   }
 
   .match-card.sent .avatar {
@@ -908,7 +918,7 @@
   </a>
   <div class="nav-right">
     <a href="/settings" class="nav-settings">Settings</a>
-    <div class="nav-profile" title="Your profile">AJ</div>
+    <div class="nav-profile" title="Your profile"></div>
   </div>
 </nav>
 
@@ -953,7 +963,7 @@
     <!-- MATCH 1 — Finance: Jefferies -->
     <div class="match-card" id="card-1">
       <div class="card-main">
-        <div class="avatar">JF</div>
+        <div class="avatar"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div>
         <div class="card-info">
           <div class="card-name-row">
             <span class="card-name">James F.</span>
@@ -990,10 +1000,6 @@
             <span class="detail-label">Relation</span>
             <span class="detail-value">UCL alumni · Class of 2019</span>
           </div>
-          <div class="detail-item">
-            <span class="detail-label">Opening date</span>
-            <span class="detail-value">25 Mar 2026</span>
-          </div>
         </div>
       </div>
     </div>
@@ -1001,7 +1007,7 @@
     <!-- MATCH 2 — Finance: Platinum Peak (PE) -->
     <div class="match-card" id="card-2">
       <div class="card-main">
-        <div class="avatar">OM</div>
+        <div class="avatar"><img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div>
         <div class="card-info">
           <div class="card-name-row">
             <span class="card-name">Oliver M.</span>
@@ -1037,10 +1043,6 @@
             <span class="detail-label">Relation</span>
             <span class="detail-value">No shared connection</span>
           </div>
-          <div class="detail-item">
-            <span class="detail-label">Opening date</span>
-            <span class="detail-value">24 Mar 2026</span>
-          </div>
         </div>
       </div>
     </div>
@@ -1048,7 +1050,7 @@
     <!-- MATCH 3 — Finance: E.ON Quant Risk -->
     <div class="match-card" id="card-3">
       <div class="card-main">
-        <div class="avatar">SP</div>
+        <div class="avatar"><img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div>
         <div class="card-info">
           <div class="card-name-row">
             <span class="card-name">Sara P.</span>
@@ -1084,10 +1086,6 @@
           <div class="detail-item">
             <span class="detail-label">Relation</span>
             <span class="detail-value">UCL alumni · Class of 2021</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Opening date</span>
-            <span class="detail-value">24 Mar 2026</span>
           </div>
         </div>
       </div>
@@ -1171,10 +1169,13 @@
       nameEl.textContent = firstName;
     }
     const prof = document.querySelector('.nav-profile');
-    if (prof && firstName) {
-      const fullName = student.name || firstName;
-      const parts = fullName.trim().split(' ');
-      prof.textContent = (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+    if (prof) {
+      if (student.name) {
+        const parts = student.name.trim().split(' ');
+        prof.textContent = (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+      } else if (student.email) {
+        prof.textContent = student.email[0].toUpperCase();
+      }
     }
   }
 
@@ -1211,7 +1212,9 @@
     if (_stored) { setAccessToken(_stored); sessionStorage.removeItem('inroad_token'); }
 
     const refreshed = await _tryRefresh();
-    if (!refreshed) {
+    // Allow access if refresh failed but we still have a valid token (e.g. just
+    // came from onboarding or verify.html and sessionStorage token was restored above).
+    if (!refreshed && !getAccessToken()) {
       window.location.href = '/login';
       return;
     }
@@ -1251,13 +1254,46 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
+  // Pool of 20 diverse professional corporate headshots (Unsplash free licence)
+  // blurred via CSS — crop=faces centres the square crop on the subject's face
+  const _UB = 'https://images.unsplash.com/photo-';
+  const _UQ = '?w=150&h=150&fit=crop&crop=faces&q=80';
+  const AVATAR_POOL = [
+    _UB + '1560250097-0b93528c311a' + _UQ,  // woman, blazer
+    _UB + '1573496359142-b8d87734a5a2' + _UQ,  // Black woman, professional
+    _UB + '1507003211169-0a1dd7228f2d' + _UQ,  // man, smiling
+    _UB + '1500648767791-00dcc994a43e' + _UQ,  // man, professional
+    _UB + '1566492031773-4f4e44671857' + _UQ,  // Asian man, suit
+    _UB + '1580489944761-15a19d654956' + _UQ,  // woman, professional
+    _UB + '1519085360753-af0119f7cbe7' + _UQ,  // man, suit
+    _UB + '1531427186611-ecfd6d936c79' + _UQ,  // man, business casual
+    _UB + '1472099645785-5658abf4ff4e' + _UQ,  // man, glasses
+    _UB + '1438761681033-6461ffad8d80' + _UQ,  // woman, smiling
+    _UB + '1552058544-f2b08422138a' + _UQ,  // man, headshot
+    _UB + '1570295999919-56ceb5ecca61' + _UQ,  // man, professional
+    _UB + '1463453091185-61582044d556' + _UQ,  // man, professional
+    _UB + '1594744803329-e58b31de8bf5' + _UQ,  // woman, professional
+    _UB + '1547425260-76bcadfb4f2c' + _UQ,  // woman, headshot
+    _UB + '1534528741775-53994a69daeb' + _UQ,  // woman, headshot
+    _UB + '1551836022-d5d88e9218df' + _UQ,  // woman, business
+    _UB + '1567532939604-b6b5b0db2604' + _UQ,  // woman, professional
+    _UB + '1539571696357-5a69c17a67c6' + _UQ,  // man, headshot
+    _UB + '1506794778202-cad84cf45f1d' + _UQ,  // man, portrait
+  ];
+
+  function pickAvatar(name) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) { h = Math.imul(31, h) + name.charCodeAt(i) | 0; }
+    return AVATAR_POOL[Math.abs(h) % AVATAR_POOL.length];
+  }
+
   function renderLiveCards(liveMatches) {
     const container = document.querySelector('.matches');
     if (!container || !liveMatches.length) return;
     container.innerHTML = '';
     liveMatches.slice(0, 3).forEach((m, idx) => {
       const cardId = `live-card-${idx}`;
-      const initials = (m.person_name || 'XX').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+      const avatarUrl = pickAvatar(m.person_name || String(idx));
       const isAlumni = m.is_alumni;
       const linkedinUrl = m.person_linkedin_url || '#';
       const tenureMonths = m.person_tenure_months || 0;
@@ -1286,7 +1322,7 @@
       container.insertAdjacentHTML('beforeend', `
         <div class="match-card" id="${cardId}" style="animation-delay:${idx*0.06}s">
           <div class="card-main">
-            <div class="avatar">${initials}</div>
+            <div class="avatar"><img src="${avatarUrl}" alt="" loading="lazy"></div>
             <div class="card-info">
               <div class="card-name-row">
                 <span class="card-name">${m.person_name || ''}</span>
@@ -1311,7 +1347,6 @@
               <div class="detail-item"><span class="detail-label">Expected email</span><span class="detail-value">${m.expected_email || '—'}</span></div>
               <div class="detail-item"><span class="detail-label">Profile</span><span class="detail-value">${linkedinUrl !== '#' ? `<a href="${linkedinUrl}" target="_blank">${linkedinUrl.replace('https://','')}</a>` : '—'}</span></div>
               <div class="detail-item"><span class="detail-label">Relation</span><span class="detail-value">${isAlumni ? 'Alumni' : 'No shared connection'}</span></div>
-              <div class="detail-item"><span class="detail-label">Posted</span><span class="detail-value">${m.job_posted_date || '—'}</span></div>
             </div>
           </div>
         </div>`);
@@ -1393,7 +1428,9 @@ Alex`
     document.getElementById('modal-title').textContent = 'Draft email to ' + data.name;
     document.getElementById('modal-to').textContent = 'To: ' + data.to;
     document.getElementById('modal-subject-input').value = data.subject;
-    document.getElementById('email-body').value = data.body;
+    const emailBody = document.getElementById('email-body');
+    emailBody.value = data.body;
+    emailBody.scrollTop = 0;
 
     const roleLink = document.getElementById('modal-role-link');
     if (data.applyUrl) {
@@ -1415,7 +1452,7 @@ Alex`
     updateWordCount();
     document.getElementById('modal').classList.add('open');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => document.getElementById('email-body').focus(), 100);
+    setTimeout(() => { emailBody.focus(); emailBody.scrollTop = 0; }, 50);
   }
 
   function closeModal() {
@@ -1583,7 +1620,9 @@ Alex`
     document.getElementById('modal-title').textContent = 'Sent email to ' + data.name;
     document.getElementById('modal-to').textContent = 'To: ' + data.to;
     document.getElementById('modal-subject-input').value = data.subject;
-    document.getElementById('email-body').value = data.body;
+    const reviewBody = document.getElementById('email-body');
+    reviewBody.value = data.body;
+    reviewBody.scrollTop = 0;
 
     const roleLink = document.getElementById('modal-role-link');
     roleLink.href = data.applyUrl || '#';
@@ -1601,6 +1640,7 @@ Alex`
     updateWordCount();
     document.getElementById('modal').classList.add('open');
     document.body.style.overflow = 'hidden';
+    setTimeout(() => { reviewBody.scrollTop = 0; }, 50);
   }
 
   function updateQuota(sent) {

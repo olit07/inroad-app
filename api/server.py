@@ -7,6 +7,7 @@ Run via: gunicorn --bind 0.0.0.0:$PORT api.server:app  (Railway)
 
 import os
 import sys
+import logging
 import hmac
 import hashlib
 import json
@@ -47,6 +48,13 @@ from utils.university_lookup import detect_university
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), ".."))
 
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
+
+# Configure logging so scraper output appears in Railway logs
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s %(name)s: %(message)s",
+    stream=sys.stdout,
+)
 
 # Initialise DB tables on startup — must be at module level so Gunicorn picks it up
 init_db()
@@ -380,6 +388,10 @@ def magic_link():
     # Determine whether this is a new sign-up or a returning user login
     existing_student = get_student_by_email(email)
     is_new_user = existing_student is None
+
+    # Login page must not create accounts — reject unknown emails immediately
+    if data.get("source") == "login" and is_new_user:
+        return jsonify({"error": "no_account", "message": "No account found with this email."}), 404
 
     if DEV_MODE:
         from urllib.parse import urlencode
@@ -744,39 +756,97 @@ def match_reply(match_id):
 
 @app.route("/api/jobs")
 def list_jobs():
-    limit = min(int(request.args.get("limit", 50)), 1000)
-    rows = fetchall("SELECT * FROM jobs ORDER BY posted_at DESC LIMIT ?", (limit,))
-    jobs = [{
-        "company_name": r.get("company", ""),
-        "title":        r.get("title", ""),
-        "industries":   [r["industry"]] if r.get("industry") else [],
-        "region":       r.get("location", ""),
-        "seniority":    r.get("company_size", ""),
-        "posted_date":  (r.get("posted_at") or "")[:10],
-        "source_name":  r.get("source", ""),
-        "url":          r.get("url", ""),
-    } for r in rows]
+    import json as _json
+    limit = min(int(request.args.get("limit", 50)), 5000)
+    from db.database import USE_POSTGRES
+    if USE_POSTGRES:
+        rows = fetchall(
+            "SELECT *, "
+            "  NULLIF(raw::jsonb->>'opening_date', '') AS od, "
+            "  NULLIF(raw::jsonb->>'closing_date',  '') AS cd  "
+            "FROM jobs WHERE company IS NOT NULL AND company != '' "
+            "AND title IS NOT NULL AND title != '' "
+            "ORDER BY NULLIF(raw::jsonb->>'opening_date', '') DESC NULLS LAST, "
+            "         posted_at DESC NULLS LAST LIMIT ?",
+            (limit,)
+        )
+    else:
+        rows = fetchall(
+            "SELECT * FROM jobs WHERE company IS NOT NULL AND company != '' "
+            "AND title IS NOT NULL AND title != '' "
+            "ORDER BY posted_at DESC NULLS LAST LIMIT ?",
+            (limit,)
+        )
+
+    def _parse_row(r):
+        raw = {}
+        try:
+            raw = _json.loads(r.get("raw") or "{}")
+        except Exception:
+            pass
+        industries = raw.get("industries") or []
+        if not industries and r.get("industry"):
+            industries = [r["industry"]]
+        seniority    = raw.get("seniority") or ""
+        # Prefer Postgres-computed od/cd columns; fall back to raw JSON parse
+        opening_date = r.get("od") or raw.get("opening_date") or ""
+        closing_date = r.get("cd") or raw.get("closing_date") or ""
+        return {
+            "company_name": r.get("company") or "",
+            "title":        r.get("title") or "",
+            "industries":   industries,
+            "region":       r.get("location") or "",
+            "seniority":    seniority,
+            "opening_date": opening_date,
+            "closing_date": closing_date,
+            "source_name":  r.get("source") or "",
+            "url":          r.get("url") or "",
+        }
+
+    jobs = [_parse_row(r) for r in rows]
     return jsonify({"data": {"jobs": jobs}})
+
+
+@app.route("/api/admin/jobs/cleanup", methods=["POST"])
+def cleanup_blank_jobs():
+    """Delete jobs with empty company or title (artefacts from old scraper bugs)."""
+    from db.database import execute as db_execute, fetchone
+    deleted = fetchone(
+        "SELECT COUNT(*) as n FROM jobs WHERE company IS NULL OR company = '' OR title IS NULL OR title = ''"
+    ) or {}
+    count = deleted.get("n", 0)
+    db_execute("DELETE FROM jobs WHERE company IS NULL OR company = '' OR title IS NULL OR title = ''")
+    return jsonify({"status": "ok", "deleted": count})
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
 @app.route("/api/admin/stats")
 def admin_stats():
-    active_jobs  = (fetchone("SELECT COUNT(*) as n FROM jobs") or {}).get("n", 0)
-    companies    = (fetchone("SELECT COUNT(DISTINCT company) as n FROM jobs") or {}).get("n", 0)
+    from db.database import USE_POSTGRES
+    if USE_POSTGRES:
+        now_minus_7  = "NOW() - INTERVAL '7 days'"
+        now_minus_14 = "NOW() - INTERVAL '14 days'"
+        today_expr   = "CURRENT_DATE"
+    else:
+        now_minus_7  = "datetime('now', '-7 days')"
+        now_minus_14 = "datetime('now', '-14 days')"
+        today_expr   = "date('now')"
+
+    active_jobs  = (fetchone(f"SELECT COUNT(*) as n FROM jobs WHERE posted_at > {now_minus_14}") or {}).get("n", 0)
+    companies    = (fetchone(f"SELECT COUNT(DISTINCT company) as n FROM jobs WHERE posted_at > {now_minus_14}") or {}).get("n", 0)
     students     = (fetchone("SELECT COUNT(*) as n FROM students") or {}).get("n", 0)
     matches_today = (fetchone(
-        "SELECT COUNT(*) as n FROM matches WHERE match_date = date('now')"
+        f"SELECT COUNT(*) as n FROM matches WHERE match_date = {today_expr}"
     ) or {}).get("n", 0)
     emails_sent_week = (fetchone(
-        "SELECT COUNT(*) as n FROM matches WHERE status='sent' AND sent_at > datetime('now', '-7 days')"
+        f"SELECT COUNT(*) as n FROM matches WHERE status='sent' AND sent_at > {now_minus_7}"
     ) or {}).get("n", 0)
 
-    by_source_rows = fetchall("SELECT source, COUNT(*) as n FROM jobs WHERE source IS NOT NULL GROUP BY source ORDER BY n DESC")
+    by_source_rows = fetchall(f"SELECT source, COUNT(*) as n FROM jobs WHERE source IS NOT NULL AND posted_at > {now_minus_14} GROUP BY source ORDER BY n DESC")
     by_source = {r["source"]: r["n"] for r in by_source_rows}
 
-    by_industry_rows = fetchall("SELECT industry, COUNT(*) as n FROM jobs WHERE industry IS NOT NULL GROUP BY industry ORDER BY n DESC LIMIT 10")
+    by_industry_rows = fetchall(f"SELECT industry, COUNT(*) as n FROM jobs WHERE industry IS NOT NULL AND posted_at > {now_minus_14} GROUP BY industry ORDER BY n DESC LIMIT 10")
     by_industry = {r["industry"]: r["n"] for r in by_industry_rows}
 
     return jsonify({"data": {
@@ -810,8 +880,15 @@ def admin_scrape():
 
 @app.route("/api/admin/runs")
 def admin_runs():
-    # No scrape_runs table yet — return empty list
-    return jsonify({"data": {"runs": []}})
+    try:
+        rows = fetchall(
+            "SELECT source_id, source_name, status, jobs_found, jobs_new, "
+            "error_msg, duration_s, finished_at FROM scrape_runs "
+            "ORDER BY finished_at DESC LIMIT 200"
+        )
+    except Exception:
+        rows = []
+    return jsonify({"data": {"runs": rows}})
 
 
 @app.route("/api/admin/students")

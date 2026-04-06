@@ -165,7 +165,7 @@
 
   .text-input, .select-input, .textarea-input {
     width: 100%;
-    background: var(--white);
+    background: #FFFFFF;
     border: 1.5px solid var(--border);
     border-radius: 12px;
     padding: 13px 16px;
@@ -299,6 +299,20 @@
     border-color: var(--green);
     background: var(--green-lite);
     color: var(--green-deep);
+  }
+
+  /* Coming soon — not available in V0 */
+  .industry-pill.locked {
+    color: var(--subtle);
+    border-color: var(--border);
+    background: var(--white);
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .industry-pill.locked:hover {
+    border-color: var(--border);
+    background: var(--white);
+    color: var(--subtle);
   }
 
   .industry-hint {
@@ -715,25 +729,24 @@
 
       <div class="industry-grid">
         <span class="industry-pill" onclick="togglePill(this)">Finance</span>
-        <span class="industry-pill" onclick="togglePill(this)">Investment Banking</span>
+        <span class="industry-pill locked" title="Coming soon">Investment Banking</span>
         <span class="industry-pill" onclick="togglePill(this)">Technology</span>
-        <span class="industry-pill" onclick="togglePill(this)">Software Engineering</span>
-        <span class="industry-pill" onclick="togglePill(this)">Product Management</span>
-        <span class="industry-pill" onclick="togglePill(this)">Consulting</span>
-        <span class="industry-pill" onclick="togglePill(this)">Strategy</span>
-        <span class="industry-pill" onclick="togglePill(this)">Marketing</span>
-        <span class="industry-pill" onclick="togglePill(this)">Growth</span>
+        <span class="industry-pill locked" title="Coming soon">Software Engineering</span>
+        <span class="industry-pill locked" title="Coming soon">Product Management</span>
+        <span class="industry-pill locked" title="Coming soon">Data & Analytics</span>
         <span class="industry-pill" onclick="togglePill(this)">Law</span>
-        <span class="industry-pill" onclick="togglePill(this)">Healthcare</span>
-        <span class="industry-pill" onclick="togglePill(this)">Media & Journalism</span>
-        <span class="industry-pill" onclick="togglePill(this)">Design & UX</span>
-        <span class="industry-pill" onclick="togglePill(this)">Data & Analytics</span>
-        <span class="industry-pill" onclick="togglePill(this)">Real Estate</span>
-        <span class="industry-pill" onclick="togglePill(this)">Non-profit & Policy</span>
-        <span class="industry-pill" onclick="togglePill(this)">Venture Capital</span>
-        <span class="industry-pill" onclick="togglePill(this)">Other</span>
+        <span class="industry-pill locked" title="Coming soon">Consulting</span>
+        <span class="industry-pill locked" title="Coming soon">Strategy</span>
+        <span class="industry-pill locked" title="Coming soon">Marketing</span>
+        <span class="industry-pill locked" title="Coming soon">Growth</span>
+        <span class="industry-pill locked" title="Coming soon">Healthcare</span>
+        <span class="industry-pill locked" title="Coming soon">Media &amp; Journalism</span>
+        <span class="industry-pill locked" title="Coming soon">Design &amp; UX</span>
+        <span class="industry-pill locked" title="Coming soon">Real Estate</span>
+        <span class="industry-pill locked" title="Coming soon">Non-profit &amp; Policy</span>
+        <span class="industry-pill locked" title="Coming soon">Venture Capital</span>
       </div>
-      <p class="industry-hint">Select all that apply</p>
+      <p class="industry-hint">Select all that apply · More industries coming soon</p>
 
       <div class="step-actions">
         <button class="btn-back" onclick="prevStep(4)">← Back</button>
@@ -1042,6 +1055,11 @@
           body: payload,
         });
       } catch (_) {}
+
+      // Pass the current access token to the dashboard via sessionStorage so it
+      // doesn't have to rely solely on the refresh-token cookie succeeding.
+      const tok = getAccessToken();
+      if (tok) sessionStorage.setItem('inroad_token', tok);
 
       window.location.href = '/dashboard';
     }

@@ -63,6 +63,7 @@ class RequestError(Exception):
 
 def fetch_url(url: str, headers: dict | None = None, timeout: int = REQUEST_TIMEOUT) -> bytes:
     """Fetch a URL with retries and rotating user agents."""
+    import gzip as _gzip
     h = {
         "User-Agent": random.choice(USER_AGENTS),
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -77,7 +78,14 @@ def fetch_url(url: str, headers: dict | None = None, timeout: int = REQUEST_TIME
         try:
             req = urllib.request.Request(url, headers=h)
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return resp.read()
+                raw = resp.read()
+                enc = resp.headers.get("Content-Encoding", "")
+                if enc == "gzip":
+                    raw = _gzip.decompress(raw)
+                elif enc == "deflate":
+                    import zlib
+                    raw = zlib.decompress(raw)
+                return raw
         except urllib.error.HTTPError as e:
             if e.code in (429, 503) and attempt < MAX_RETRIES - 1:
                 wait = (2 ** attempt) * 3

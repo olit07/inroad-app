@@ -1,8 +1,9 @@
 """
-CCC — Email Templates
+inroad — Email Templates
 
-5 distinct email styles with quality scoring.
-Each template is deterministically selected per (student_id, day_of_year).
+5 distinct cold outreach styles.
+Selected deterministically per (student_id, day_of_year) so a student
+sees variety across cards without manual selection.
 """
 import re
 from datetime import date
@@ -50,11 +51,11 @@ def check_quality(subject: str, body: str, ctx: dict) -> dict:
         score -= 1; issues.append("Empty subject")
 
     return {
-        "score":              max(0, score),
-        "issues":             issues,
-        "word_count":         word_count,
-        "has_name":           has_name,
-        "has_role":           has_role,
+        "score":                max(0, score),
+        "issues":               issues,
+        "word_count":           word_count,
+        "has_name":             has_name,
+        "has_role":             has_role,
         "banned_phrases_found": banned_found,
     }
 
@@ -75,34 +76,34 @@ def _bio_line(ctx: dict) -> str:
     return f"I'm a student at {ctx['student_university']} with a strong interest in {ctx.get('industry_hint', 'this field')}."
 
 
-def template_direct(ctx: dict) -> tuple[str, str]:
-    """Short, direct — specific question about getting into the role."""
-    subject = f"Quick question — {ctx['job_title']} at {ctx['recipient_company']}"
-    body = f"""Dear {ctx['recipient_first_name']},
+def template_coffee_chat(ctx: dict) -> tuple[str, str]:
+    """Casual networking, shared background, coffee offer."""
+    subject = f"Connecting re {ctx['job_title']} at {ctx['recipient_company']}"
+    body = f"""Hi {ctx['recipient_first_name']},
 
-I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
+Hope you're doing well. I came across the {ctx['job_title']} opening at {ctx['recipient_company']} and saw you're part of the team there.
 
-{_bio_line(ctx)}
+{_bio_line(ctx)} It looks like we may share some common background.
 
-What do you think are the most important things a candidate should demonstrate to stand out for a {ctx['job_title']} role at {ctx['recipient_company']}?
+I'm keen to connect with people working in this space and hear your perspective, particularly on what you look for when hiring for {ctx['job_title']} roles.
 
-I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
+Totally understand if you're busy, but I'd really appreciate 15 minutes to chat or grab a coffee if you're ever free.
 
-All the best,
+Best,
 {ctx['student_name']}"""
     return subject, body.strip()
 
 
-def template_narrative(ctx: dict) -> tuple[str, str]:
-    """Asks about their career path — focuses on the person, not the role."""
-    subject = f"Your path into {ctx['recipient_company']} — quick question"
+def template_direct(ctx: dict) -> tuple[str, str]:
+    """Short, direct, 30 seconds, asks about skills."""
+    subject = f"Quick question re {ctx['job_title']} at {ctx['recipient_company']}"
     body = f"""Dear {ctx['recipient_first_name']},
 
 I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
 
 {_bio_line(ctx)}
 
-I came across your profile while researching the {ctx['job_title']} opening at {ctx['recipient_company']}. What's the one thing you wish you had known before making the move into {ctx.get('industry_hint', 'your field')}?
+What do you think are the most critical skills or qualities that an aspiring candidate should possess for a {ctx['job_title']} role? Specifically, what attributes do you look for in your team at {ctx['recipient_company']}?
 
 I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
 
@@ -112,8 +113,8 @@ All the best,
 
 
 def template_alumni(ctx: dict) -> tuple[str, str]:
-    """Alumni connection — warmest tone."""
-    subject = f"Fellow {ctx['student_university']} student — quick question about {ctx['recipient_company']}"
+    """Alumni connection, shared university."""
+    subject = f"Fellow {ctx['student_university']} student with a quick question about {ctx['recipient_company']}"
     body = f"""Dear {ctx['recipient_first_name']},
 
 I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
@@ -129,16 +130,16 @@ All the best,
     return subject, body.strip()
 
 
-def template_curiosity(ctx: dict) -> tuple[str, str]:
-    """Genuine curiosity — asks about skills and market dynamics."""
-    subject = f"Question about the {ctx['job_title']} role at {ctx['recipient_company']}"
+def template_career_path(ctx: dict) -> tuple[str, str]:
+    """Asks about their journey, focuses on the person not the listing."""
+    subject = f"Your path into {ctx['recipient_company']}"
     body = f"""Dear {ctx['recipient_first_name']},
 
 I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
 
 {_bio_line(ctx)}
 
-What do you think are the most critical skills or qualities someone needs to succeed in a {ctx['job_title']} role at {ctx['recipient_company']}?
+I came across your profile while researching the {ctx['job_title']} opening at {ctx['recipient_company']}. What is the one thing you wish you had known before making the move into {ctx.get('industry_hint', 'your field')}?
 
 I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
 
@@ -147,16 +148,16 @@ All the best,
     return subject, body.strip()
 
 
-def template_referral_prep(ctx: dict) -> tuple[str, str]:
-    """Research before applying — humble and low-pressure."""
-    subject = f"Considering the {ctx['job_title']} role at {ctx['recipient_company']} — a quick question"
+def template_pre_application(ctx: dict) -> tuple[str, str]:
+    """Research before applying, humble and low pressure."""
+    subject = f"Considering the {ctx['job_title']} role at {ctx['recipient_company']}"
     body = f"""Dear {ctx['recipient_first_name']},
 
 I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.
 
 {_bio_line(ctx)} I am currently considering applying for the {ctx['job_title']} opening at {ctx['recipient_company']}.
 
-Before I do, I would love to hear — what is one thing you would want an applicant to genuinely understand about the role or the team that the job description doesn't capture?
+Before I do, I would love to hear what is one thing you would want an applicant to genuinely understand about the role or the team that the job description does not capture?
 
 I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.
 
@@ -166,14 +167,14 @@ All the best,
 
 
 TEMPLATES = [
+    template_coffee_chat,
     template_direct,
-    template_narrative,
     template_alumni,
-    template_curiosity,
-    template_referral_prep,
+    template_career_path,
+    template_pre_application,
 ]
 
-TEMPLATE_NAMES = ["direct", "narrative", "alumni", "curiosity", "referral_prep"]
+TEMPLATE_NAMES = ["coffee_chat", "direct", "alumni", "career_path", "pre_application"]
 
 
 def get_template(index: int):
@@ -191,7 +192,6 @@ def build_ctx(student: dict, lead: dict, job: dict) -> dict:
     first = name_parts[0] if name_parts else "there"
     tenure_months = lead.get("tenure_months", 0) or 0
 
-    # Industry hint from job
     job_inds = job.get("industries", [])
     if isinstance(job_inds, str):
         import json as _j
@@ -202,17 +202,17 @@ def build_ctx(student: dict, lead: dict, job: dict) -> dict:
     industry_hint = job_inds[0] if job_inds else "this field"
 
     return {
-        "student_name":          student.get("first_name", "there"),
-        "student_university":    student.get("university", "my university"),
-        "student_bio":           student.get("bio", ""),
-        "student_cal_link":      student.get("cal_link", "cal.com/me/coffee-chat"),
-        "recipient_name":        lead.get("name", ""),
-        "recipient_first_name":  first,
-        "recipient_title":       lead.get("title", ""),
-        "recipient_company":     lead.get("company", job.get("company_name", "")),
-        "is_alumni":             bool(lead.get("is_alumni")),
-        "job_title":             job.get("title", ""),
-        "job_url":               job.get("url", ""),
-        "tenure_years":          round(tenure_months / 12, 1),
-        "industry_hint":         industry_hint,
+        "student_name":         student.get("first_name", "there"),
+        "student_university":   student.get("university", "my university"),
+        "student_bio":          student.get("bio", ""),
+        "student_cal_link":     student.get("cal_link", "cal.com/me/coffee-chat"),
+        "recipient_name":       lead.get("name", ""),
+        "recipient_first_name": first,
+        "recipient_title":      lead.get("title", ""),
+        "recipient_company":    lead.get("company", job.get("company_name", "")),
+        "is_alumni":            bool(lead.get("is_alumni")),
+        "job_title":            job.get("title", ""),
+        "job_url":              job.get("url", ""),
+        "tenure_years":         round(tenure_months / 12, 1),
+        "industry_hint":        industry_hint,
     }

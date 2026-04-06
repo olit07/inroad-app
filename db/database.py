@@ -122,17 +122,19 @@ CREATE TABLE IF NOT EXISTS magic_tokens (
 );
 
 CREATE TABLE IF NOT EXISTS jobs (
-    id          SERIAL PRIMARY KEY,
-    title       TEXT NOT NULL,
-    company     TEXT NOT NULL,
-    url         TEXT,
-    location    TEXT,
-    industry    TEXT,
+    id           SERIAL PRIMARY KEY,
+    title        TEXT NOT NULL,
+    company      TEXT NOT NULL,
+    url          TEXT,
+    location     TEXT,
+    industry     TEXT,
     company_size TEXT,
-    posted_at   TIMESTAMPTZ,
-    source      TEXT,
-    raw         TEXT,
-    created_at  TIMESTAMPTZ DEFAULT NOW()
+    posted_at    TIMESTAMPTZ,
+    opening_date TEXT,
+    closing_date TEXT,
+    source       TEXT,
+    raw          TEXT,
+    created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS matches (
@@ -256,6 +258,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     industry     TEXT,
     company_size TEXT,
     posted_at    TEXT,
+    opening_date TEXT,
+    closing_date TEXT,
     source       TEXT,
     raw          TEXT,
     created_at   TEXT DEFAULT (datetime('now'))
@@ -408,6 +412,14 @@ def _run_migrations_postgres():
         "ALTER TABLE matches ADD COLUMN IF NOT EXISTS person_linkedin_url TEXT",
         # Add score_breakdown to card_queue
         "ALTER TABLE card_queue ADD COLUMN IF NOT EXISTS score_breakdown TEXT",
+        # Add opening_date and closing_date to jobs
+        "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS opening_date TEXT",
+        "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS closing_date TEXT",
+        # Back-fill dates from raw JSON for existing rows
+        """UPDATE jobs SET
+             opening_date = COALESCE(raw::json->>'opening_date', ''),
+             closing_date  = COALESCE(raw::json->>'closing_date', '')
+           WHERE opening_date IS NULL AND raw IS NOT NULL AND raw != '' AND raw != '{}'""",
     ]
     with get_conn() as conn:
         cur = conn.cursor()
@@ -648,8 +660,23 @@ def deactivate_student(student_id):
 db_conn = get_conn
 
 
+def _exec(conn, sql, params=()):
+    """
+    Execute SQL on a connection, returning a cursor.
+    psycopg2 connections have no .execute() — must use conn.cursor().
+    SQLite connections do have .execute() but we normalise here for consistency.
+    """
+    if USE_POSTGRES:
+        sql = sql.replace("?", "%s")
+        cur = conn.cursor()
+        cur.execute(sql, params or ())
+        return cur
+    else:
+        return conn.execute(sql, params or ())
+
+
 def get_active_jobs(conn, industries=None, region=None, seniority=None,
-                    days_fresh=21, limit=100):
+                    days_fresh=14, limit=100):
     """
     Return active jobs as a list of dicts, optionally filtered by industries,
     region, seniority, and recency.
@@ -695,8 +722,134 @@ def get_active_jobs(conn, industries=None, region=None, seniority=None,
     if USE_POSTGRES:
         sql = sql.replace("?", "%s")
 
-    rows = conn.execute(sql, params).fetchall()
+    rows = _exec(conn, sql, params).fetchall()
     return [dict(r) for r in rows]
+
+
+def upsert_job(conn, job: dict) -> tuple:
+    """
+    Insert or update a job. Returns (job_id, is_new).
+    job dict keys: company_name, title, url, industries, seniority, region,
+                   source_id, source_name, posted_at (optional), company_size (optional).
+    """
+    import json as _json
+    ph = "%s" if USE_POSTGRES else "?"
+
+    industry = ""
+    inds = job.get("industries") or []
+    if isinstance(inds, list) and inds:
+        industry = inds[0]
+    elif isinstance(inds, str):
+        industry = inds
+
+    company      = (job.get("company_name") or "").strip()
+    title        = (job.get("title") or "").strip()
+    url          = (job.get("url") or "").strip()
+    location     = (job.get("region") or "").strip()
+    posted_at    = job.get("posted_at") or job.get("posted_date") or None
+    opening_date = (job.get("opening_date") or "").strip() or None
+    closing_date = (job.get("closing_date") or "").strip() or None
+    source       = job.get("source_id") or job.get("source_name") or ""
+    company_sz   = job.get("company_size") or ""
+    raw          = _json.dumps(job)
+
+    # Check if already exists by url (primary) or company+title
+    existing = None
+    if url:
+        existing = _exec(conn, "SELECT id FROM jobs WHERE url = ?", (url,)).fetchone()
+    if not existing:
+        existing = _exec(
+            conn,
+            "SELECT id FROM jobs WHERE company = ? AND title = ?",
+            (company, title)
+        ).fetchone()
+
+    if existing:
+        job_id = existing[0] if not isinstance(existing, dict) else existing["id"]
+        _exec(
+            conn,
+            "UPDATE jobs SET title=?, company=?, url=?, location=?, "
+            "industry=?, company_size=?, posted_at=?, opening_date=?, closing_date=?, source=?, raw=? "
+            "WHERE id=?",
+            (title, company, url, location, industry, company_sz, posted_at,
+             opening_date, closing_date, source, raw, job_id)
+        )
+        return job_id, False
+    else:
+        if USE_POSTGRES:
+            cur = _exec(
+                conn,
+                "INSERT INTO jobs (title, company, url, location, industry, company_size, "
+                "posted_at, opening_date, closing_date, source, raw) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
+                (title, company, url, location, industry, company_sz,
+                 posted_at, opening_date, closing_date, source, raw)
+            )
+            row = cur.fetchone()
+            job_id = row["id"] if isinstance(row, dict) else row[0]
+        else:
+            cur = _exec(
+                conn,
+                "INSERT INTO jobs (title, company, url, location, industry, company_size, "
+                "posted_at, opening_date, closing_date, source, raw) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                (title, company, url, location, industry, company_sz,
+                 posted_at, opening_date, closing_date, source, raw)
+            )
+            job_id = cur.lastrowid
+        return job_id, True
+
+
+def log_scrape_run(conn, source_id: str, source_name: str, status: str,
+                   jobs_found: int, jobs_new: int, error_msg: str = "", duration: float = 0.0):
+    """Log a completed scrape run. Creates table on first use."""
+    ph = "%s" if USE_POSTGRES else "?"
+    try:
+        id_type  = "SERIAL" if USE_POSTGRES else "INTEGER"
+        ts_type  = "TIMESTAMPTZ DEFAULT NOW()" if USE_POSTGRES else "TEXT DEFAULT (datetime('now'))"
+        _exec(conn,
+            f"CREATE TABLE IF NOT EXISTS scrape_runs ("
+            f"id {id_type} PRIMARY KEY, "
+            f"source_id TEXT, source_name TEXT, status TEXT, "
+            f"jobs_found INTEGER, jobs_new INTEGER, error_msg TEXT, "
+            f"duration_s REAL, finished_at {ts_type}"
+            f")"
+        )
+        _exec(conn,
+            "INSERT INTO scrape_runs (source_id, source_name, status, jobs_found, jobs_new, error_msg, duration_s) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (source_id, source_name, status, jobs_found, jobs_new, error_msg, round(duration, 2))
+        )
+    except Exception as e:
+        import logging as _log
+        _log.getLogger(__name__).warning(f"log_scrape_run failed: {e}")
+
+
+def db_stats(conn) -> dict:
+    """Return a dict of high-level DB stats for the admin panel."""
+    def _count(sql):
+        try:
+            row = _exec(conn, sql).fetchone()
+            return row[0] if row else 0
+        except Exception:
+            return 0
+
+    from datetime import date as _date
+    today = _date.today().isoformat()
+    ph = "%s" if USE_POSTGRES else "?"
+
+    return {
+        "total_jobs":    _count("SELECT COUNT(*) FROM jobs"),
+        "active_jobs":   _count("SELECT COUNT(*) FROM jobs WHERE posted_at > " +
+                                 ("NOW() - INTERVAL '14 days'" if USE_POSTGRES
+                                  else "datetime('now', '-14 days')")),
+        "companies":     _count("SELECT COUNT(DISTINCT company) FROM jobs"),
+        "students":      _count("SELECT COUNT(*) FROM students"),
+        "matches_today": _count(f"SELECT COUNT(*) FROM matches WHERE match_date = '{today}'"),
+        "emails_week":   _count("SELECT COUNT(*) FROM matches WHERE status = 'sent' AND " +
+                                 ("sent_at > NOW() - INTERVAL '7 days'" if USE_POSTGRES
+                                  else "sent_at > datetime('now', '-7 days')")),
+    }
 
 
 def get_card_count_today(student_id: int) -> int:
