@@ -157,17 +157,21 @@ def clean_date(raw: str) -> str:
     """Try to parse a date string into ISO format YYYY-MM-DD."""
     if not raw:
         return ""
+    raw = raw.strip()
+    # ISO datetime: "2025-09-21T00:00:00.000Z" or "2025-09-21T..." — take first 10 chars
+    if len(raw) >= 10 and raw[4:5] == "-" and raw[7:8] == "-":
+        return raw[:10]
+    # Try common formats
+    for fmt in ("%d %b %Y", "%d/%m/%Y", "%d-%m-%Y", "%B %d, %Y"):
+        try:
+            return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
     try:
         from dateutil import parser as dparser
         return dparser.parse(raw, dayfirst=True).strftime("%Y-%m-%d")
     except Exception:
         pass
-    # Try common formats
-    for fmt in ("%d %b %Y", "%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%B %d, %Y"):
-        try:
-            return datetime.strptime(raw.strip(), fmt).strftime("%Y-%m-%d")
-        except ValueError:
-            continue
     return ""
 
 

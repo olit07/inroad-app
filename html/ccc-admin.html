@@ -258,11 +258,10 @@
       const srcMax = srcEntries.length ? Math.max(...srcEntries.map(e => e[1])) : 1;
       srcEl.innerHTML = srcEntries.length
         ? srcEntries.map(([name, count]) => `
-            <div class="bar-row" style="gap:8px">
+            <div class="bar-row">
               <div class="bar-label" title="${name}">${name}</div>
               <div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/srcMax*100)}%"></div></div>
               <div class="bar-count">${count.toLocaleString()}</div>
-              <button onclick="deleteSource('${name}')" title="Delete all ${name} jobs" style="background:none;border:none;color:var(--subtle);cursor:pointer;font-size:0.85rem;padding:0 2px;line-height:1" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--subtle)'">✕</button>
             </div>`).join('')
         : '<p style="color:var(--subtle);font-size:0.82rem">No data yet — run scrapers first</p>';
 
@@ -461,7 +460,7 @@
       const closesRaw = j.closing_date || '';
       const closes  = closesRaw
         ? (closesRaw > today ? closesRaw : `<span style="color:var(--amber)">${closesRaw}</span>`)
-        : '<span style="color:var(--green)">Active</span>';
+        : '—';
       return `<tr>
         <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${j.company_name}</strong></td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.title}</td>
