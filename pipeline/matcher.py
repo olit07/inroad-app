@@ -1078,9 +1078,9 @@ def score_lead_v2(
     """
     Lead scorer (total 100 pts). Priority order:
 
-      location        25 pts  — MUST match country/city of job
-      industry_match  15 pts  — student industry prefs vs job industry
-      alumni          12 pts  — shared university
+      location        25 pts  — MUST be hub city of job region (known wrong city = 0)
+      alumni          15 pts  — shared university
+      industry_match  12 pts  — student industry prefs vs job industry
       department      12 pts  — same functional area as the role
       title_relevance 10 pts  — job title keywords found in lead title
       seniority_fit   10 pts  — exec level OR 1-3 levels above intern
@@ -1113,18 +1113,30 @@ def score_lead_v2(
     lead_country     = (lead.get("location_country") or "").lower().strip()
     lead_city        = (lead.get("location_city") or "").lower().strip()
 
-    if not lead_country:
-        loc_pts = 10.0   # unknown — partial benefit of the doubt
+    hubs = REGION_HUBS.get(job_region, [])
+    in_hub_city = bool(lead_city and any(h in lead_city for h in hubs))
+
+    if not lead_country and not lead_city:
+        loc_pts = 10.0   # no data — benefit of the doubt
     elif expected_country and lead_country == expected_country:
-        hubs = REGION_HUBS.get(job_region, [])
-        loc_pts = 25.0 if any(h in lead_city for h in hubs) else 20.0
+        # Same country: city MUST be a known hub (or unknown)
+        if not lead_city:
+            loc_pts = 18.0   # right country, city unconfirmed
+        elif in_hub_city:
+            loc_pts = 25.0   # confirmed hub city — full score
+        else:
+            loc_pts = 0.0    # right country but wrong city — hard miss
     elif job_region == "EU" and lead_country not in ("united states", "united kingdom"):
-        loc_pts = 15.0
+        loc_pts = 15.0 if in_hub_city else 0.0
     else:
         loc_pts = 0.0    # wrong country
     breakdown["location"] = loc_pts
 
-    # ── 2. Industry match (15 pts) ───────────────────────────────────
+    # ── 2. Alumni (15 pts) ───────────────────────────────────────────
+    alumni_pts = 15.0 if lead.get("is_alumni") else 0.0
+    breakdown["alumni"] = alumni_pts
+
+    # ── 3. Industry match (12 pts) ───────────────────────────────────
     raw_industries = student.get("industries") or "[]"
     if isinstance(raw_industries, str):
         try:
@@ -1139,14 +1151,10 @@ def score_lead_v2(
         jil = job_industry.lower()
         sil = [s.lower() for s in student_industries]
         if jil in sil:
-            ind_pts = 15.0
+            ind_pts = 12.0
         elif any(jil in s or s in jil for s in sil):
-            ind_pts = 8.0
+            ind_pts = 6.0
     breakdown["industry_match"] = ind_pts
-
-    # ── 3. Alumni (12 pts) ───────────────────────────────────────────
-    alumni_pts = 12.0 if lead.get("is_alumni") else 0.0
-    breakdown["alumni"] = alumni_pts
 
     # ── 4. Department match (12 pts) ─────────────────────────────────
     lead_title      = (lead.get("title") or "").lower()
