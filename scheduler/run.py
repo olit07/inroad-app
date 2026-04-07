@@ -12,6 +12,7 @@ Usage:
     python scheduler/run.py --cards    # cards only
     python scheduler/run.py --queue    # queue build only
 """
+import os
 import sys
 import time
 import signal
@@ -39,7 +40,13 @@ CARDS_HOUR  = 7
 QUEUE_HOUR  = 23
 
 
+SCRAPE_ENABLED = os.environ.get("SCRAPE_ENABLED", "false").lower() == "true"
+
+
 def run_scrape_job():
+    if not SCRAPE_ENABLED:
+        logger.info("SCRAPE JOB skipped — SCRAPE_ENABLED is not set to true")
+        return
     logger.info("─" * 50)
     logger.info("SCRAPE JOB starting")
     summaries = run_all_scrapers(DB_PATH)
@@ -135,10 +142,10 @@ if __name__ == "__main__":
     init_db(DB_PATH)
 
     if "--once" in args:
-        run_scrape_job()
+        run_scrape_job()  # respects SCRAPE_ENABLED
         run_cards_job()
     elif "--scrape" in args:
-        run_scrape_job()
+        run_scrape_job()  # respects SCRAPE_ENABLED
     elif "--cards" in args:
         run_cards_job()
     elif "--queue" in args:
