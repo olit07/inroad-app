@@ -40,7 +40,13 @@ CARDS_HOUR  = 7
 QUEUE_HOUR  = 23
 
 
+SCRAPE_ENABLED = os.environ.get("SCRAPE_ENABLED", "false").lower() == "true"
+
+
 def run_scrape_job():
+    if not SCRAPE_ENABLED:
+        logger.info("SCRAPE JOB skipped — SCRAPE_ENABLED is not set to true")
+        return
     logger.info("─" * 50)
     logger.info("SCRAPE JOB starting")
     summaries = run_all_scrapers(DB_PATH)
