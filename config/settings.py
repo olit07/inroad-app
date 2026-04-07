@@ -23,7 +23,7 @@ SMTP_HOST      = os.environ.get("SMTP_HOST", "smtp.resend.com")
 SMTP_PORT      = int(os.environ.get("SMTP_PORT", "465"))
 SMTP_USER      = os.environ.get("SMTP_USER", "resend")
 SMTP_PASS      = os.environ.get("SMTP_PASS", "")
-FROM_EMAIL     = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
+FROM_EMAIL     = os.environ.get("FROM_EMAIL", "contact@the-inroad.com")
 FROM_NAME      = os.environ.get("FROM_NAME", "inroad")
 
 # ── APIs ────────────────────────────────────────────────────────────────────
@@ -96,3 +96,75 @@ INDUSTRIES = [
     "Data & Analytics", "Real Estate", "Non-profit & Policy",
     "Venture Capital", "Other",
 ]
+
+# ── Lead pre-fetch: company size lookup ──────────────────────────────────────
+
+COMPANY_SIZE_LOOKUP = {
+    # large
+    "goldman sachs": "large", "jp morgan": "large", "jpmorgan": "large",
+    "morgan stanley": "large", "barclays": "large", "hsbc": "large",
+    "blackrock": "large", "ubs": "large", "deutsche bank": "large",
+    "citi": "large", "citigroup": "large", "citibank": "large",
+    "bank of america": "large", "bnp paribas": "large",
+    "société générale": "large", "societe generale": "large",
+    "nomura": "large", "macquarie": "large", "credit suisse": "large",
+    "lazard": "mid", "rothschild": "mid", "rothschild & co": "mid",
+    "evercore": "mid", "moelis": "mid", "moelis & company": "mid",
+    "pjt partners": "mid",
+    "google": "large", "amazon": "large", "microsoft": "large",
+    "meta": "large", "apple": "large", "salesforce": "large",
+    "two sigma": "mid", "citadel": "large", "citadel securities": "large",
+    "jane street": "large", "bloomberg": "large", "databricks": "mid",
+    "snowflake": "mid", "palantir": "mid",
+    "deloitte": "large", "pwc": "large", "kpmg": "large", "ey": "large",
+    "ernst & young": "large",
+    "mckinsey": "large", "mckinsey & company": "large",
+    "bcg": "large", "boston consulting group": "large",
+    "bain": "large", "bain & company": "large",
+    "clifford chance": "large", "freshfields": "large",
+    "freshfields bruckhaus deringer": "large",
+    "linklaters": "large", "allen & overy": "large", "a&o": "large",
+    "slaughter and may": "large",
+    "herbert smith freehills": "large", "hsf": "large",
+    "hogan lovells": "large", "baker mckenzie": "large",
+    "latham & watkins": "large", "sullivan & cromwell": "large",
+    "kirkland & ellis": "large",
+    # mid
+    "revolut": "mid", "monzo": "mid", "wise": "mid", "stripe": "mid",
+    "deepmind": "mid",
+    # startup
+}
+
+# ── Lead pre-fetch: department → search keywords map ────────────────────────
+
+DEPT_MAP = {
+    "investment_banking": ["investment banking", "M&A", "analyst", "associate", "vice president"],
+    "sales_trading":      ["sales trading", "trading", "trader", "analyst", "associate"],
+    "asset_management":   ["asset management", "portfolio manager", "analyst", "associate"],
+    "equity_research":    ["equity research", "research analyst", "analyst", "associate"],
+    "risk":               ["risk", "risk analyst", "risk manager", "analyst", "associate"],
+    "quant":              ["quantitative analyst", "quant", "quantitative researcher", "structurer"],
+    "software_engineering": ["software engineer", "engineer", "developer", "swe"],
+    "product":            ["product manager", "product analyst", "PM"],
+    "data_ml":            ["data scientist", "machine learning engineer", "data analyst", "ML engineer"],
+    "infrastructure":     ["infrastructure engineer", "devops", "platform engineer", "SRE"],
+    "design":             ["product designer", "UX designer", "designer"],
+    "law_corporate":      ["trainee", "associate", "partner", "solicitor", "M&A"],
+    "law_finance":        ["trainee", "associate", "partner", "solicitor", "finance"],
+    "law_disputes":       ["trainee", "associate", "partner", "solicitor", "litigation"],
+    "law_tech":           ["trainee", "associate", "solicitor", "technology", "IP"],
+}
+
+# Maps Trackr industry → relevant DEPT_MAP keys
+INDUSTRY_DEPT_MAP = {
+    "Finance":            ["investment_banking", "sales_trading", "asset_management",
+                           "equity_research", "risk", "quant"],
+    "Investment Banking": ["investment_banking", "sales_trading", "risk", "quant"],
+    "Technology":         ["software_engineering", "product", "data_ml", "infrastructure", "design"],
+    "Software Engineering": ["software_engineering", "product", "data_ml"],
+    "Data & Analytics":   ["data_ml", "software_engineering"],
+    "Law":                ["law_corporate", "law_finance", "law_disputes", "law_tech"],
+}
+
+# Fallback city per region if job has no location field
+REGION_LOCATION_FALLBACK = {"UK": "London", "US": "New York", "EU": "Paris"}

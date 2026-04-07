@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 # NOTE: Bing Search API v7 was decommissioned August 11 2025. Do not use.
 BRAVE_ENDPOINT   = "https://api.search.brave.com/res/v1/web/search"
 SERPAPI_ENDPOINT = "https://serpapi.com/search.json"
+SERPER_ENDPOINT  = "https://google.serper.dev/search"
 
 # ── Seniority level numbers for "2–4 levels above student" check ────────────
 SENIORITY_RANK = {
@@ -738,13 +739,17 @@ class LinkedInMatcher:
             return []
 
     # ── Serper backend (Google) ───────────────────────────────────────────────
-    def _serper_search(self, query: str, count: int = 10) -> list[dict]:
+    def _serper_search(self, query: str, count: int = 10, page: int = 1) -> list[dict]:
         """
         Serper.dev — Google search API. $0.30/1k queries, free trial.
         Returns results in a format compatible with _parse_snippet().
+        page=1 returns results 1-10, page=2 returns 11-20.
         """
         self._throttle()
-        payload = json.dumps({"q": query, "num": min(count, 10), "gl": "gb", "hl": "en"}).encode()
+        payload = json.dumps({
+            "q": query, "num": min(count, 10),
+            "page": page, "gl": "gb", "hl": "en",
+        }).encode()
         import urllib.request
         req = urllib.request.Request(
             SERPER_ENDPOINT,
@@ -771,6 +776,19 @@ class LinkedInMatcher:
         except Exception as e:
             logger.error(f"Serper search failed: {e}")
             return []
+
+    def _serper_search_two_pages(self, query: str) -> list[dict]:
+        """Fetch pages 1 and 2 from Serper (up to 20 results). Deduplicates by URL."""
+        results_p1 = self._serper_search(query, count=10, page=1)
+        results_p2 = self._serper_search(query, count=10, page=2)
+        seen_urls = set()
+        combined = []
+        for r in results_p1 + results_p2:
+            u = r.get("url", "")
+            if u and u not in seen_urls:
+                seen_urls.add(u)
+                combined.append(r)
+        return combined
 
     # ── SerpAPI backend ───────────────────────────────────────────────────────
     def _serp_search(self, query: str, n: int = 10) -> list[dict]:
@@ -801,12 +819,14 @@ class LinkedInMatcher:
         """
         Extract structured lead data from a search result snippet.
 
-        Bing result format:
+        Google/Serper result format:
         {
           "name": "John Smith - Risk Analyst - Goldman Sachs | LinkedIn",
           "url":  "https://uk.linkedin.com/in/john-smith-...",
-          "snippet": "John Smith. Risk Analyst at Goldman Sachs. UCL Economics 2019."
+          "snippet": "John Smith. Risk Analyst at Goldman Sachs. UCL Economics 2019. London."
         }
+        Also handles middle-dot separator:
+          "Jane Smith · Senior PM · Stripe | LinkedIn"
         """
         raw_name    = result.get("name", "")
         url         = result.get("url", result.get("link", ""))
@@ -815,9 +835,9 @@ class LinkedInMatcher:
         if "linkedin.com/in/" not in url:
             return None
 
-        # Parse "John Smith - Risk Analyst - Goldman Sachs | LinkedIn"
+        # Parse title — handle both "-" and "·" as separators
         name, title, company = "", "", ""
-        title_parts = re.split(r"\s*[\|–\-]\s*", raw_name)
+        title_parts = re.split(r"\s*[|·–\-]\s*", raw_name)
         title_parts = [p.strip() for p in title_parts if p.strip()]
 
         if title_parts:
@@ -831,27 +851,32 @@ class LinkedInMatcher:
         if len(title_parts) >= 3:
             company = title_parts[2]
 
-        # Validate — must have at least a name
+        # Validate — must have at least a name with one word
         if not name or len(name.split()) < 1:
             return None
 
         # Extract university from snippet
         university = _extract_university(snippet)
 
-        # Extract tenure hint ("X years at Y", "since YYYY")
+        # Extract tenure hint ("X years at Y", "since YYYY", "· N yrs")
         tenure_months = _extract_tenure(snippet)
+
+        # Extract city/country from snippet
+        location_city, location_country = _extract_location(snippet)
 
         # Clean LinkedIn URL
         linkedin_url = re.sub(r"\?.*$", "", url)  # strip query params
 
         return {
-            "name":           name,
-            "title":          title,
-            "company":        company,
-            "university":     university,
-            "linkedin_url":   linkedin_url,
-            "tenure_months":  tenure_months,
-            "snippet":        snippet[:300],
+            "name":             name,
+            "title":            title,
+            "company":          company,
+            "university":       university,
+            "linkedin_url":     linkedin_url,
+            "tenure_months":    tenure_months,
+            "location_city":    location_city,
+            "location_country": location_country,
+            "snippet":          snippet[:300],
         }
 
 
@@ -874,21 +899,83 @@ def _extract_university(text: str) -> str:
 
 def _extract_tenure(text: str) -> int:
     """Extract approximate tenure in months from snippet text."""
-    # "3 years" → 36, "18 months" → 18, "since 2022" → approx
-    m = re.search(r"(\d+)\s+year", text, re.I)
+    # "· 3 yrs" or "· 2 yr" (LinkedIn compact format)
+    m = re.search(r"[·•]\s*(\d+)\s*yr", text, re.I)
     if m:
         return int(m.group(1)) * 12
 
-    m = re.search(r"(\d+)\s+month", text, re.I)
+    # "N years at" or "N year at"
+    m = re.search(r"(\d+)\s+years?\s+at\b", text, re.I)
+    if m:
+        return int(m.group(1)) * 12
+
+    # "N months at"
+    m = re.search(r"(\d+)\s+months?\s+at\b", text, re.I)
     if m:
         return int(m.group(1))
 
+    # Generic "3 years" / "18 months" in snippet
+    m = re.search(r"(\d+)\s+years?", text, re.I)
+    if m:
+        return int(m.group(1)) * 12
+
+    m = re.search(r"(\d+)\s+months?", text, re.I)
+    if m:
+        return int(m.group(1))
+
+    # "since 2022" or "since 2019"
     m = re.search(r"since\s+(20\d{2})", text, re.I)
     if m:
         years = datetime.utcnow().year - int(m.group(1))
         return max(0, years * 12)
 
     return 0
+
+
+# Hub cities used for location extraction
+_HUB_CITIES = [
+    "london", "new york", "nyc", "paris", "frankfurt", "amsterdam",
+    "zurich", "dublin", "singapore", "hong kong", "tokyo", "chicago",
+    "san francisco", "boston", "los angeles", "seattle", "manchester",
+    "edinburgh", "berlin", "milan", "madrid", "stockholm", "brussels",
+]
+
+# Country keyword patterns → canonical country name
+_COUNTRY_PATTERNS = [
+    (["united kingdom", "uk", "england", "scotland", "wales", "london",
+      "manchester", "edinburgh"], "united kingdom"),
+    (["united states", "usa", "u.s.", "new york", "nyc", "chicago",
+      "san francisco", "boston", "los angeles", "seattle"], "united states"),
+    (["france", "paris", "lyon"], "france"),
+    (["germany", "frankfurt", "berlin", "munich"], "germany"),
+    (["netherlands", "amsterdam", "holland"], "netherlands"),
+    (["switzerland", "zurich", "geneva"], "switzerland"),
+    (["ireland", "dublin"], "ireland"),
+    (["singapore"], "singapore"),
+    (["hong kong"], "hong kong"),
+]
+
+
+def _extract_location(text: str) -> tuple[str, str]:
+    """Extract (location_city, location_country) from snippet text."""
+    text_lower = text.lower()
+
+    city = ""
+    for hub in _HUB_CITIES:
+        if hub in text_lower:
+            city = hub.title()
+            # "NYC" stays as-is
+            if hub == "nyc":
+                city = "New York"
+            break
+
+    country = ""
+    for keywords, canon in _COUNTRY_PATTERNS:
+        if any(kw in text_lower for kw in keywords):
+            country = canon
+            break
+
+    return city, country
 
 
 # ── Relevance scoring ─────────────────────────────────────────────────────────

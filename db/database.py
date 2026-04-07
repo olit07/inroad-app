@@ -215,6 +215,23 @@ CREATE TABLE IF NOT EXISTS card_queue (
     UNIQUE(student_id, job_id, queued_for)
 );
 
+CREATE TABLE IF NOT EXISTS leads (
+    id               SERIAL PRIMARY KEY,
+    name             TEXT NOT NULL,
+    title            TEXT,
+    company          TEXT,
+    university       TEXT,
+    linkedin_url     TEXT UNIQUE NOT NULL,
+    snippet          TEXT,
+    location_city    TEXT,
+    location_country TEXT,
+    tenure_months    INTEGER DEFAULT 0,
+    is_alumni        BOOLEAN DEFAULT FALSE,
+    dept_tag         TEXT,
+    fetched_at       TIMESTAMPTZ DEFAULT NOW(),
+    stale_after      TIMESTAMPTZ
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token   ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email   ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student      ON matches(student_id);
@@ -222,6 +239,7 @@ CREATE INDEX IF NOT EXISTS idx_signals_match        ON signals(match_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token   ON refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_student ON refresh_tokens(student_id);
 CREATE INDEX IF NOT EXISTS idx_card_queue_student_date ON card_queue(student_id, queued_for);
+CREATE INDEX IF NOT EXISTS idx_leads_company ON leads (lower(company));
 """
 
 SCHEMA_SQLITE = """
@@ -343,6 +361,23 @@ CREATE TABLE IF NOT EXISTS card_queue (
     UNIQUE(student_id, job_id, queued_for)
 );
 
+CREATE TABLE IF NOT EXISTS leads (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    name             TEXT NOT NULL,
+    title            TEXT,
+    company          TEXT,
+    university       TEXT,
+    linkedin_url     TEXT UNIQUE NOT NULL,
+    snippet          TEXT,
+    location_city    TEXT,
+    location_country TEXT,
+    tenure_months    INTEGER DEFAULT 0,
+    is_alumni        INTEGER DEFAULT 0,
+    dept_tag         TEXT,
+    fetched_at       TEXT DEFAULT (datetime('now')),
+    stale_after      TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student    ON matches(student_id);
@@ -350,6 +385,7 @@ CREATE INDEX IF NOT EXISTS idx_signals_match      ON signals(match_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token   ON refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_student ON refresh_tokens(student_id);
 CREATE INDEX IF NOT EXISTS idx_card_queue_student_date ON card_queue(student_id, queued_for);
+CREATE INDEX IF NOT EXISTS idx_leads_company ON leads (lower(company));
 """
 
 
@@ -420,6 +456,24 @@ def _run_migrations_postgres():
              opening_date = COALESCE(raw::json->>'opening_date', ''),
              closing_date  = COALESCE(raw::json->>'closing_date', '')
            WHERE opening_date IS NULL AND raw IS NOT NULL AND raw != '' AND raw != '{}'""",
+        # Create leads table if missing (added after initial deploy)
+        """CREATE TABLE IF NOT EXISTS leads (
+            id               SERIAL PRIMARY KEY,
+            name             TEXT NOT NULL,
+            title            TEXT,
+            company          TEXT,
+            university       TEXT,
+            linkedin_url     TEXT UNIQUE NOT NULL,
+            snippet          TEXT,
+            location_city    TEXT,
+            location_country TEXT,
+            tenure_months    INTEGER DEFAULT 0,
+            is_alumni        BOOLEAN DEFAULT FALSE,
+            dept_tag         TEXT,
+            fetched_at       TIMESTAMPTZ DEFAULT NOW(),
+            stale_after      TIMESTAMPTZ
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_leads_company ON leads (lower(company))",
     ]
     with get_conn() as conn:
         cur = conn.cursor()
@@ -691,9 +745,13 @@ def get_active_jobs(conn, industries=None, region=None, seniority=None,
 
     if days_fresh:
         if USE_POSTGRES:
-            clauses.append(f"posted_at > NOW() - INTERVAL '{days_fresh} days'")
+            clauses.append(
+                f"(posted_at IS NULL OR posted_at > NOW() - INTERVAL '{days_fresh} days')"
+            )
         else:
-            clauses.append(f"posted_at > datetime('now', '-{days_fresh} days')")
+            clauses.append(
+                f"(posted_at IS NULL OR posted_at > datetime('now', '-{days_fresh} days'))"
+            )
 
     if industries:
         placeholders = ", ".join([ph] * len(industries))
@@ -916,3 +974,102 @@ def mark_card_consumed(card_queue_id):
             "UPDATE card_queue SET consumed = 1 WHERE id = ?",
             (card_queue_id,),
         )
+
+
+# ── Leads pool ───────────────────────────────────────────────────────────────
+
+def upsert_lead(lead: dict) -> None:
+    """Insert or update a pre-fetched lead in the leads table."""
+    from datetime import datetime, timedelta
+    stale_after = (datetime.utcnow() + timedelta(days=30)).isoformat()
+    if USE_POSTGRES:
+        execute(
+            """INSERT INTO leads
+               (name, title, company, university, linkedin_url, snippet,
+                location_city, location_country, tenure_months, is_alumni,
+                dept_tag, fetched_at, stale_after)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW(),?)
+               ON CONFLICT (linkedin_url) DO UPDATE SET
+                 name=EXCLUDED.name, title=EXCLUDED.title, company=EXCLUDED.company,
+                 university=EXCLUDED.university, snippet=EXCLUDED.snippet,
+                 location_city=EXCLUDED.location_city,
+                 location_country=EXCLUDED.location_country,
+                 tenure_months=EXCLUDED.tenure_months, is_alumni=EXCLUDED.is_alumni,
+                 dept_tag=EXCLUDED.dept_tag, fetched_at=NOW(), stale_after=EXCLUDED.stale_after""",
+            (
+                lead.get("name", ""), lead.get("title", ""), lead.get("company", ""),
+                lead.get("university", ""), lead["linkedin_url"], lead.get("snippet", ""),
+                lead.get("location_city", ""), lead.get("location_country", ""),
+                lead.get("tenure_months", 0), bool(lead.get("is_alumni", False)),
+                lead.get("dept_tag", ""), stale_after,
+            ),
+        )
+    else:
+        execute(
+            """INSERT INTO leads
+               (name, title, company, university, linkedin_url, snippet,
+                location_city, location_country, tenure_months, is_alumni,
+                dept_tag, fetched_at, stale_after)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?)
+               ON CONFLICT (linkedin_url) DO UPDATE SET
+                 name=excluded.name, title=excluded.title, company=excluded.company,
+                 university=excluded.university, snippet=excluded.snippet,
+                 location_city=excluded.location_city,
+                 location_country=excluded.location_country,
+                 tenure_months=excluded.tenure_months, is_alumni=excluded.is_alumni,
+                 dept_tag=excluded.dept_tag, fetched_at=datetime('now'),
+                 stale_after=excluded.stale_after""",
+            (
+                lead.get("name", ""), lead.get("title", ""), lead.get("company", ""),
+                lead.get("university", ""), lead["linkedin_url"], lead.get("snippet", ""),
+                lead.get("location_city", ""), lead.get("location_country", ""),
+                lead.get("tenure_months", 0), 1 if lead.get("is_alumni") else 0,
+                lead.get("dept_tag", ""), stale_after,
+            ),
+        )
+
+
+def get_leads_for_company(company: str) -> list[dict]:
+    """Return all non-stale leads for a company (case-insensitive match)."""
+    if USE_POSTGRES:
+        return fetchall(
+            """SELECT * FROM leads
+               WHERE lower(company) = lower(?)
+               AND (stale_after IS NULL OR stale_after > NOW())
+               ORDER BY is_alumni DESC, tenure_months DESC""",
+            (company,),
+        )
+    else:
+        return fetchall(
+            """SELECT * FROM leads
+               WHERE lower(company) = lower(?)
+               AND (stale_after IS NULL OR stale_after > datetime('now'))
+               ORDER BY is_alumni DESC, tenure_months DESC""",
+            (company,),
+        )
+
+
+def get_seen_linkedin_urls(student_id: int) -> set:
+    """Return all LinkedIn URLs this student has ever been shown (all-time)."""
+    rows = fetchall(
+        "SELECT person_linkedin_url FROM matches WHERE student_id = ? AND person_linkedin_url IS NOT NULL",
+        (student_id,),
+    )
+    return {r["person_linkedin_url"] for r in rows}
+
+
+def get_leads_stats() -> dict:
+    """Return aggregate stats about the leads pool for admin panel."""
+    total     = fetchone("SELECT COUNT(*) AS cnt FROM leads") or {}
+    with_city = fetchone("SELECT COUNT(*) AS cnt FROM leads WHERE location_city IS NOT NULL AND location_city != ''") or {}
+    with_ten  = fetchone("SELECT COUNT(*) AS cnt FROM leads WHERE tenure_months > 0") or {}
+    alumni_sql = "SELECT COUNT(*) AS cnt FROM leads WHERE is_alumni = TRUE" if USE_POSTGRES else "SELECT COUNT(*) AS cnt FROM leads WHERE is_alumni = 1"
+    alumni    = fetchone(alumni_sql) or {}
+    companies = fetchone("SELECT COUNT(DISTINCT lower(company)) AS cnt FROM leads") or {}
+    return {
+        "total_leads":          int(total.get("cnt", 0)),
+        "with_city":            int(with_city.get("cnt", 0)),
+        "with_tenure":          int(with_ten.get("cnt", 0)),
+        "alumni_leads":         int(alumni.get("cnt", 0)),
+        "distinct_companies":   int(companies.get("cnt", 0)),
+    }

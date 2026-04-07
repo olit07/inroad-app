@@ -24,7 +24,9 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config.settings    import DAILY_MATCH_QUOTA, DB_PATH
-from db.database        import db_conn, get_active_jobs, get_card_count_today, USE_POSTGRES
+from db.database        import db_conn, get_active_jobs, get_card_count_today, USE_POSTGRES, \
+                               fetchone as db_fetchone, fetchall as db_fetchall, \
+                               execute as db_execute, get_leads_for_company, get_seen_linkedin_urls
 from pipeline.matcher   import LinkedInMatcher, score_lead, score_lead_v2
 from pipeline.email_infer import EmailInferrer
 
@@ -154,20 +156,20 @@ def _lead_company_matches(lead_company: str, job_company: str) -> bool:
     return False
 
 
-def get_seen_history(conn, student_id: int) -> set:
+def get_seen_history(student_id: int) -> set:
     """Return set of job_ids already shown to this student."""
-    rows = conn.execute(
-        "SELECT job_id FROM matches WHERE student_id=?", (student_id,)
-    ).fetchall()
-    return {r[0] for r in rows}
+    rows = db_fetchall(
+        "SELECT job_id FROM matches WHERE student_id = %s", (student_id,)
+    )
+    return {r["job_id"] for r in rows}
 
 
-def get_suppressed_linkedin_urls(conn) -> set:
+def get_suppressed_linkedin_urls() -> set:
     """Return suppressed LinkedIn URLs from suppression_list."""
-    rows = conn.execute(
+    rows = db_fetchall(
         "SELECT identifier FROM suppression_list WHERE identifier_type='linkedin'"
-    ).fetchall()
-    return {r[0] for r in rows}
+    )
+    return {r["identifier"] for r in rows}
 
 
 # ── Email draft generation ────────────────────────────────────────────────────
@@ -217,6 +219,12 @@ def generate_email_draft(
     """
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
 
+    tenure_months = lead.get("tenure_months") or 0
+    tenure_hint = ""
+    if tenure_months > 0:
+        tenure_years = round(tenure_months / 12, 1)
+        tenure_hint = f"They have been at {lead.get('company', job.get('company_name', ''))} for approximately {tenure_years} year(s)."
+
     context = {
         "student_name":       student.get("name") or student.get("first_name", "there"),
         "student_university": student.get("university", "my university"),
@@ -228,6 +236,7 @@ def generate_email_draft(
         "job_title":          job.get("title", ""),
         "job_url":            job.get("url", ""),
         "industry_tone":      _get_industry_tone(job),
+        "tenure_hint":        tenure_hint,
     }
 
     if api_key:
@@ -264,6 +273,7 @@ def _claude_draft(ctx: dict, api_key: str, tighten: bool = False) -> tuple[str, 
         if ctx["is_alumni"]
         else "They are NOT an alumni — do NOT mention any shared university connection."
     )
+    tenure_note = f"\n- {ctx['tenure_hint']}" if ctx.get("tenure_hint") else ""
 
     tighten_note = "\n\nIMPORTANT: Previous draft was too long or used filler phrases. Make this version sharper, under 80 words, more direct." if tighten else ""
 
@@ -276,7 +286,7 @@ STUDENT:
 
 RECIPIENT:
 - Name: {ctx['recipient_name']}
-- Title: {ctx['recipient_title']} at {ctx['recipient_company']}
+- Title: {ctx['recipient_title']} at {ctx['recipient_company']}{tenure_note}
 - {alumni_note}
 
 ROLE: {ctx['job_title']} at {ctx['recipient_company']}
@@ -367,31 +377,29 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
     """
     today_str = date.today().isoformat()
 
+    # Load student
+    student = db_fetchone("SELECT * FROM students WHERE id = %s", (student_id,))
+    if not student:
+        logger.warning(f"Student {student_id} not found")
+        return []
+    student = dict(student)
+
+    # Check if today's cards already generated
+    if get_card_count_today(student_id) >= DAILY_MATCH_QUOTA:
+        logger.info(f"Student {student_id} already has {DAILY_MATCH_QUOTA} cards for {today_str}")
+        return []
+
+    seen_job_ids  = get_seen_history(student_id)
+    suppressed    = get_suppressed_linkedin_urls()
+
+    # Get matching jobs
+    student_industries = json.loads(student.get("industries") or "[]")
     with db_conn(db_path) as conn:
-        # Load student
-        student = conn.execute(
-            "SELECT * FROM students WHERE id=?", (student_id,)
-        ).fetchone()
-        if not student:
-            logger.warning(f"Student {student_id} not found")
-            return []
-        student = dict(student)
-
-        # Check if today's cards already generated
-        if get_card_count_today(student_id) >= DAILY_MATCH_QUOTA:
-            logger.info(f"Student {student_id} already has {DAILY_MATCH_QUOTA} cards for {today_str}")
-            return []
-
-        seen_job_ids  = get_seen_history(conn, student_id)
-        suppressed    = get_suppressed_linkedin_urls(conn)
-
-        # Get matching jobs
-        student_industries = json.loads(student.get("industries") or "[]")
         jobs = get_active_jobs(
             conn,
             industries  = student_industries,
             region      = student.get("region", "UK"),
-            days_fresh  = 21,
+            days_fresh  = 30,
             limit       = 100,
         )
 
@@ -422,8 +430,10 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
     matcher  = LinkedInMatcher()
     inferrer = EmailInferrer()
 
+    # All-time seen people — never show the same person twice to the same student
+    seen_people = get_seen_linkedin_urls(student_id)
+
     cards_written: list[dict] = []
-    companies_used: set  = set()
     industries_used: dict = {}
 
     # Re-score and re-sort after each selection so the diversity component
@@ -446,9 +456,7 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
             # Remove from remaining regardless so we never revisit
             remaining_jobs = [j for j in remaining_jobs if j["id"] != job["id"]]
 
-            # Diversity rules (hard caps enforced independently of score)
-            if company in companies_used:
-                continue
+            # Diversity: max 2 jobs per industry per day (company duplicates OK)
             if any(industries_used.get(ind, 0) >= 2 for ind in job_inds):
                 continue
 
@@ -458,29 +466,23 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         if not picked:
             break  # no more eligible jobs
 
-        # Find leads for this job
-        leads = matcher.find_leads(
-            company            = company,
-            job_title          = job["title"],
-            student_university = student.get("university", ""),
-            n                  = 6,
-        )
-
-        # Filter leads not at the job's company (LinkedIn search can return noise)
-        leads = [l for l in leads if _lead_company_matches(l.get("company", ""), company)]
-
-        # Filter suppressed
+        # 1. Try pre-fetched leads pool first
+        leads = get_leads_for_company(company)
+        leads = [l for l in leads if l.get("linkedin_url", "") not in seen_people]
         leads = [l for l in leads if l.get("linkedin_url", "") not in suppressed]
 
-        # Filter already-sent people (by linkedin_url in match history)
-        with db_conn(db_path) as conn:
-            sent_urls = {
-                r[0] for r in conn.execute(
-                    "SELECT person_linkedin_url FROM matches WHERE student_id=?",
-                    (student_id,)
-                ).fetchall()
-            }
-        leads = [l for l in leads if l.get("linkedin_url", "") not in sent_urls]
+        # 2. Fall back to live Serper search if pool empty
+        if not leads:
+            leads = matcher.find_leads(
+                company            = company,
+                job_title          = job["title"],
+                student_university = student.get("university", ""),
+                n                  = 6,
+            )
+            # Filter leads not at the job's company (LinkedIn search can return noise)
+            leads = [l for l in leads if _lead_company_matches(l.get("company", ""), company)]
+            leads = [l for l in leads if l.get("linkedin_url", "") not in suppressed]
+            leads = [l for l in leads if l.get("linkedin_url", "") not in seen_people]
 
         if not leads:
             continue
@@ -491,6 +493,14 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         ]
         scored_leads.sort(key=lambda x: -x[0][0])
         (best_score, best_breakdown), best_lead = scored_leads[0]
+
+        # Skip card if best lead score is too low
+        MIN_LEAD_SCORE = 50
+        if best_score < MIN_LEAD_SCORE:
+            logger.info(
+                f"Skipping {company} ({job['title']}) — best lead score {best_score} < {MIN_LEAD_SCORE}"
+            )
+            continue
 
         # Infer email — use Apollo-provided email if available, otherwise fall back
         apollo_email = best_lead.get("email", "")
@@ -525,62 +535,42 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
             "person_linkedin_url": best_lead.get("linkedin_url", ""),
             "person_university":   best_lead.get("university", ""),
             "person_tenure_months": best_lead.get("tenure_months", 0),
-            "is_alumni":           int(best_lead.get("is_alumni", False)),
+            "is_alumni":           bool(best_lead.get("is_alumni", False)),
             "relevance_score":     round(best_score, 1),
             "score_breakdown":     json.dumps(best_breakdown),
             "expected_email":      email_result["email"],
-            "email_confidence":    email_result["confidence"],
+            "email_confidence":    {"HIGH": 0.9, "MEDIUM": 0.6, "LOW": 0.3}.get(
+                                       str(email_result.get("confidence", "")).upper(), 0.5),
             "email_subject":       subject,
             "email_body":          body,
         }
 
-        with db_conn(db_path) as conn:
-            try:
-                if USE_POSTGRES:
-                    conn.execute(
-                        """INSERT INTO matches
+        try:
+            insert_sql = """INSERT INTO matches
                            (student_id, job_id, match_date, person_name, person_title,
                             person_company, person_linkedin_url, person_university,
                             person_tenure_months, is_alumni, relevance_score,
                             score_breakdown, expected_email, email_confidence,
                             email_subject, email_body)
                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                           ON CONFLICT (student_id, job_id) DO NOTHING""",
-                        (
-                            card["student_id"], card["job_id"], card["match_date"],
-                            card["person_name"], card["person_title"], card["person_company"],
-                            card["person_linkedin_url"], card["person_university"],
-                            card["person_tenure_months"], card["is_alumni"],
-                            card["relevance_score"], card["score_breakdown"],
-                            card["expected_email"], card["email_confidence"],
-                            card["email_subject"], card["email_body"],
-                        )
-                    )
-                else:
-                    conn.execute(
-                        """INSERT OR IGNORE INTO matches
-                           (student_id, job_id, match_date, person_name, person_title,
-                            person_company, person_linkedin_url, person_university,
-                            person_tenure_months, is_alumni, relevance_score,
-                            score_breakdown, expected_email, email_confidence,
-                            email_subject, email_body)
-                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                        (
-                            card["student_id"], card["job_id"], card["match_date"],
-                            card["person_name"], card["person_title"], card["person_company"],
-                            card["person_linkedin_url"], card["person_university"],
-                            card["person_tenure_months"], card["is_alumni"],
-                            card["relevance_score"], card["score_breakdown"],
-                            card["expected_email"], card["email_confidence"],
-                            card["email_subject"], card["email_body"],
-                        )
-                    )
-            except Exception as e:
-                logger.error(f"Failed to insert card: {e}")
-                continue
+                           ON CONFLICT (student_id, job_id) DO NOTHING"""
+            db_execute(insert_sql, (
+                card["student_id"], card["job_id"], card["match_date"],
+                card["person_name"], card["person_title"], card["person_company"],
+                card["person_linkedin_url"], card["person_university"],
+                card["person_tenure_months"], card["is_alumni"],
+                card["relevance_score"], card["score_breakdown"],
+                card["expected_email"], card["email_confidence"],
+                card["email_subject"], card["email_body"],
+            ))
+        except Exception as e:
+            logger.error(f"Failed to insert card: {e}")
+            continue
 
         cards_written.append(card)
-        companies_used.add(company)
+        # Track person so they aren't picked again in this same run
+        if best_lead.get("linkedin_url"):
+            seen_people.add(best_lead["linkedin_url"])
         for ind in job_inds:
             industries_used[ind] = industries_used.get(ind, 0) + 1
 
@@ -598,8 +588,7 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
 
 def generate_all_students_cards(db_path=DB_PATH):
     """Run daily card generation for every student."""
-    with db_conn(db_path) as conn:
-        students = conn.execute("SELECT id, first_name FROM students").fetchall()
+    students = db_fetchall("SELECT id, first_name FROM students")
 
     logger.info(f"Generating daily cards for {len(students)} students")
     for s in students:
@@ -612,13 +601,12 @@ def generate_all_students_cards(db_path=DB_PATH):
 def _anonymise_old_matches(student_id: int, db_path=DB_PATH):
     """Anonymise person data for matches older than 90 days."""
     cutoff = (date.today() - timedelta(days=90)).isoformat()
-    with db_conn(db_path) as conn:
-        conn.execute(
-            """UPDATE matches SET
-               person_name=NULL, person_linkedin_url=NULL, expected_email=NULL
-               WHERE student_id=? AND match_date < ? AND person_name IS NOT NULL""",
-            (student_id, cutoff),
-        )
+    db_execute(
+        """UPDATE matches SET
+           person_name=NULL, person_linkedin_url=NULL, expected_email=NULL
+           WHERE student_id = %s AND match_date < %s AND person_name IS NOT NULL""",
+        (student_id, cutoff),
+    )
 
 
 if __name__ == "__main__":

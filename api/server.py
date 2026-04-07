@@ -695,7 +695,7 @@ def matches_today(student_id):
         rows = fetchall(
             _matches_select + """
             WHERE m.student_id = ?
-              AND DATE(m.created_at) = DATE('now')
+              AND DATE(m.created_at) = CURRENT_DATE
             ORDER BY m.is_alumni DESC, m.created_at ASC
             LIMIT 3
         """, (student_id,))
@@ -708,7 +708,7 @@ def matches_today(student_id):
                 rows = fetchall(
                     _matches_select + """
                     WHERE m.student_id = ?
-                      AND DATE(m.created_at) = DATE('now')
+                      AND DATE(m.created_at) = CURRENT_DATE
                     ORDER BY m.is_alumni DESC, m.created_at ASC
                     LIMIT 3
                 """, (student_id,))
@@ -875,6 +875,72 @@ def admin_stats():
     }})
 
 
+@app.route("/api/admin/generate-cards", methods=["POST"])
+def admin_generate_cards():
+    """Force-regenerate today's cards for a student (by email or id)."""
+    data = request.get_json(silent=True) or {}
+    email = data.get("email")
+    student_id = data.get("student_id")
+
+    if email:
+        row = fetchone("SELECT id FROM students WHERE email = %s", (email,))
+        if not row:
+            return jsonify({"error": "student not found"}), 404
+        student_id = row["id"]
+    elif not student_id:
+        return jsonify({"error": "email or student_id required"}), 400
+
+    # Delete today's existing cards so they regenerate fresh
+    from db.database import execute as db_execute
+    db_execute(
+        "DELETE FROM matches WHERE student_id = %s AND DATE(created_at) = CURRENT_DATE",
+        (student_id,)
+    )
+
+    def _run():
+        try:
+            from pipeline.daily_cards import generate_daily_cards
+            generate_daily_cards(student_id)
+            print(f"[admin/generate-cards] done for student {student_id}")
+        except Exception as exc:
+            print(f"[admin/generate-cards] error for student {student_id}: {exc}", flush=True)
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "triggered", "student_id": student_id})
+
+
+@app.route("/api/admin/build-leads", methods=["POST"])
+def admin_build_leads():
+    """Trigger lead pre-fetch for all (or one) company. Runs in background thread."""
+    data    = request.get_json(silent=True) or {}
+    company = data.get("company", "")
+    uni     = data.get("university", "")
+
+    def _run():
+        try:
+            from pipeline.lead_builder import build_leads
+            n = build_leads(company_filter=company, university=uni)
+            print(f"[admin/build-leads] done — {n} leads upserted")
+        except Exception as exc:
+            print(f"[admin/build-leads] error: {exc}", flush=True)
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "triggered", "company": company or "all"})
+
+
+@app.route("/api/admin/leads/stats")
+def admin_leads_stats():
+    """Return aggregate stats about the pre-fetched leads pool."""
+    try:
+        from db.database import get_leads_stats
+        stats = get_leads_stats()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"data": stats})
+
+
 @app.route("/api/admin/scrape", methods=["POST"])
 def admin_scrape():
     data = request.get_json(silent=True) or {}
@@ -984,6 +1050,21 @@ def settings_page():
 @app.route("/admin")
 def admin_page():
     return _send_html("ccc-admin.html")
+
+
+@app.route("/privacy")
+def privacy_page():
+    return _send_html("privacy.html")
+
+
+@app.route("/terms")
+def terms_page():
+    return _send_html("terms.html")
+
+
+@app.route("/contact")
+def contact_page():
+    return "", 204  # placeholder — returns empty for now
 
 
 @app.route("/verify")

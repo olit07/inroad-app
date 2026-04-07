@@ -23,6 +23,7 @@ from scrapers.base import (
     BaseScraper, make_job, infer_seniority, infer_industries,
     clean_date, today_iso, RequestError,
 )
+from config.settings import COMPANY_SIZE_LOOKUP
 
 logger = logging.getLogger(__name__)
 
@@ -135,10 +136,11 @@ class TrackrScraper(BaseScraper):
         opening_raw   = raw.get("openingDate") or ""
         closing_raw   = raw.get("closingDate") or ""
 
-        # Use today as posted_date so jobs remain fresh in the active_jobs window
-        posted_date   = today_iso()
         opening_date  = clean_date(opening_raw)
         closing_date  = clean_date(closing_raw)
+        # Use opening_date as posted_date so recency scoring reflects the actual
+        # programme timeline. Leave NULL if no opening date is available.
+        posted_date   = opening_date or None
 
         # Location string from locations list
         locations = raw.get("locations") or []
@@ -147,6 +149,7 @@ class TrackrScraper(BaseScraper):
         industries   = INDUSTRY_MAP.get(industry, [industry])
         out_region   = REGION_MAP.get(region, region)
         emp_type     = TYPE_MAP.get(prog_type, "internship")
+        company_size = COMPANY_SIZE_LOOKUP.get(company_name.lower().strip(), "")
 
         job = make_job(
             company_name    = company_name,
@@ -162,4 +165,6 @@ class TrackrScraper(BaseScraper):
             closing_date    = closing_date,
         )
         job["opening_date"] = opening_date
+        job["company_size"] = company_size
+        job["location"]     = location_str
         return job
