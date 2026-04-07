@@ -466,23 +466,10 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         if not picked:
             break  # no more eligible jobs
 
-        # 1. Try pre-fetched leads pool first
+        # Use pre-fetched leads pool only (live Serper search disabled)
         leads = get_leads_for_company(company)
         leads = [l for l in leads if l.get("linkedin_url", "") not in seen_people]
         leads = [l for l in leads if l.get("linkedin_url", "") not in suppressed]
-
-        # 2. Fall back to live Serper search if pool empty
-        if not leads:
-            leads = matcher.find_leads(
-                company            = company,
-                job_title          = job["title"],
-                student_university = student.get("university", ""),
-                n                  = 6,
-            )
-            # Filter leads not at the job's company (LinkedIn search can return noise)
-            leads = [l for l in leads if _lead_company_matches(l.get("company", ""), company)]
-            leads = [l for l in leads if l.get("linkedin_url", "") not in suppressed]
-            leads = [l for l in leads if l.get("linkedin_url", "") not in seen_people]
 
         if not leads:
             continue

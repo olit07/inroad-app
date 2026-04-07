@@ -940,22 +940,7 @@ def admin_generate_cards():
 @app.route("/api/admin/build-leads", methods=["POST"])
 @require_admin
 def admin_build_leads():
-    """Trigger lead pre-fetch for all (or one) company. Runs in background thread."""
-    data    = request.get_json(silent=True) or {}
-    company = data.get("company", "")
-    uni     = data.get("university", "")
-
-    def _run():
-        try:
-            from pipeline.lead_builder import build_leads
-            n = build_leads(company_filter=company, university=uni)
-            print(f"[admin/build-leads] done — {n} leads upserted")
-        except Exception as exc:
-            print(f"[admin/build-leads] error: {exc}", flush=True)
-
-    import threading
-    threading.Thread(target=_run, daemon=True).start()
-    return jsonify({"status": "triggered", "company": company or "all"})
+    return jsonify({"error": "Lead pool building is currently disabled"}), 503
 
 
 @app.route("/api/admin/leads/stats")
