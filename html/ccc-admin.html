@@ -243,9 +243,16 @@
 <script>
   const API = (window.location.hostname === 'localhost' || window.location.protocol === 'file:') ? 'http://localhost:5001' : '';
 
+  // Read admin key from URL ?key= param and forward on every request
+  const _adminKey = new URLSearchParams(window.location.search).get('key') || '';
+  function _adminFetch(url, opts = {}) {
+    const sep = url.includes('?') ? '&' : '?';
+    return fetch(_adminKey ? url + sep + 'key=' + encodeURIComponent(_adminKey) : url, opts);
+  }
+
   async function loadStats() {
     try {
-      const r = await fetch(`${API}/api/admin/stats`);
+      const r = await _adminFetch(`${API}/api/admin/stats`);
       if (!r.ok) throw new Error(r.status);
       const { data: s } = await r.json();
 
@@ -301,7 +308,7 @@
 
   async function loadLeadsStats() {
     try {
-      const r = await fetch(`${API}/api/admin/leads/stats`);
+      const r = await _adminFetch(`${API}/api/admin/leads/stats`);
       if (!r.ok) return;
       const { data: s } = await r.json();
       const el = document.getElementById('leads-stats');
@@ -338,7 +345,7 @@
     btn.disabled = true;
     btn.textContent = '… Building';
     try {
-      const r = await fetch(`${API}/api/admin/build-leads`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+      const r = await _adminFetch(`${API}/api/admin/build-leads`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
       const d = await r.json();
       showToast(d.status === 'triggered' ? 'Lead build triggered — runs in background' : d.error || 'Error');
     } catch(e) { showToast('Error: ' + e.message); }
@@ -348,7 +355,7 @@
 
   async function loadRuns() {
     try {
-      const r = await fetch(`${API}/api/admin/runs?limit=30`);
+      const r = await _adminFetch(`${API}/api/admin/runs?limit=30`);
       if (!r.ok) return;
       const { data } = await r.json();
       const tbody = document.getElementById('runs-tbody');
@@ -380,7 +387,7 @@
   async function deleteSource(source) {
     if (!confirm(`Delete ALL jobs from source "${source}"? This cannot be undone.`)) return;
     try {
-      const r = await fetch(`${API}/api/admin/jobs/delete-source`, {
+      const r = await _adminFetch(`${API}/api/admin/jobs/delete-source`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source }),
@@ -399,7 +406,7 @@
     if (btn) { btn.disabled = true; btn.textContent = '… Scraping'; }
 
     try {
-      const r = await fetch(`${API}/api/admin/scrape`, {
+      const r = await _adminFetch(`${API}/api/admin/scrape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source_id: sourceId }),
@@ -426,7 +433,7 @@
   // ── STUDENTS ──
   async function loadStudents() {
     try {
-      const r = await fetch(`${API}/api/admin/students`);
+      const r = await _adminFetch(`${API}/api/admin/students`);
       if (!r.ok) return;
       const { data } = await r.json();
       const tbody = document.getElementById('students-tbody');
@@ -438,7 +445,7 @@
         const inds = Array.isArray(s.industries) ? s.industries.slice(0,2).join(', ') : (s.industries || '').replace(/[\[\]"]/g,'').split(',').slice(0,2).join(', ');
         const rate = s.sent ? Math.round((s.replies / s.sent) * 100) : 0;
         const rateClass = rate >= 20 ? 'rate-good' : '';
-        const joined = s.created_at ? new Date(s.created_at+'Z').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+        const joined = s.created_at ? new Date(s.created_at.includes('Z') || s.created_at.includes('+') ? s.created_at : s.created_at+'Z').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
         return `<tr>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.email}</td>
           <td>${s.university || '—'}</td>
@@ -543,7 +550,7 @@
   // ── SUPPRESSION ──
   async function loadSuppressions() {
     try {
-      const r = await fetch(`${API}/api/admin/suppressions`);
+      const r = await _adminFetch(`${API}/api/admin/suppressions`);
       if (!r.ok) return;
       const { data } = await r.json();
       const el = document.getElementById('suppress-list');

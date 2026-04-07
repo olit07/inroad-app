@@ -57,6 +57,8 @@ ALLOWED_ORIGINS = [
 
 DEV_MODE = os.environ.get("DEV_MODE", "false").lower() == "true"
 
+ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
+
 # ── Pipeline ─────────────────────────────────────────────────────────────────
 
 DAILY_MATCH_QUOTA   = int(os.environ.get("DAILY_MATCH_QUOTA",   "3"))

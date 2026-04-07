@@ -29,7 +29,7 @@ from config.settings import (
     APP_BASE_URL, SESSION_SECRET, FROM_EMAIL, FROM_NAME,
     MAGIC_LINK_EXPIRY_MINUTES, MAGIC_LINK_RATE_LIMIT,
     MAGIC_LINK_RATE_WINDOW, SESSION_DAYS, ALLOWED_ORIGINS, DEV_MODE,
-    JWT_REFRESH_TTL_DAYS
+    JWT_REFRESH_TTL_DAYS, ADMIN_SECRET
 )
 from db.database import (
     init_db, get_student_by_email, get_student_by_id,
@@ -61,6 +61,29 @@ init_db()
 
 # Determine if we're on a secure host (Railway / any https origin)
 IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
+
+# ── Admin auth ───────────────────────────────────────────────────────────────
+
+def require_admin(f):
+    """Guard admin routes with a secret key passed as ?key= or X-Admin-Key header."""
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if not ADMIN_SECRET:
+            # No secret configured — block access entirely in production
+            if IS_PRODUCTION:
+                return jsonify({"error": "Admin access not configured"}), 403
+            # In dev mode without a secret, allow through
+            return f(*args, **kwargs)
+        provided = (
+            request.args.get("key")
+            or request.headers.get("X-Admin-Key")
+            or (request.get_json(silent=True) or {}).get("admin_key")
+        )
+        if not provided or not secrets.compare_digest(provided, ADMIN_SECRET):
+            return jsonify({"error": "Unauthorised"}), 401
+        return f(*args, **kwargs)
+    return wrapped
+
 
 # ── Session helpers ──────────────────────────────────────────────────────────
 
@@ -808,6 +831,7 @@ def list_jobs():
 
 
 @app.route("/api/admin/jobs/cleanup", methods=["POST"])
+@require_admin
 def cleanup_blank_jobs():
     """Delete jobs with empty company or title (artefacts from old scraper bugs)."""
     from db.database import execute as db_execute, fetchone
@@ -820,6 +844,7 @@ def cleanup_blank_jobs():
 
 
 @app.route("/api/admin/jobs/delete-source", methods=["POST"])
+@require_admin
 def delete_jobs_by_source():
     """Delete all jobs from a given source."""
     from db.database import execute as db_execute, fetchone
@@ -836,6 +861,7 @@ def delete_jobs_by_source():
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
 @app.route("/api/admin/stats")
+@require_admin
 def admin_stats():
     from db.database import USE_POSTGRES
     if USE_POSTGRES:
@@ -876,6 +902,7 @@ def admin_stats():
 
 
 @app.route("/api/admin/generate-cards", methods=["POST"])
+@require_admin
 def admin_generate_cards():
     """Force-regenerate today's cards for a student (by email or id)."""
     data = request.get_json(silent=True) or {}
@@ -911,6 +938,7 @@ def admin_generate_cards():
 
 
 @app.route("/api/admin/build-leads", methods=["POST"])
+@require_admin
 def admin_build_leads():
     """Trigger lead pre-fetch for all (or one) company. Runs in background thread."""
     data    = request.get_json(silent=True) or {}
@@ -931,6 +959,7 @@ def admin_build_leads():
 
 
 @app.route("/api/admin/leads/stats")
+@require_admin
 def admin_leads_stats():
     """Return aggregate stats about the pre-fetched leads pool."""
     try:
@@ -942,6 +971,7 @@ def admin_leads_stats():
 
 
 @app.route("/api/admin/scrape", methods=["POST"])
+@require_admin
 def admin_scrape():
     data = request.get_json(silent=True) or {}
     source_id = data.get("source_id")  # None = run all
@@ -959,6 +989,7 @@ def admin_scrape():
 
 
 @app.route("/api/admin/runs")
+@require_admin
 def admin_runs():
     try:
         rows = fetchall(
@@ -972,6 +1003,7 @@ def admin_runs():
 
 
 @app.route("/api/admin/students")
+@require_admin
 def admin_students():
     rows = fetchall("""
         SELECT s.email, s.university, s.industries, s.created_at,
@@ -987,6 +1019,7 @@ def admin_students():
 
 
 @app.route("/api/admin/suppressions")
+@require_admin
 def admin_suppressions():
     rows = fetchall("SELECT identifier, identifier_type, created_at as added_at FROM suppression_list ORDER BY created_at DESC")
     return jsonify({"data": {"suppressions": rows}})
@@ -1048,6 +1081,7 @@ def settings_page():
 
 
 @app.route("/admin")
+@require_admin
 def admin_page():
     return _send_html("ccc-admin.html")
 
