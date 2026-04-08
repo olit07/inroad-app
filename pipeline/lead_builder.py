@@ -24,10 +24,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.settings   import (
-    DEPT_MAP, INDUSTRY_DEPT_MAP, REGION_LOCATION_FALLBACK,
+    DEPT_MAP, TITLE_DEPT_MAP, UNI_FULL_NAMES, REGION_LOCATION_FALLBACK,
 )
 from db.database       import fetchall, upsert_lead, USE_POSTGRES
-from pipeline.matcher  import LinkedInMatcher, _extract_university, _extract_tenure, _extract_location
+from pipeline.matcher  import LinkedInMatcher, _extract_university, _extract_tenure, _extract_location, _infer_seniority_from_title
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -38,16 +38,40 @@ TRAINING_FILE = Path(__file__).parent.parent / "data" / "leads_training.jsonl"
 
 # ── Query builders ────────────────────────────────────────────────────────────
 
-def _build_query_alumni(company: str, university: str, dept_keywords: list[str]) -> str:
-    """site:linkedin.com/in "Company" "University" ("kw1" OR "kw2")"""
-    kw_str = " OR ".join(f'"{kw}"' for kw in dept_keywords[:4])
-    return f'site:linkedin.com/in "{company}" "{university}" ({kw_str})'
+def _full_uni_name(university: str) -> str:
+    """Expand a short university name to its full official name for Google search."""
+    key = university.strip().lower()
+    # Direct lookup
+    if key in UNI_FULL_NAMES:
+        return UNI_FULL_NAMES[key]
+    # Already a full name (contains "University" or "College") — use as-is
+    if "university" in key or "college" in key or "school of" in key:
+        return university.strip()
+    # No match — return as-is (better than silently dropping it)
+    return university.strip()
 
 
-def _build_query_broad(company: str, location: str, dept_keywords: list[str]) -> str:
-    """site:linkedin.com/in "Company" "Location" ("kw1" OR "kw2")"""
-    kw_str = " OR ".join(f'"{kw}"' for kw in dept_keywords[:4])
-    return f'site:linkedin.com/in "{company}" "{location}" ({kw_str})'
+def _dept_from_title(title: str) -> str:
+    """
+    Map a job title to a single DEPT_MAP key by scanning title keywords.
+    Returns the first matching dept_tag from TITLE_DEPT_MAP, or
+    'software_engineering' as a safe default.
+    """
+    title_lower = title.lower()
+    for keywords, dept_tag in TITLE_DEPT_MAP:
+        if any(kw in title_lower for kw in keywords):
+            return dept_tag
+    return "software_engineering"
+
+
+def _build_query_alumni(company: str, location: str, university_full: str, dept_keyword: str) -> str:
+    """site:linkedin.com/in "Company" "City" "Full University Name" "dept keyword" """
+    return f'site:linkedin.com/in "{company}" "{location}" "{university_full}" "{dept_keyword}"'
+
+
+def _build_query_broad(company: str, location: str, dept_keyword: str) -> str:
+    """site:linkedin.com/in "Company" "City" "dept keyword" """
+    return f'site:linkedin.com/in "{company}" "{location}" "{dept_keyword}"'
 
 
 # ── Snippet parser (standalone, mirrors matcher._parse_snippet) ───────────────
@@ -101,6 +125,7 @@ def _parse_snippet(result: dict, university: str = "", dept_tag: str = "") -> di
         "tenure_months":    tenure_months,
         "is_alumni":        is_alumni,
         "dept_tag":         dept_tag,
+        "seniority":        _infer_seniority_from_title(title),
     }
 
 
@@ -137,21 +162,6 @@ def _save_training_records(
 
 # ── Main build loop ───────────────────────────────────────────────────────────
 
-def _depts_for_industry(industry: str) -> list[str]:
-    """Return relevant DEPT_MAP keys for a given industry string."""
-    for ind_key, depts in INDUSTRY_DEPT_MAP.items():
-        if ind_key.lower() == (industry or "").lower():
-            return depts
-    # Fuzzy fallback
-    ind_lower = (industry or "").lower()
-    if "finance" in ind_lower or "banking" in ind_lower:
-        return INDUSTRY_DEPT_MAP.get("Finance", [])
-    if "tech" in ind_lower or "software" in ind_lower or "engineer" in ind_lower:
-        return INDUSTRY_DEPT_MAP.get("Technology", [])
-    if "law" in ind_lower or "legal" in ind_lower:
-        return INDUSTRY_DEPT_MAP.get("Law", [])
-    return ["software_engineering"]  # safe default
-
 
 def build_leads(
     company_filter: str = "",
@@ -171,67 +181,70 @@ def build_leads(
         logger.error("SERPER_API_KEY not set — cannot build leads")
         return 0
 
-    # Fetch distinct companies from jobs table
+    # Fetch distinct (company, title, location) from jobs table
+    where = " WHERE source='trackr'"
+    if company_filter:
+        where += f" AND lower(company) = lower('{company_filter}')"
     rows = fetchall(
-        "SELECT DISTINCT company, location, industry FROM jobs"
-        + (" WHERE lower(company) = lower('" + company_filter + "')" if company_filter else "")
+        f"SELECT DISTINCT company, title, location FROM jobs{where}"
     )
 
     if not rows:
         logger.warning("No jobs found in DB — run scraper first")
         return 0
 
-    logger.info(f"Building leads for {len(rows)} company/industry rows")
+    logger.info(f"Building leads for {len(rows)} company/title rows")
     total_upserted = 0
     seen_pairs: set = set()  # (company, dept) to avoid duplicate crawl in same run
 
+    uni_full = _full_uni_name(university) if university else ""
+
     for row in rows:
-        company  = (row.get("company") or "").strip()
-        location = (row.get("location") or "").strip()
-        industry = (row.get("industry") or "").strip()
+        company   = (row.get("company") or "").strip()
+        job_title = (row.get("title") or "").strip()
+        location  = (row.get("location") or "").strip()
 
         if not company:
             continue
 
-        # Use actual job location, fall back to region hint
-        if not location:
-            location = REGION_LOCATION_FALLBACK.get("UK", "London")
+        # Use actual job location (region code e.g. "UK"), fall back to city
+        if not location or location in ("UK", "US", "EU", "Global"):
+            location = REGION_LOCATION_FALLBACK.get(location, "London")
 
-        depts = _depts_for_industry(industry)
+        dept_name     = _dept_from_title(job_title)
+        dept_keywords = DEPT_MAP.get(dept_name, [dept_name])
+        dept_keyword  = dept_keywords[0]  # most specific / descriptive keyword
 
-        for dept_name in depts:
-            pair = (company.lower(), dept_name)
-            if pair in seen_pairs:
-                continue
-            seen_pairs.add(pair)
+        pair = (company.lower(), dept_name)
+        if pair in seen_pairs:
+            continue
+        seen_pairs.add(pair)
 
-            dept_keywords = DEPT_MAP.get(dept_name, [dept_name])
-
-            # Query A — alumni first
-            leads_a: list[dict] = []
-            if university:
-                query_a = _build_query_alumni(company, university, dept_keywords)
-                logger.info(f"  Query A: {query_a[:80]}")
-                raw_a_p1 = matcher._serper_search(query_a, count=10, page=1)
-                raw_a_p2 = matcher._serper_search(query_a, count=10, page=2)
-                raw_a    = _dedup(raw_a_p1 + raw_a_p2)
-                parsed_a = [_parse_snippet(r, university=university, dept_tag=dept_name) for r in raw_a]
-                leads_a  = [l for l in parsed_a if l]
-                if not dry_run:
-                    _save_training_records(company, dept_name, location, query_a, "alumni", 1, raw_a_p1, [_parse_snippet(r, university, dept_name) for r in raw_a_p1], university)
-                    _save_training_records(company, dept_name, location, query_a, "alumni", 2, raw_a_p2, [_parse_snippet(r, university, dept_name) for r in raw_a_p2], university)
-
-            # Query B — broad location search (always run, supplement A)
-            query_b = _build_query_broad(company, location, dept_keywords)
-            logger.info(f"  Query B: {query_b[:80]}")
-            raw_b_p1 = matcher._serper_search(query_b, count=10, page=1)
-            raw_b_p2 = matcher._serper_search(query_b, count=10, page=2)
-            raw_b    = _dedup(raw_b_p1 + raw_b_p2)
-            parsed_b = [_parse_snippet(r, university=university, dept_tag=dept_name) for r in raw_b]
-            leads_b  = [l for l in parsed_b if l]
+        # Query A — alumni first (only when university provided)
+        leads_a: list[dict] = []
+        if uni_full:
+            query_a = _build_query_alumni(company, location, uni_full, dept_keyword)
+            logger.info(f"  Query A: {query_a[:100]}")
+            raw_a_p1 = matcher._serper_search(query_a, count=10, page=1)
+            raw_a_p2 = matcher._serper_search(query_a, count=10, page=2)
+            raw_a    = _dedup(raw_a_p1 + raw_a_p2)
+            parsed_a = [_parse_snippet(r, university=university, dept_tag=dept_name) for r in raw_a]
+            leads_a  = [l for l in parsed_a if l]
             if not dry_run:
-                _save_training_records(company, dept_name, location, query_b, "broad", 1, raw_b_p1, [_parse_snippet(r, university, dept_name) for r in raw_b_p1], university)
-                _save_training_records(company, dept_name, location, query_b, "broad", 2, raw_b_p2, [_parse_snippet(r, university, dept_name) for r in raw_b_p2], university)
+                _save_training_records(company, dept_name, location, query_a, "alumni", 1, raw_a_p1, [_parse_snippet(r, university, dept_name) for r in raw_a_p1], university)
+                _save_training_records(company, dept_name, location, query_a, "alumni", 2, raw_a_p2, [_parse_snippet(r, university, dept_name) for r in raw_a_p2], university)
+
+        # Query B — broad (company + location + dept, no university)
+        query_b = _build_query_broad(company, location, dept_keyword)
+        logger.info(f"  Query B: {query_b[:100]}")
+        raw_b_p1 = matcher._serper_search(query_b, count=10, page=1)
+        raw_b_p2 = matcher._serper_search(query_b, count=10, page=2)
+        raw_b    = _dedup(raw_b_p1 + raw_b_p2)
+        parsed_b = [_parse_snippet(r, university=university, dept_tag=dept_name) for r in raw_b]
+        leads_b  = [l for l in parsed_b if l]
+        if not dry_run:
+            _save_training_records(company, dept_name, location, query_b, "broad", 1, raw_b_p1, [_parse_snippet(r, university, dept_name) for r in raw_b_p1], university)
+            _save_training_records(company, dept_name, location, query_b, "broad", 2, raw_b_p2, [_parse_snippet(r, university, dept_name) for r in raw_b_p2], university)
 
             # Merge A + B, deduplicate by linkedin_url
             all_leads: dict[str, dict] = {}

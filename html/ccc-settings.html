@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'><rect width='88' height='88' rx='22' fill='%231F4530'/><path d='M26 24 L54 44 L26 64' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/><line x1='54' y1='44' x2='70' y2='44' stroke='white' stroke-width='8' stroke-linecap='round'/></svg>">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Settings — inroad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<script src="/static/auth.js"></script>
 <style>
   :root {
     --bg:#FFFFFF; --surface:#F3F1EE; --border:#E6E2DB; --border-md:#CEC8BF;
@@ -44,7 +45,7 @@
   .field{display:flex;flex-direction:column;gap:6px}
   .field label{font-size:0.78rem;font-weight:700;color:var(--text-mid)}
   .field input,.field textarea,.field select{
-    background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
+    background:var(--bg);border:1.5px solid var(--border);border-radius:10px;
     padding:10px 14px;font-size:0.875rem;font-family:'Lato',sans-serif;font-weight:400;
     color:var(--text);outline:none;transition:border-color 0.15s,box-shadow 0.15s;
   }
@@ -105,7 +106,7 @@
   <a href="/" class="wordmark">
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
   </a>
-  <a href="/dashboard" class="nav-back">← Dashboard</a>
+  <a href="/dashboard" class="nav-back" id="back-btn">← Dashboard</a>
 </nav>
 
 <div class="page">
@@ -195,16 +196,11 @@ const LOCKED_INDUSTRIES = new Set([
   'Design & UX','Real Estate','Non-profit & Policy','Venture Capital','Other'
 ]);
 
-let _token = null;
-
-async function getToken() {
-  if (_token) return _token;
-  try {
-    const r = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' });
-    if (r.ok) { _token = (await r.json()).access_token; }
-  } catch(_) {}
-  return _token;
-}
+// Save token to sessionStorage before leaving so dashboard can reuse it
+document.getElementById('back-btn').addEventListener('click', function(e) {
+  const tok = getAccessToken();
+  if (tok) sessionStorage.setItem('inroad_token', tok);
+});
 
 // Populate industry pills
 const grid = document.getElementById('industry-grid');
@@ -228,13 +224,18 @@ function selectSize(el) {
 }
 
 async function loadSettings() {
-  const token = await getToken();
-  if (!token) {
-    document.getElementById('page-sub').textContent = 'Not signed in — please log in first.';
-    return;
+  // Restore token from sessionStorage if coming from another page
+  const _stored = sessionStorage.getItem('inroad_token');
+  if (_stored) { setAccessToken(_stored); sessionStorage.removeItem('inroad_token'); }
+
+  // Refresh token if we don't have one yet
+  if (!getAccessToken()) {
+    const refreshed = await _tryRefresh();
+    if (!refreshed) { window.location.href = '/login'; return; }
   }
+
   try {
-    const r = await fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } });
+    const r = await apiFetch('/api/me');
     if (!r.ok) return;
     const data = await r.json();
 
@@ -267,7 +268,6 @@ function updateBioCount() {
 document.getElementById('bio').addEventListener('input', updateBioCount);
 
 async function saveSettings() {
-  const token = await getToken();
   const industries = [...document.querySelectorAll('.industry-pill.selected')].map(p => p.dataset.value);
   const size = document.querySelector('.size-card.selected')?.dataset.value || '';
 
@@ -283,10 +283,9 @@ async function saveSettings() {
   btn.disabled = true;
 
   try {
-    const r = await fetch('/api/me', {
+    const r = await apiFetch('/api/me', {
       method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (r.ok) {
@@ -305,13 +304,8 @@ async function saveSettings() {
 
 async function confirmDelete() {
   if (!confirm('Are you sure? This permanently deletes your account and all match history. This cannot be undone.')) return;
-  const token = await getToken();
   try {
-    await fetch('/api/me', {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Authorization': 'Bearer ' + token },
-    });
+    await apiFetch('/api/me', { method: 'DELETE' });
   } catch(_) {}
   window.location.href = '/';
 }

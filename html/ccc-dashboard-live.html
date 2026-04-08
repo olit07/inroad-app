@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'><rect width='88' height='88' rx='22' fill='%231F4530'/><path d='M26 24 L54 44 L26 64' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/><line x1='54' y1='44' x2='70' y2='44' stroke='white' stroke-width='8' stroke-linecap='round'/></svg>">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — inroad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -918,7 +918,7 @@
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
   </a>
   <div class="nav-right">
-    <a href="/settings" class="nav-settings">Settings</a>
+    <a href="/settings" class="nav-settings" id="settings-link">Settings</a>
     <div class="nav-profile" title="Your profile"></div>
   </div>
 </nav>
@@ -1254,6 +1254,12 @@
   } // end _initInner
 
   document.addEventListener('DOMContentLoaded', init);
+
+  // Save token to sessionStorage before navigating to settings
+  document.getElementById('settings-link').addEventListener('click', function() {
+    const tok = getAccessToken();
+    if (tok) sessionStorage.setItem('inroad_token', tok);
+  });
 
   // Pool of 20 diverse professional corporate headshots (Unsplash free licence)
   // blurred via CSS — crop=faces centres the square crop on the subject's face
