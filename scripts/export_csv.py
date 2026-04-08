@@ -21,6 +21,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from db.database import fetchall  # noqa: E402
+from pipeline.lead_builder import _dept_from_title  # noqa: E402
 
 DATA_DIR = os.path.join(ROOT, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -47,14 +48,38 @@ EXPORTS = {
     "leads": {
         "file": os.path.join(DATA_DIR, "leads.csv"),
         "sql": """
-            SELECT id, name, title, company, university, linkedin_url,
-                   location_city, location_country, tenure_months,
-                   is_alumni, dept_tag, fetched_at, stale_after
+            SELECT company, dept_tag,
+                   COALESCE(NULLIF(location_city,''), location_country, '') AS job_location,
+                   name, title, linkedin_url, snippet,
+                   fetched_at, stale_after
             FROM leads
-            ORDER BY id
+            ORDER BY company, dept_tag
         """,
     },
 }
+
+
+LEADS_COLUMNS = [
+    "job_company", "job_department", "job_location",
+    "scraped_name", "scraped_title", "matched_department",
+    "scraped_linkedin", "scraped_snippet",
+    "fetched_at", "stale_after",
+]
+
+
+def _transform_lead(row: dict) -> dict:
+    return {
+        "job_company":        row.get("company", ""),
+        "job_department":     row.get("dept_tag", ""),
+        "job_location":       row.get("job_location", ""),
+        "scraped_name":       row.get("name", ""),
+        "scraped_title":      row.get("title", ""),
+        "matched_department": _dept_from_title(row.get("title") or ""),
+        "scraped_linkedin":   row.get("linkedin_url", ""),
+        "scraped_snippet":    row.get("snippet", ""),
+        "fetched_at":         row.get("fetched_at", ""),
+        "stale_after":        row.get("stale_after", ""),
+    }
 
 
 def export(name: str, cfg: dict) -> int:
@@ -66,8 +91,13 @@ def export(name: str, cfg: dict) -> int:
     if not rows:
         print(f"  {name}: 0 rows — CSV not written")
         return 0
+    if name == "leads":
+        rows = [_transform_lead(r) for r in rows]
+        fieldnames = LEADS_COLUMNS
+    else:
+        fieldnames = list(rows[0].keys())
     with open(cfg["file"], "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
     print(f"  {name}: {len(rows)} rows → {cfg['file']}")

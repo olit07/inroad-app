@@ -246,22 +246,24 @@ def build_leads(
             _save_training_records(company, dept_name, location, query_b, "broad", 1, raw_b_p1, [_parse_snippet(r, university, dept_name) for r in raw_b_p1], university)
             _save_training_records(company, dept_name, location, query_b, "broad", 2, raw_b_p2, [_parse_snippet(r, university, dept_name) for r in raw_b_p2], university)
 
-            # Merge A + B, deduplicate by linkedin_url
-            all_leads: dict[str, dict] = {}
-            for lead in leads_a + leads_b:
-                url = lead.get("linkedin_url", "")
-                if url and url not in all_leads:
-                    all_leads[url] = lead
+        # Merge A + B, deduplicate by linkedin_url
+        # Stamp searched company onto each lead — snippet parsing rarely extracts it
+        all_leads: dict[str, dict] = {}
+        for lead in leads_a + leads_b:
+            lead["company"] = company  # always the company we searched for
+            url = lead.get("linkedin_url", "")
+            if url and url not in all_leads:
+                all_leads[url] = lead
 
-            logger.info(f"  {company} / {dept_name}: {len(all_leads)} unique leads")
+        logger.info(f"  {company} / {dept_name}: {len(all_leads)} unique leads")
 
-            if not dry_run:
-                for lead in all_leads.values():
-                    try:
-                        upsert_lead(lead)
-                        total_upserted += 1
-                    except Exception as e:
-                        logger.warning(f"  upsert_lead failed: {e}")
+        if not dry_run:
+            for lead in all_leads.values():
+                try:
+                    upsert_lead(lead)
+                    total_upserted += 1
+                except Exception as e:
+                    logger.warning(f"  upsert_lead failed: {e}")
 
     logger.info(f"Lead build complete — {total_upserted} leads upserted")
     return total_upserted
