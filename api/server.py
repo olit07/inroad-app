@@ -1098,6 +1098,11 @@ def static_files(filename):
     return send_from_directory(os.path.join(ROOT, "static"), filename)
 
 
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(os.path.join(ROOT, "static"), "favicon.svg", mimetype="image/svg+xml")
+
+
 # ── Start ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

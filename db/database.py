@@ -985,46 +985,51 @@ def upsert_lead(lead: dict) -> None:
     if USE_POSTGRES:
         execute(
             """INSERT INTO leads
-               (name, title, company, university, linkedin_url, snippet,
+               (job_title, name, title, company, university, linkedin_url, snippet,
                 location_city, location_country, tenure_months, is_alumni,
-                dept_tag, fetched_at, stale_after)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW(),?)
+                dept_tag, scraped_rank, fetched_at, stale_after)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?)
                ON CONFLICT (linkedin_url) DO UPDATE SET
+                 job_title=EXCLUDED.job_title,
                  name=EXCLUDED.name, title=EXCLUDED.title, company=EXCLUDED.company,
                  university=EXCLUDED.university, snippet=EXCLUDED.snippet,
                  location_city=EXCLUDED.location_city,
                  location_country=EXCLUDED.location_country,
                  tenure_months=EXCLUDED.tenure_months, is_alumni=EXCLUDED.is_alumni,
-                 dept_tag=EXCLUDED.dept_tag, fetched_at=NOW(), stale_after=EXCLUDED.stale_after""",
+                 dept_tag=EXCLUDED.dept_tag, scraped_rank=EXCLUDED.scraped_rank,
+                 fetched_at=NOW(), stale_after=EXCLUDED.stale_after""",
             (
+                lead.get("job_title", ""),
                 lead.get("name", ""), lead.get("title", ""), lead.get("company", ""),
                 lead.get("university", ""), lead["linkedin_url"], lead.get("snippet", ""),
                 lead.get("location_city", ""), lead.get("location_country", ""),
                 lead.get("tenure_months", 0), bool(lead.get("is_alumni", False)),
-                lead.get("dept_tag", ""), stale_after,
+                lead.get("dept_tag", ""), lead.get("scraped_rank", 0), stale_after,
             ),
         )
     else:
         execute(
             """INSERT INTO leads
-               (name, title, company, university, linkedin_url, snippet,
+               (job_title, name, title, company, university, linkedin_url, snippet,
                 location_city, location_country, tenure_months, is_alumni,
-                dept_tag, fetched_at, stale_after)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?)
+                dept_tag, scraped_rank, fetched_at, stale_after)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?)
                ON CONFLICT (linkedin_url) DO UPDATE SET
+                 job_title=excluded.job_title,
                  name=excluded.name, title=excluded.title, company=excluded.company,
                  university=excluded.university, snippet=excluded.snippet,
                  location_city=excluded.location_city,
                  location_country=excluded.location_country,
                  tenure_months=excluded.tenure_months, is_alumni=excluded.is_alumni,
-                 dept_tag=excluded.dept_tag, fetched_at=datetime('now'),
-                 stale_after=excluded.stale_after""",
+                 dept_tag=excluded.dept_tag, scraped_rank=excluded.scraped_rank,
+                 fetched_at=datetime('now'), stale_after=excluded.stale_after""",
             (
+                lead.get("job_title", ""),
                 lead.get("name", ""), lead.get("title", ""), lead.get("company", ""),
                 lead.get("university", ""), lead["linkedin_url"], lead.get("snippet", ""),
                 lead.get("location_city", ""), lead.get("location_country", ""),
                 lead.get("tenure_months", 0), 1 if lead.get("is_alumni") else 0,
-                lead.get("dept_tag", ""), stale_after,
+                lead.get("dept_tag", ""), lead.get("scraped_rank", 0), stale_after,
             ),
         )
 

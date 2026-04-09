@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inroad — Brand Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--green:#1F4530;--green-deep:#122B1E;--green-mid:#A8C9B0;--green-lite:#EBF4EE;--green-mint:#A8D8B8;--surface:#F5F5F2;--border:#E2DED8;--text:#111110;--muted:#6E6860;--subtle:#A8A09A;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--surface);color:var(--text);font-family:'Lato',sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+.page{max-width:900px;margin:0 auto;padding:64px 48px 120px;}
+.section{margin-bottom:80px;}
+.slabel{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:28px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+/* cover */
+.cover{background:var(--green);border-radius:24px;padding:64px 56px;margin-bottom:80px;position:relative;overflow:hidden;}
+.cover::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,0.04) 1px,transparent 1px);background-size:24px 24px;}
+.cwm{display:flex;align-items:center;gap:14px;margin-bottom:40px;position:relative;}
+.ctitle{font-family:'Lora',Georgia,serif;font-size:clamp(2.2rem,5vw,3.4rem);font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.05;position:relative;}
+.ctitle em{font-style:italic;font-weight:400;color:#A8D8B8;}
+.csub{font-size:.9rem;color:rgba(255,255,255,.5);margin-top:12px;font-weight:300;position:relative;}
+/* logo */
+.lg{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.lc{background:#fff;border:1px solid var(--border);border-radius:16px;padding:40px 32px;display:flex;flex-direction:column;gap:20px;}
+.lc.dk{background:var(--green);border-color:transparent;}
+.lc.mt{background:var(--green-lite);border-color:var(--green-mid);}
+.ll{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-top:auto;}
+.lc.dk .ll{color:rgba(255,255,255,.35);}
+/* colour */
+.cr{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;}
+.ct{border-radius:12px;overflow:hidden;border:1px solid rgba(0,0,0,.06);}
+.cs{height:80px;}
+.ci{padding:12px;background:#fff;}
+.cn{font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.ch{font-size:10px;color:var(--muted);font-family:monospace;}
+.cu{font-size:10px;color:var(--subtle);margin-top:3px;line-height:1.4;}
+/* type */
+.tr{margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid var(--border);}
+.tr:last-child{border-bottom:none;}
+.tm{display:flex;align-items:baseline;gap:16px;margin-bottom:10px;flex-wrap:wrap;}
+.tt{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);background:var(--green-lite);border:1px solid var(--green-mid);padding:2px 8px;border-radius:100px;}
+.ts{font-size:11px;color:var(--subtle);font-family:monospace;}
+.th{font-family:'Lora',Georgia,serif;font-size:52px;font-weight:700;line-height:1.05;letter-spacing:-.02em;}
+.th em{font-style:italic;font-weight:400;color:var(--green);}
+.th1{font-family:'Lora',Georgia,serif;font-size:36px;font-weight:700;line-height:1.1;letter-spacing:-.02em;}
+.th1 em{font-style:italic;font-weight:400;color:var(--green);}
+.th2{font-family:'Lato',sans-serif;font-size:22px;font-weight:900;letter-spacing:-.01em;}
+.th3{font-family:'Lato',sans-serif;font-size:16px;font-weight:700;}
+.tb{font-size:15px;font-weight:400;line-height:1.7;max-width:540px;}
+.tsm{font-size:12px;color:var(--muted);}
+.tey{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);}
+.twm{font-family:'Lora',Georgia,serif;font-size:28px;font-weight:700;letter-spacing:-.01em;}
+/* comp */
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.cc{background:#fff;border:1px solid var(--border);border-radius:16px;padding:28px;}
+.ccl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:20px;}
+.bp{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#fff;font-family:'Lato',sans-serif;font-size:14px;font-weight:700;padding:11px 22px;border-radius:10px;border:none;cursor:pointer;}
+.bs{display:inline-flex;align-items:center;background:transparent;color:var(--green);font-family:'Lato',sans-serif;font-size:14px;font-weight:700;padding:10px 21px;border-radius:10px;border:1.5px solid var(--green);cursor:pointer;}
+.bg{display:inline-flex;align-items:center;gap:6px;background:transparent;color:var(--muted);font-family:'Lato',sans-serif;font-size:14px;padding:10px 0;border:none;cursor:pointer;}
+.bsm{display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#fff;font-family:'Lato',sans-serif;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--green-lite);border:1px solid var(--green-mid);color:var(--green);font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;}
+.bdot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:blink 2s ease infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.bw{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.85);font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;}
+.chip{font-size:10px;font-weight:700;color:var(--green);background:var(--green-lite);border:1px solid var(--green-mid);padding:1px 7px;border-radius:100px;}
+.mc{border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;display:flex;align-items:center;gap:10px;}
+.mc.act{border-color:var(--green-mid);background:var(--green-lite);}
+.av{width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);flex-shrink:0;}
+.av.g{background:var(--green-lite);border-color:var(--green-mid);color:var(--green);}
+.mn{font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;}
+.ms{font-size:11px;color:var(--muted);}
+.ma{font-size:11px;font-weight:700;color:var(--green);}
+.inp{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:11px 16px;font-size:14px;font-family:'Lato',sans-serif;color:var(--text);outline:none;margin-bottom:10px;}
+.inp.f{border-color:var(--green);box-shadow:0 0 0 3px rgba(31,69,48,.08);}
+.qtrack{height:5px;background:var(--border);border-radius:100px;overflow:hidden;margin-bottom:8px;}
+.qfill{height:100%;border-radius:100px;background:var(--green);}
+.pips{display:flex;gap:6px;}
+.pip{width:8px;height:8px;border-radius:50%;}
+.pip.on{background:var(--green);}
+.pip.off{background:var(--border);}
+/* spacing */
+.srow{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;}
+.stile{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.sblk{background:var(--green-lite);border:1px solid var(--green-mid);border-radius:4px;width:24px;}
+.slbl{font-size:10px;color:var(--muted);font-family:monospace;}
+/* motion */
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.mtile{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 16px;text-align:center;}
+.mname{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.mval{font-size:11px;color:var(--muted);font-family:monospace;line-height:1.6;}
+/* do dont */
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.doc{background:var(--green-lite);border:1.5px solid var(--green-mid);border-radius:12px;padding:20px;}
+.dnc{background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:20px;}
+.dol{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+.dnl{font-size:11px;font-weight:700;color:#B91C1C;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+.dd p{font-size:13px;color:var(--muted);line-height:1.6;}
+/* code */
+.code{background:var(--green-deep);border-radius:12px;padding:24px 28px;font-family:'Courier New',monospace;font-size:12px;line-height:1.9;overflow-x:auto;white-space:pre;}
+.cc2{color:rgba(168,216,184,.4);}
+.cv2{color:#A8D8B8;}
+.cl2{color:rgba(255,255,255,.75);}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="cover">
+  <div class="cwm">
+    <svg width="44" height="44" viewBox="0 0 88 88" fill="none"><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+    <span style="font-family:'Lora',Georgia,serif;font-size:28px;font-weight:700;color:white;letter-spacing:-.01em;">inroad</span>
+  </div>
+  <h1 class="ctitle">Brand Guide<br><em>v1.0 — 2026</em></h1>
+  <p class="csub">Colours · Typography · Logo · Components · Motion · Copy voice</p>
+</div>
+
+<div class="section">
+  <div class="slabel">01 — Logo</div>
+  <div class="lg">
+    <div class="lc">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <svg width="40" height="40" viewBox="0 0 88 88" fill="none"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+        <span style="font-family:'Lora',Georgia,serif;font-size:26px;font-weight:700;color:#111110;letter-spacing:-.01em;">inroad</span>
+      </div>
+      <div class="ll">Primary — light background</div>
+    </div>
+    <div class="lc dk">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <svg width="40" height="40" viewBox="0 0 88 88" fill="none"><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+        <span style="font-family:'Lora',Georgia,serif;font-size:26px;font-weight:700;color:white;letter-spacing:-.01em;">inroad</span>
+      </div>
+      <div class="ll">Primary — dark background</div>
+    </div>
+    <div class="lc">
+      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+        <svg width="56" height="56" viewBox="0 0 88 88" fill="none"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+        <svg width="40" height="40" viewBox="0 0 88 88" fill="none"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+        <svg width="28" height="28" viewBox="0 0 88 88" fill="none"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+        <svg width="18" height="18" viewBox="0 0 88 88" fill="none"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+      </div>
+      <div class="ll">Icon mark — 56 · 40 · 28 · 18px</div>
+    </div>
+    <div class="lc mt">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <span style="font-family:'Lora',Georgia,serif;font-size:30px;font-weight:700;color:#1F4530;letter-spacing:-.01em;">inroad</span>
+        <span style="font-family:'Lora',Georgia,serif;font-size:14px;font-weight:400;letter-spacing:.14em;color:#1F4530;text-transform:uppercase;">INROAD</span>
+      </div>
+      <div class="ll">Wordmark only</div>
+    </div>
+  </div>
+  <div class="dd">
+    <div class="doc"><div class="dol">✓ Do</div><p>Use the icon inside its rounded-square container. Keep clear space equal to icon width on all sides. Always use Lora serif lowercase for the wordmark.</p></div>
+    <div class="dnc"><div class="dnl">✕ Don't</div><p>Don't recolour, stretch, or add effects to the mark. Don't use the bare mark below 24px without the container. Don't set the wordmark in sans-serif or title case.</p></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="slabel">02 — Colour</div>
+  <div class="cr">
+    <div class="ct"><div class="cs" style="background:#1F4530;"></div><div class="ci"><div class="cn">Forest</div><div class="ch">#1F4530</div><div class="cu">Primary · CTAs</div></div></div>
+    <div class="ct"><div class="cs" style="background:#122B1E;"></div><div class="ci"><div class="cn">Deep</div><div class="ch">#122B1E</div><div class="cu">Hover states</div></div></div>
+    <div class="ct"><div class="cs" style="background:#A8C9B0;border:1px solid rgba(0,0,0,.06);"></div><div class="ci"><div class="cn">Sage</div><div class="ch">#A8C9B0</div><div class="cu">Borders · chips</div></div></div>
+    <div class="ct"><div class="cs" style="background:#A8D8B8;border:1px solid rgba(0,0,0,.06);"></div><div class="ci"><div class="cn">Mint</div><div class="ch">#A8D8B8</div><div class="cu">On-dark accent</div></div></div>
+    <div class="ct"><div class="cs" style="background:#EBF4EE;border:1px solid rgba(0,0,0,.06);"></div><div class="ci"><div class="cn">Foam</div><div class="ch">#EBF4EE</div><div class="cu">Tinted surfaces</div></div></div>
+    <div class="ct"><div class="cs" style="background:#F5F5F2;border:1px solid #E2DED8;"></div><div class="ci"><div class="cn">Linen</div><div class="ch">#F5F5F2</div><div class="cu">Page background</div></div></div>
+  </div>
+  <div class="cr" style="grid-template-columns:repeat(4,1fr);">
+    <div class="ct"><div class="cs" style="background:#111110;"></div><div class="ci"><div class="cn">Ink</div><div class="ch">#111110</div><div class="cu">Body text</div></div></div>
+    <div class="ct"><div class="cs" style="background:#6E6860;"></div><div class="ci"><div class="cn">Smoke</div><div class="ch">#6E6860</div><div class="cu">Secondary text</div></div></div>
+    <div class="ct"><div class="cs" style="background:#E2DED8;border:1px solid rgba(0,0,0,.06);"></div><div class="ci"><div class="cn">Stone</div><div class="ch">#E2DED8</div><div class="cu">Borders</div></div></div>
+    <div class="ct"><div class="cs" style="background:#fff;border:1px solid #E2DED8;"></div><div class="ci"><div class="cn">White</div><div class="ch">#FFFFFF</div><div class="cu">Cards · inputs</div></div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="slabel">03 — Typography</div>
+  <div class="tr"><div class="tm"><span class="tt">Display</span><span class="ts">Lora 700 · 48–64px · -0.02em</span></div><div class="th">Make your <em>inroad.</em></div></div>
+  <div class="tr"><div class="tm"><span class="tt">Heading 1</span><span class="ts">Lora 700 · 32–40px · -0.02em</span></div><div class="th1">From sign up to coffee chat<br><em>in minutes.</em></div></div>
+  <div class="tr"><div class="tm"><span class="tt">Heading 2</span><span class="ts">Lato 900 · 20–24px · -0.01em</span></div><div class="th2">Today's matches</div></div>
+  <div class="tr"><div class="tm"><span class="tt">Heading 3</span><span class="ts">Lato 700 · 16px</span></div><div class="th3">Sign in with your university email</div></div>
+  <div class="tr"><div class="tm"><span class="tt">Body</span><span class="ts">Lato 400 · 15px · line-height 1.7</span></div><div class="tb">The graduate job market is broken. Applications are a lottery. Inroad gives you a smarter wedge into the workforce — three targeted, AI-personalised outreach emails a day, matched to real openings and the people who can get you in.</div></div>
+  <div class="tr"><div class="tm"><span class="tt">Small</span><span class="ts">Lato 400 · 12px · smoke</span></div><div class="tsm">Free forever for students · Requires a .edu or .ac.uk email · No credit card</div></div>
+  <div class="tr"><div class="tm"><span class="tt">Eyebrow</span><span class="ts">Lato 700 · 10px · 0.12em · uppercase</span></div><div class="tey">How it works</div></div>
+  <div class="tr" style="border:none;margin-bottom:0;padding-bottom:0;"><div class="tm"><span class="tt">Wordmark</span><span class="ts">Lora 700 · 28px · lowercase always</span></div><div class="twm">inroad</div></div>
+</div>
+
+<div class="section">
+  <div class="slabel">04 — Components</div>
+  <div class="cg">
+    <div class="cc"><div class="ccl">Buttons</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:12px;">
+        <button class="bp">Start with your university email →</button>
+        <button class="bs">See how it works</button>
+        <button class="bg">← Back</button>
+        <div style="display:flex;gap:10px;"><button class="bsm">Draft email →</button><button class="bsm" style="background:var(--surface);color:var(--muted);border:1.5px solid var(--border);">↺ Regenerate</button></div>
+      </div>
+    </div>
+    <div class="cc"><div class="ccl">Badges &amp; chips</div>
+      <div style="display:flex;flex-direction:column;gap:14px;align-items:flex-start;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;"><div class="badge"><div class="bdot"></div>Now in early access</div><div class="badge">Alumni</div></div>
+        <div style="background:var(--green);border-radius:10px;padding:10px 14px;display:flex;gap:10px;flex-wrap:wrap;"><div class="bw"><div style="width:5px;height:5px;background:#7FD9A0;border-radius:50%;"></div>UK &amp; US</div><div class="bw">Magic link</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="chip">Alumni</span><span style="font-size:10px;font-weight:700;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:1px 7px;border-radius:100px;">Sent ✓</span></div>
+      </div>
+    </div>
+    <div class="cc"><div class="ccl">Match cards</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="mc"><div class="av">SR</div><div style="flex:1;"><div class="mn">Sarah R. <span class="chip">Alumni</span></div><div class="ms">VP Product · Monzo · PM role</div></div><div style="font-size:11px;color:var(--subtle);">Sent ✓</div></div>
+        <div class="mc act"><div class="av g">AT</div><div style="flex:1;"><div class="mn">Aisha T.</div><div class="ms">Consultant · McKinsey</div></div><div class="ma">Draft →</div></div>
+      </div>
+    </div>
+    <div class="cc"><div class="ccl">Inputs &amp; progress</div>
+      <input class="inp" placeholder="you@university.edu" readonly>
+      <input class="inp f" value="oliver@ucl.ac.uk" readonly>
+      <div style="margin-top:4px;"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px;"><span>Today's outreach</span><span><strong style="color:var(--green);">2</strong> of 3 sent</span></div><div class="qtrack"><div class="qfill" style="width:66%"></div></div><div class="pips" style="margin-top:8px;"><div class="pip on"></div><div class="pip on"></div><div class="pip off"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="slabel">05 — Spacing scale (4px base)</div>
+  <div class="srow">
+    <div class="stile"><div class="sblk" style="height:4px;"></div><div class="slbl">4</div></div>
+    <div class="stile"><div class="sblk" style="height:8px;"></div><div class="slbl">8</div></div>
+    <div class="stile"><div class="sblk" style="height:12px;"></div><div class="slbl">12</div></div>
+    <div class="stile"><div class="sblk" style="height:16px;"></div><div class="slbl">16</div></div>
+    <div class="stile"><div class="sblk" style="height:20px;"></div><div class="slbl">20</div></div>
+    <div class="stile"><div class="sblk" style="height:24px;"></div><div class="slbl">24</div></div>
+    <div class="stile"><div class="sblk" style="height:28px;"></div><div class="slbl">28</div></div>
+    <div class="stile"><div class="sblk" style="height:32px;"></div><div class="slbl">32</div></div>
+    <div class="stile"><div class="sblk" style="height:40px;"></div><div class="slbl">40</div></div>
+    <div class="stile"><div class="sblk" style="height:48px;"></div><div class="slbl">48</div></div>
+    <div class="stile"><div class="sblk" style="height:64px;"></div><div class="slbl">64</div></div>
+    <div class="stile"><div class="sblk" style="height:80px;"></div><div class="slbl">80</div></div>
+  </div>
+  <p style="font-size:12px;color:var(--muted);margin-top:16px;">Border radius: 8 (sm) · 10 (buttons) · 12 (cards) · 16 (large cards) · 22 (icon mark) · 24 (hero panels).</p>
+</div>
+
+<div class="section">
+  <div class="slabel">06 — Motion</div>
+  <div class="mgrid">
+    <div class="mtile"><div class="mname">Page reveal</div><div class="mval">opacity 0→1<br>translateY 14→0<br>0.45s ease</div></div>
+    <div class="mtile"><div class="mname">Hover lift</div><div class="mval">translateY -1px<br>box-shadow<br>0.15s ease</div></div>
+    <div class="mtile"><div class="mname">Button press</div><div class="mval">translateY 0<br>active<br>0.1s</div></div>
+    <div class="mtile"><div class="mname">Card expand</div><div class="mval">max-height<br>0.35s<br>cubic-bezier(0.4,0,0.2,1)</div></div>
+    <div class="mtile"><div class="mname">Stagger</div><div class="mval">child 1: 0s<br>child 2: 0.07s<br>child 3: 0.14s</div></div>
+    <div class="mtile"><div class="mname">Progress</div><div class="mval">width<br>0.6s<br>cubic-bezier(0.4,0,0.2,1)</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="slabel">07 — Copy voice</div>
+  <div class="cg">
+    <div class="cc"><div class="ccl">Principles</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;line-height:1.6;">
+        <div><strong>Direct, not pushy.</strong> Say what it does. No hype.</div>
+        <div><strong>Confident, not arrogant.</strong> The product works — let it land quietly.</div>
+        <div><strong>Student-level formality.</strong> Not a bank. Not a TikTok.</div>
+        <div><strong>Short sentences.</strong> Under 20 words. One idea each.</div>
+        <div><strong>Lowercase brand.</strong> Always <em>inroad</em>, never Inroad in body copy.</div>
+      </div>
+    </div>
+    <div class="cc"><div class="ccl">Example lines</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="background:var(--green-lite);border-radius:8px;padding:10px 12px;font-size:13px;color:#122B1E;font-family:'Lora',serif;font-style:italic;">"Stop applying into the void."</div>
+        <div style="background:var(--green-lite);border-radius:8px;padding:10px 12px;font-size:13px;color:#122B1E;font-family:'Lora',serif;font-style:italic;">"Your next job starts with a conversation."</div>
+        <div style="background:var(--green-lite);border-radius:8px;padding:10px 12px;font-size:13px;color:#122B1E;font-family:'Lora',serif;font-style:italic;">"Three matches. Every day."</div>
+        <div style="background:var(--surface);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);border:1px solid var(--border);">Avoid: "leverage", "synergize", "game-changer", "revolutionary", "seamlessly"</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="slabel">08 — CSS design tokens</div>
+  <div class="code"><span class="cc2">/* ── Inroad design tokens ── */</span>
+<span class="cv2">:root</span> {
+  <span class="cc2">/* Brand greens */</span>
+  <span class="cv2">--green</span>:       <span class="cl2">#1F4530</span>;  <span class="cc2">/* Forest — primary */</span>
+  <span class="cv2">--green-deep</span>:  <span class="cl2">#122B1E</span>;  <span class="cc2">/* Deep — hover */</span>
+  <span class="cv2">--green-mid</span>:   <span class="cl2">#A8C9B0</span>;  <span class="cc2">/* Sage — borders, chips */</span>
+  <span class="cv2">--green-mint</span>:  <span class="cl2">#A8D8B8</span>;  <span class="cc2">/* Mint — on-dark accent */</span>
+  <span class="cv2">--green-lite</span>:  <span class="cl2">#EBF4EE</span>;  <span class="cc2">/* Foam — tinted surfaces */</span>
+
+  <span class="cc2">/* Neutrals */</span>
+  <span class="cv2">--surface</span>:     <span class="cl2">#F5F5F2</span>;  <span class="cc2">/* Linen — page bg */</span>
+  <span class="cv2">--border</span>:      <span class="cl2">#E2DED8</span>;  <span class="cc2">/* Stone — borders */</span>
+  <span class="cv2">--text</span>:        <span class="cl2">#111110</span>;  <span class="cc2">/* Ink — body text */</span>
+  <span class="cv2">--muted</span>:       <span class="cl2">#6E6860</span>;  <span class="cc2">/* Smoke — secondary */</span>
+  <span class="cv2">--subtle</span>:      <span class="cl2">#A8A09A</span>;  <span class="cc2">/* Hints, placeholders */</span>
+
+  <span class="cc2">/* Typography */</span>
+  <span class="cv2">--font-display</span>: <span class="cl2">'Lora', Georgia, serif</span>;
+  <span class="cv2">--font-body</span>:    <span class="cl2">'Lato', sans-serif</span>;
+
+  <span class="cc2">/* Radii */</span>
+  <span class="cv2">--r-sm</span>:    <span class="cl2">8px</span>;
+  <span class="cv2">--r-btn</span>:   <span class="cl2">10px</span>;
+  <span class="cv2">--r-md</span>:    <span class="cl2">12px</span>;
+  <span class="cv2">--r-lg</span>:    <span class="cl2">16px</span>;
+  <span class="cv2">--r-icon</span>:  <span class="cl2">22px</span>;
+  <span class="cv2">--r-xl</span>:    <span class="cl2">24px</span>;
+}</div>
+</div>
+
+</div>
+</body>
+</html>

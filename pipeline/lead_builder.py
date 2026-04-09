@@ -38,6 +38,19 @@ TRAINING_FILE = Path(__file__).parent.parent / "data" / "leads_training.jsonl"
 
 # ── Query builders ────────────────────────────────────────────────────────────
 
+def _infer_location_from_url(url: str) -> str:
+    """Infer region from job URL when jobs.location is blank."""
+    u = url.lower()
+    if "uk.linkedin" in u or ".co.uk" in u or "/uk/" in u or "greenhouse.io" not in u and "uk" in u:
+        return "UK"
+    if "linkedin.com/jobs" in u and "uk" not in u:
+        return "US"
+    # Greenhouse/Lever/Ashby hosted roles default to US unless company is known UK
+    if any(x in u for x in ["greenhouse.io", "lever.co", "ashbyhq.com", "workday.com"]):
+        return "US"
+    return "UK"  # safe default for Trackr which is primarily UK-focused
+
+
 def _full_uni_name(university: str) -> str:
     """Expand a short university name to its full official name for Google search."""
     key = university.strip().lower()
@@ -65,13 +78,13 @@ def _dept_from_title(title: str) -> str:
 
 
 def _build_query_alumni(company: str, location: str, university_full: str, dept_keyword: str) -> str:
-    """site:linkedin.com/in "Company" "City" "Full University Name" "dept keyword" """
-    return f'site:linkedin.com/in "{company}" "{location}" "{university_full}" "{dept_keyword}"'
+    """site:linkedin.com/in "dept keyword" "Company" "City" "Full University Name" """
+    return f'site:linkedin.com/in "{dept_keyword}" "{company}" "{location}" "{university_full}"'
 
 
 def _build_query_broad(company: str, location: str, dept_keyword: str) -> str:
-    """site:linkedin.com/in "Company" "City" "dept keyword" """
-    return f'site:linkedin.com/in "{company}" "{location}" "{dept_keyword}"'
+    """site:linkedin.com/in "dept keyword" "Company" "City" """
+    return f'site:linkedin.com/in "{dept_keyword}" "{company}" "{location}"'
 
 
 # ── Snippet parser (standalone, mirrors matcher._parse_snippet) ───────────────
@@ -126,6 +139,7 @@ def _parse_snippet(result: dict, university: str = "", dept_tag: str = "") -> di
         "is_alumni":        is_alumni,
         "dept_tag":         dept_tag,
         "seniority":        _infer_seniority_from_title(title),
+        "scraped_rank":     result.get("_rank", 0),
     }
 
 
@@ -167,6 +181,7 @@ def build_leads(
     company_filter: str = "",
     university:     str = "",
     dry_run:        bool = False,
+    max_companies:  int = 0,
 ) -> int:
     """
     Main entry point. Fetches leads for all active jobs (or filtered by company).
@@ -186,8 +201,12 @@ def build_leads(
     if company_filter:
         where += f" AND lower(company) = lower('{company_filter}')"
     rows = fetchall(
-        f"SELECT DISTINCT company, title, location FROM jobs{where}"
+        f"SELECT DISTINCT ON (company, title, location) company, title, location, url, opening_date "
+        f"FROM jobs{where} "
+        f"ORDER BY company, title, location, opening_date DESC NULLS LAST"
     )
+    # Re-sort the deduplicated rows by most recent opening_date first
+    rows = sorted(rows, key=lambda r: r.get("opening_date") or "", reverse=True)
 
     if not rows:
         logger.warning("No jobs found in DB — run scraper first")
@@ -202,14 +221,17 @@ def build_leads(
     for row in rows:
         company   = (row.get("company") or "").strip()
         job_title = (row.get("title") or "").strip()
+        job_url   = (row.get("url") or "").strip()
         location  = (row.get("location") or "").strip()
 
         if not company:
             continue
 
-        # Use actual job location (region code e.g. "UK"), fall back to city
-        if not location or location in ("UK", "US", "EU", "Global"):
-            location = REGION_LOCATION_FALLBACK.get(location, "London")
+        # Use raw jobs.location; infer from URL if blank
+        if not location:
+            location = _infer_location_from_url(job_url)
+        # Translate region codes to cities for Serper query (needed for search quality)
+        search_location = REGION_LOCATION_FALLBACK.get(location, location) or "London"
 
         dept_name     = _dept_from_title(job_title)
         dept_keywords = DEPT_MAP.get(dept_name, [dept_name])
@@ -220,13 +242,19 @@ def build_leads(
             continue
         seen_pairs.add(pair)
 
+        if max_companies and len(seen_pairs) > max_companies:
+            logger.info(f"Reached max_companies={max_companies}, stopping.")
+            break
+
         # Query A — alumni first (only when university provided)
         leads_a: list[dict] = []
         if uni_full:
-            query_a = _build_query_alumni(company, location, uni_full, dept_keyword)
+            query_a = _build_query_alumni(company, search_location, uni_full, dept_keyword)
             logger.info(f"  Query A: {query_a[:100]}")
             raw_a_p1 = matcher._serper_search(query_a, count=10, page=1)
             raw_a_p2 = matcher._serper_search(query_a, count=10, page=2)
+            for i, r in enumerate(raw_a_p1): r["_rank"] = i + 1
+            for i, r in enumerate(raw_a_p2): r["_rank"] = i + 11
             raw_a    = _dedup(raw_a_p1 + raw_a_p2)
             parsed_a = [_parse_snippet(r, university=university, dept_tag=dept_name) for r in raw_a]
             leads_a  = [l for l in parsed_a if l]
@@ -234,11 +262,13 @@ def build_leads(
                 _save_training_records(company, dept_name, location, query_a, "alumni", 1, raw_a_p1, [_parse_snippet(r, university, dept_name) for r in raw_a_p1], university)
                 _save_training_records(company, dept_name, location, query_a, "alumni", 2, raw_a_p2, [_parse_snippet(r, university, dept_name) for r in raw_a_p2], university)
 
-        # Query B — broad (company + location + dept, no university)
-        query_b = _build_query_broad(company, location, dept_keyword)
+        # Query B — broad (dept + company + city, no university)
+        query_b = _build_query_broad(company, search_location, dept_keyword)
         logger.info(f"  Query B: {query_b[:100]}")
         raw_b_p1 = matcher._serper_search(query_b, count=10, page=1)
         raw_b_p2 = matcher._serper_search(query_b, count=10, page=2)
+        for i, r in enumerate(raw_b_p1): r["_rank"] = i + 1
+        for i, r in enumerate(raw_b_p2): r["_rank"] = i + 11
         raw_b    = _dedup(raw_b_p1 + raw_b_p2)
         parsed_b = [_parse_snippet(r, university=university, dept_tag=dept_name) for r in raw_b]
         leads_b  = [l for l in parsed_b if l]
@@ -247,10 +277,12 @@ def build_leads(
             _save_training_records(company, dept_name, location, query_b, "broad", 2, raw_b_p2, [_parse_snippet(r, university, dept_name) for r in raw_b_p2], university)
 
         # Merge A + B, deduplicate by linkedin_url
-        # Stamp searched company onto each lead — snippet parsing rarely extracts it
+        # Stamp job metadata onto each lead — snippet parsing can't reliably extract these
         all_leads: dict[str, dict] = {}
         for lead in leads_a + leads_b:
-            lead["company"] = company  # always the company we searched for
+            lead["company"]       = company    # always the company we searched for
+            lead["location_city"] = location   # raw jobs.location (UK/US/EU) or URL-inferred
+            lead["job_title"]     = job_title  # the job title that triggered this search
             url = lead.get("linkedin_url", "")
             if url and url not in all_leads:
                 all_leads[url] = lead
@@ -285,12 +317,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build leads pool from Google/Serper")
     parser.add_argument("--company",    default="", help="Filter to a single company name")
     parser.add_argument("--university", default="", help="University to use for alumni Query A")
-    parser.add_argument("--dry-run",    action="store_true", help="Parse only, no DB writes")
+    parser.add_argument("--dry-run",       action="store_true", help="Parse only, no DB writes")
+    parser.add_argument("--max-companies", type=int, default=0, help="Stop after N unique company/dept pairs")
     args = parser.parse_args()
 
     n = build_leads(
         company_filter = args.company,
         university     = args.university,
         dry_run        = args.dry_run,
+        max_companies  = args.max_companies,
     )
     print(f"Done — {n} leads upserted")

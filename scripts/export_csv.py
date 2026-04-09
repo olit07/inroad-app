@@ -21,7 +21,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from db.database import fetchall  # noqa: E402
-from pipeline.lead_builder import _dept_from_title  # noqa: E402
 
 DATA_DIR = os.path.join(ROOT, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -40,7 +39,7 @@ EXPORTS = {
         "file": os.path.join(DATA_DIR, "jobs.csv"),
         "sql": """
             SELECT id, title, company, url, location, industry, company_size,
-                   posted_at, opening_date, closing_date, source, created_at
+                   opening_date, closing_date, source, created_at
             FROM jobs
             ORDER BY id
         """,
@@ -48,9 +47,9 @@ EXPORTS = {
     "leads": {
         "file": os.path.join(DATA_DIR, "leads.csv"),
         "sql": """
-            SELECT company, dept_tag,
+            SELECT job_title, company, dept_tag,
                    COALESCE(NULLIF(location_city,''), location_country, '') AS job_location,
-                   name, title, linkedin_url, snippet,
+                   scraped_rank, name, title, linkedin_url, snippet,
                    fetched_at, stale_after
             FROM leads
             ORDER BY company, dept_tag
@@ -60,8 +59,8 @@ EXPORTS = {
 
 
 LEADS_COLUMNS = [
-    "job_company", "job_department", "job_location",
-    "scraped_name", "scraped_title", "matched_department",
+    "job_title", "job_company", "job_department", "job_location", "scraped_rank",
+    "scraped_name", "scraped_title",
     "scraped_linkedin", "scraped_snippet",
     "fetched_at", "stale_after",
 ]
@@ -69,16 +68,17 @@ LEADS_COLUMNS = [
 
 def _transform_lead(row: dict) -> dict:
     return {
-        "job_company":        row.get("company", ""),
-        "job_department":     row.get("dept_tag", ""),
-        "job_location":       row.get("job_location", ""),
-        "scraped_name":       row.get("name", ""),
-        "scraped_title":      row.get("title", ""),
-        "matched_department": _dept_from_title(row.get("title") or ""),
-        "scraped_linkedin":   row.get("linkedin_url", ""),
-        "scraped_snippet":    row.get("snippet", ""),
-        "fetched_at":         row.get("fetched_at", ""),
-        "stale_after":        row.get("stale_after", ""),
+        "job_title":      row.get("job_title", ""),
+        "job_company":    row.get("company", ""),
+        "job_department": row.get("dept_tag", ""),
+        "job_location":   row.get("job_location", ""),
+        "scraped_rank":   row.get("scraped_rank", ""),
+        "scraped_name":   row.get("name", ""),
+        "scraped_title":  row.get("title", ""),
+        "scraped_linkedin": row.get("linkedin_url", ""),
+        "scraped_snippet":  row.get("snippet", ""),
+        "fetched_at":     row.get("fetched_at", ""),
+        "stale_after":    row.get("stale_after", ""),
     }
 
 
