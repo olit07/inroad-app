@@ -356,6 +356,18 @@
     color: var(--text);
   }
 
+  .card-name-sep {
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: var(--subtle);
+  }
+
+  .card-name-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
   .alumni-badge {
     font-size: 0.62rem;
     font-weight: 700;
@@ -954,12 +966,11 @@
         <div class="card-body">
           <div class="card-header">
             <div class="card-name-row">
-              <span class="card-name">James F.</span>
+              <span class="card-name">James F.</span><span class="card-name-sep"> – </span><span class="card-name-title">Risk Analyst · Jefferies</span>
               <span class="alumni-badge">Alumni</span>
             </div>
             <div class="card-action"><button class="draft-btn" onclick="openModal('card-1')">Draft email →</button></div>
           </div>
-          <div class="card-position">Risk Analyst · Jefferies</div>
           <div class="card-bottom-row">
             <div class="card-bottom-left">
               <a class="card-role-tag has-link" href="https://jefferies.tal.net/vx/lang-en-GB/mobile-0/appcentre-1/brand-4/user-415213/xf-5ac368c85a0a/candidate/so/pm/1/pl/2/opp/1666-2026-Risk-Management-Quant-Summer-Associate-Programme-London/en-GB" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>2026 Risk Management (Quant) Summer Associate ↗</a>
@@ -981,11 +992,10 @@
         <div class="card-body">
           <div class="card-header">
             <div class="card-name-row">
-              <span class="card-name">Oliver M.</span>
+              <span class="card-name">Oliver M.</span><span class="card-name-sep"> – </span><span class="card-name-title">Associate · Platinum Peak Holdings</span>
             </div>
             <div class="card-action"><button class="draft-btn" onclick="openModal('card-2')">Draft email →</button></div>
           </div>
-          <div class="card-position">Associate · Platinum Peak Holdings</div>
           <div class="card-bottom-row">
             <div class="card-bottom-left">
               <a class="card-role-tag has-link" href="https://www.linkedin.com/jobs/view/private-equity-m-a-intern-at-platinum-peak-holdings-ltd-4389484469/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>Private Equity (M&A) Intern ↗</a>
@@ -1007,12 +1017,11 @@
         <div class="card-body">
           <div class="card-header">
             <div class="card-name-row">
-              <span class="card-name">Sara P.</span>
+              <span class="card-name">Sara P.</span><span class="card-name-sep"> – </span><span class="card-name-title">Quant Risk Analyst · E.ON</span>
               <span class="alumni-badge">Alumni</span>
             </div>
             <div class="card-action"><button class="draft-btn" onclick="openModal('card-3')">Draft email →</button></div>
           </div>
-          <div class="card-position">Quant Risk Analyst · E.ON</div>
           <div class="card-bottom-row">
             <div class="card-bottom-left">
               <a class="card-role-tag has-link" href="https://careers.eon.com/uk/job/Solihull-Quantitative-Risk-Intern/1376873533/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>Quantitative Risk Intern ↗</a>
@@ -1274,12 +1283,11 @@
             <div class="card-body">
               <div class="card-header">
                 <div class="card-name-row">
-                  <span class="card-name">${m.person_name || ''}</span>
+                  <span class="card-name">${m.person_name || ''}</span>${m.person_title ? `<span class="card-name-sep"> – </span><span class="card-name-title">${m.person_title} · ${jobCompany}</span>` : ''}
                   ${isAlumni ? '<span class="alumni-badge">Alumni</span>' : ''}
                 </div>
                 <div class="card-action"><button class="draft-btn" onclick="openModal('${cardId}')">Draft email →</button></div>
               </div>
-              <div class="card-position">${m.person_title || ''} · ${jobCompany}</div>
               <div class="card-bottom-row">
                 <div class="card-bottom-left">
                   ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>${m.job_title || 'Open role'} ↗</a>` : ''}
