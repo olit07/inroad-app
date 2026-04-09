@@ -479,6 +479,11 @@
           <span id="error-text">Please use your university email (.edu or .ac.uk)</span>
         </div>
 
+        <div class="error-msg" id="exists-msg" style="display:none;">
+          <span>⚠</span>
+          <span>This email is already registered. <a href="/login" style="color:inherit;font-weight:700;text-decoration:underline;">Sign in instead →</a></span>
+        </div>
+
         <button class="submit-btn" id="submit-btn" onclick="handleSubmit()">
           Continue <span id="btn-arrow">→</span>
         </button>
@@ -498,7 +503,9 @@
       <div class="success-icon">&#10003;</div>
       <h2 class="success-title">Check your inbox.</h2>
       <p class="success-sub">
-        Check your inbox — we've sent a magic link to <strong id="success-email"></strong>.
+        We've sent a magic link to <strong id="success-email"></strong>.<br>
+        Can't find it? Check your junk or spam folder.<br>
+        Click the link to sign in — it expires in 15 minutes.
       </p>
       <p class="switch-link">
         Wrong address? <button class="back-link" onclick="startOver()">Use a different email</button>
@@ -534,6 +541,7 @@
   input.addEventListener('input', () => {
     input.classList.remove('error');
     errBox.classList.remove('visible');
+    document.getElementById('exists-msg').style.display = 'none';
   });
 
   input.addEventListener('keydown', e => {
@@ -563,7 +571,28 @@
     if (!email)               { showError('Please enter your email address.'); return; }
     if (!isValidEmail(email)) { showError('Please enter a valid email address.'); return; }
 
+    // Hide any previous exists notice
+    document.getElementById('exists-msg').style.display = 'none';
+
     setLoading(true);
+
+    // Check if email already registered
+    try {
+      const checkRes = await fetch(`${API_BASE}/api/check-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (checkRes.ok) {
+        const { exists } = await checkRes.json();
+        if (exists) {
+          setLoading(false);
+          input.classList.add('error');
+          document.getElementById('exists-msg').style.display = 'flex';
+          return;
+        }
+      }
+    } catch (_) { /* proceed if check fails */ }
 
     try {
       const res = await fetch(`${API_BASE}/auth/magic-link`, {

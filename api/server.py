@@ -383,6 +383,16 @@ def health():
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
+@app.route("/api/check-email", methods=["POST"])
+def check_email():
+    data  = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return jsonify({"error": "Invalid email"}), 400
+    exists = get_student_by_email(email) is not None
+    return jsonify({"exists": exists})
+
+
 @app.route("/auth/magic-link", methods=["POST"])
 def magic_link():
     data = request.get_json(silent=True) or {}
@@ -1037,7 +1047,7 @@ def _send_html(filename):
 @app.route("/")
 @app.route("/landing")
 def landing():
-    return _send_html("ccc-landing-final.html")
+    return _send_html("inroad-landing.html")
 
 
 @app.route("/login")
@@ -1047,28 +1057,28 @@ def login():
 
 @app.route("/signup")
 def signup():
-    return _send_html("ccc-signup.html")
+    return _send_html("inroad-signup.html")
 
 
 @app.route("/onboarding")
 def onboarding():
-    return _send_html("ccc-onboarding.html")
+    return _send_html("inroad-onboarding.html")
 
 
 @app.route("/dashboard")
 def dashboard():
-    return _send_html("ccc-dashboard-live.html")
+    return _send_html("inroad-dashboard.html")
 
 
 @app.route("/settings")
 def settings_page():
-    return _send_html("ccc-settings.html")
+    return _send_html("inroad-settings.html")
 
 
 @app.route("/admin")
 @require_admin
 def admin_page():
-    return _send_html("ccc-admin.html")
+    return _send_html("inroad-admin.html")
 
 
 @app.route("/privacy")
