@@ -963,7 +963,7 @@
           <div class="card-bottom-row">
             <div class="card-bottom-left">
               <a class="card-role-tag has-link" href="https://jefferies.tal.net/vx/lang-en-GB/mobile-0/appcentre-1/brand-4/user-415213/xf-5ac368c85a0a/candidate/so/pm/1/pl/2/opp/1666-2026-Risk-Management-Quant-Summer-Associate-Programme-London/en-GB" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>2026 Risk Management (Quant) Summer Associate ↗</a>
-              <div class="card-posted">Posted 25 Mar 2026 · Finance · UK</div>
+              <div class="card-posted">Opens 25 Mar 2026</div>
             </div>
             <div class="card-meta">
               <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value"><a href="https://www.linkedin.com/in/james-f" target="_blank" rel="noopener noreferrer">linkedin.com/in/james-f</a></span></div>
@@ -989,7 +989,7 @@
           <div class="card-bottom-row">
             <div class="card-bottom-left">
               <a class="card-role-tag has-link" href="https://www.linkedin.com/jobs/view/private-equity-m-a-intern-at-platinum-peak-holdings-ltd-4389484469/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>Private Equity (M&A) Intern ↗</a>
-              <div class="card-posted">Posted 24 Mar 2026 · Finance · UK</div>
+              <div class="card-posted">Opens 24 Mar 2026</div>
             </div>
             <div class="card-meta">
               <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value"><a href="https://www.linkedin.com/in/oliver-m" target="_blank" rel="noopener noreferrer">linkedin.com/in/oliver-m</a></span></div>
@@ -1016,7 +1016,7 @@
           <div class="card-bottom-row">
             <div class="card-bottom-left">
               <a class="card-role-tag has-link" href="https://careers.eon.com/uk/job/Solihull-Quantitative-Risk-Intern/1376873533/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>Quantitative Risk Intern ↗</a>
-              <div class="card-posted">Posted 24 Mar 2026 · Finance · UK</div>
+              <div class="card-posted">Opens 24 Mar 2026</div>
             </div>
             <div class="card-meta">
               <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value"><a href="https://www.linkedin.com/in/sara-p" target="_blank" rel="noopener noreferrer">linkedin.com/in/sara-p</a></span></div>
@@ -1229,6 +1229,13 @@
     return AVATAR_POOL[Math.abs(h) % AVATAR_POOL.length];
   }
 
+  function fmtDate(d) {
+    if (!d) return '';
+    const dt = new Date(d);
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
   function renderLiveCards(liveMatches) {
     const container = document.querySelector('.matches');
     if (!container || !liveMatches.length) return;
@@ -1241,10 +1248,6 @@
       const linkedinUrl = rawLinkedinUrl
         ? (rawLinkedinUrl.startsWith('http') ? rawLinkedinUrl : 'https://' + rawLinkedinUrl)
         : '#';
-      const tenureMonths = m.person_tenure_months || 0;
-      const tenureStr = tenureMonths >= 12
-        ? (() => { const y = Math.round(tenureMonths / 12 * 10) / 10; return `${y} yr${y !== 1 ? 's' : ''} at ${m.company || m.person_company || ''}`; })()
-        : tenureMonths > 0 ? `${tenureMonths} mo at ${m.company || m.person_company || ''}` : '';
       const jobUrl = m.job_url || '#';
 
       // Job company takes priority over person_company (guaranteed same company)
@@ -1277,11 +1280,10 @@
                 <div class="card-action"><button class="draft-btn" onclick="openModal('${cardId}')">Draft email →</button></div>
               </div>
               <div class="card-position">${m.person_title || ''} · ${jobCompany}</div>
-              ${tenureStr ? `<div class="tenure-hint">${tenureStr}</div>` : ''}
               <div class="card-bottom-row">
                 <div class="card-bottom-left">
                   ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>${m.job_title || 'Open role'} ↗</a>` : ''}
-                  <div class="card-posted">${m.match_date || ''} · ${m.industry || ''}</div>
+                  <div class="card-posted">${m.opening_date ? 'Opens ' + fmtDate(m.opening_date) : (m.industry || '')}</div>
                 </div>
                 <div class="card-meta">
                   <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value">${linkedinUrl !== '#' ? `<a href="${linkedinUrl}" target="_blank" rel="noopener noreferrer">${linkedinUrl.replace('https://','').replace('http://','')}</a>` : '—'}</span></div>
