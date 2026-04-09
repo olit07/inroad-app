@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>inroad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -203,6 +203,12 @@
     border-radius: 18px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 10px 30px rgba(0,0,0,0.08), 0 24px 60px rgba(0,0,0,0.05);
     overflow: hidden; width: 100%; max-width: 440px;
+    transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .app-mock:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.06), 0 20px 50px rgba(0,0,0,0.12), 0 36px 80px rgba(0,0,0,0.07);
   }
 
   .mock-topbar {
@@ -383,6 +389,12 @@
   .email-mock {
     background: var(--bg); border: 1px solid var(--border);
     border-radius: 16px; overflow: hidden; box-shadow: 0 6px 28px rgba(0,0,0,0.07);
+    transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .email-mock:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 14px 44px rgba(0,0,0,0.12);
   }
 
   .email-head {
@@ -684,12 +696,22 @@
       </ul>
     </div>
     <div class="app-mock" style="max-width:420px;">
-      <div class="mock-topbar"><span class="mock-title">Today's matches · 1 remaining</span></div>
+      <div class="mock-topbar">
+        <span class="mock-title">Today's matches</span>
+        <div class="mock-quota">
+          <div class="quota-dots">
+            <div class="qdot on"></div>
+            <div class="qdot on"></div>
+            <div class="qdot off"></div>
+          </div>
+          <span class="mock-quota-label">2 of 3 sent</span>
+        </div>
+      </div>
       <div class="card-quota-bar"><div class="card-quota-track"><div class="card-quota-fill" style="width:66%"></div></div></div>
       <div class="mock-list">
         <div class="mock-row active"><div class="mock-av"><img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">Sarah R. <span class="alumni-chip">Alumni</span></div><div class="mock-sub">VP Product · Monzo · PM opening</div></div><div class="mock-sent">Sent ✓</div></div>
         <div class="mock-row active"><div class="mock-av"><img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">James K. <span class="alumni-chip">Alumni</span></div><div class="mock-sub">Analyst · Goldman · Summer intern</div></div><div class="mock-sent">Sent ✓</div></div>
-        <div class="mock-row"><div class="mock-av"><img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">Aisha T.</div><div class="mock-sub">Consultant · McKinsey · Analyst role</div></div><div class="mock-action">Draft →</div></div>
+        <div class="mock-row"><div class="mock-av"><img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">Aisha T.</div><div class="mock-sub">Consultant · McKinsey · Analyst role</div></div><div class="mock-action">Draft email →</div></div>
       </div>
     </div>
   </div>
