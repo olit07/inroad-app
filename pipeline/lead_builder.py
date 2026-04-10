@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.settings   import (
     DEPT_MAP, TITLE_DEPT_MAP, UNI_FULL_NAMES, REGION_LOCATION_FALLBACK,
+    COMPANY_EMAIL_FORMATS,
 )
 from db.database       import fetchall, upsert_lead, USE_POSTGRES
 from pipeline.matcher  import LinkedInMatcher, _extract_university, _extract_tenure, _extract_location, _infer_seniority_from_title
@@ -75,6 +76,49 @@ def _dept_from_title(title: str) -> str:
         if any(kw in title_lower for kw in keywords):
             return dept_tag
     return "software_engineering"
+
+
+def _guess_domain(company: str) -> str:
+    """Derive email domain from company name for unknown companies."""
+    name = company.lower()
+    for suffix in [
+        " capital management", " asset management", " investment management",
+        " wealth management", " portfolio management",
+        " & co.", " & co", " and co", " & company", " llp", " llc",
+        " inc.", " inc", " ltd", " plc", " group", " partners",
+        " advisors", " advisory", " associates", " holdings",
+        " securities", " financial", " services", " ventures",
+        " consulting", " international", " global", " management",
+    ]:
+        name = name.replace(suffix, "")
+    name = re.sub(r"[^a-z0-9]", "", name)
+    return f"{name}.com" if name else ""
+
+
+def _infer_email(name: str, company: str) -> str:
+    """Build expected email address from name + company using known format table."""
+    key   = company.strip().lower()
+    entry = COMPANY_EMAIL_FORMATS.get(key)
+    if entry:
+        fmt, domain = entry
+    else:
+        domain = _guess_domain(company)
+        if not domain:
+            return ""
+        fmt = "FL"
+    parts = name.strip().split()
+    if len(parts) < 2:
+        return ""
+    first = re.sub(r"[^a-z]", "", parts[0].lower())
+    last  = re.sub(r"[^a-z]", "", parts[-1].lower())
+    if not first or not last:
+        return ""
+    if fmt == "FL":  return f"{first}.{last}@{domain}"
+    if fmt == "fL":  return f"{first[0]}{last}@{domain}"
+    if fmt == "f.L": return f"{first[0]}.{last}@{domain}"
+    if fmt == "F_L": return f"{first}_{last}@{domain}"
+    if fmt == "F":   return f"{first}@{domain}"
+    return ""
 
 
 def _build_query_alumni(company: str, location: str, university_full: str, dept_keyword: str) -> str:
@@ -219,10 +263,11 @@ def build_leads(
     uni_full = _full_uni_name(university) if university else ""
 
     for row in rows:
-        company   = (row.get("company") or "").strip()
-        job_title = (row.get("title") or "").strip()
-        job_url   = (row.get("url") or "").strip()
-        location  = (row.get("location") or "").strip()
+        company      = (row.get("company") or "").strip()
+        job_title    = (row.get("title") or "").strip()
+        job_url      = (row.get("url") or "").strip()
+        location     = (row.get("location") or "").strip()
+        opening_date = (row.get("opening_date") or "").strip()
 
         if not company:
             continue
@@ -280,9 +325,11 @@ def build_leads(
         # Stamp job metadata onto each lead — snippet parsing can't reliably extract these
         all_leads: dict[str, dict] = {}
         for lead in leads_a + leads_b:
-            lead["company"]       = company    # always the company we searched for
-            lead["location_city"] = location   # raw jobs.location (UK/US/EU) or URL-inferred
-            lead["job_title"]     = job_title  # the job title that triggered this search
+            lead["company"]            = company       # always the company we searched for
+            lead["location_city"]      = location      # raw jobs.location (UK/US/EU) or URL-inferred
+            lead["job_title"]          = job_title     # the job title that triggered this search
+            lead["job_expected_email"] = _infer_email(lead.get("name", ""), company)
+            lead["job_opening_date"]   = opening_date  # opening date from jobs table
             url = lead.get("linkedin_url", "")
             if url and url not in all_leads:
                 all_leads[url] = lead

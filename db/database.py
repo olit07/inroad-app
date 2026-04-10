@@ -228,6 +228,7 @@ CREATE TABLE IF NOT EXISTS leads (
     tenure_months    INTEGER DEFAULT 0,
     is_alumni        BOOLEAN DEFAULT FALSE,
     dept_tag         TEXT,
+    job_opening_date TEXT,
     fetched_at       TIMESTAMPTZ DEFAULT NOW(),
     stale_after      TIMESTAMPTZ
 );
@@ -374,6 +375,7 @@ CREATE TABLE IF NOT EXISTS leads (
     tenure_months    INTEGER DEFAULT 0,
     is_alumni        INTEGER DEFAULT 0,
     dept_tag         TEXT,
+    job_opening_date TEXT,
     fetched_at       TEXT DEFAULT (datetime('now')),
     stale_after      TEXT
 );
@@ -474,6 +476,10 @@ def _run_migrations_postgres():
             stale_after      TIMESTAMPTZ
         )""",
         "CREATE INDEX IF NOT EXISTS idx_leads_company ON leads (lower(company))",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS job_opening_date TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS scraped_rank INTEGER DEFAULT 0",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS job_title TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS job_expected_email TEXT",
     ]
     with get_conn() as conn:
         cur = conn.cursor()
@@ -746,11 +752,11 @@ def get_active_jobs(conn, industries=None, region=None, seniority=None,
     if days_fresh:
         if USE_POSTGRES:
             clauses.append(
-                f"(posted_at IS NULL OR posted_at > NOW() - INTERVAL '{days_fresh} days')"
+                f"(created_at IS NULL OR created_at > NOW() - INTERVAL '{days_fresh} days')"
             )
         else:
             clauses.append(
-                f"(posted_at IS NULL OR posted_at > datetime('now', '-{days_fresh} days'))"
+                f"(created_at IS NULL OR created_at > datetime('now', '-{days_fresh} days'))"
             )
 
     if industries:
@@ -769,10 +775,10 @@ def get_active_jobs(conn, industries=None, region=None, seniority=None,
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     sql   = f"""
         SELECT id, title, company AS company_name, url, location, industry,
-               company_size, posted_at AS posted_date, source, raw
+               company_size, created_at AS posted_date, source, raw
         FROM   jobs
         {where}
-        ORDER  BY posted_at DESC
+        ORDER  BY created_at DESC
         LIMIT  {ph}
     """
     params.append(limit)
@@ -898,7 +904,7 @@ def db_stats(conn) -> dict:
 
     return {
         "total_jobs":    _count("SELECT COUNT(*) FROM jobs"),
-        "active_jobs":   _count("SELECT COUNT(*) FROM jobs WHERE posted_at > " +
+        "active_jobs":   _count("SELECT COUNT(*) FROM jobs WHERE created_at > " +
                                  ("NOW() - INTERVAL '14 days'" if USE_POSTGRES
                                   else "datetime('now', '-14 days')")),
         "companies":     _count("SELECT COUNT(DISTINCT company) FROM jobs"),
@@ -987,8 +993,8 @@ def upsert_lead(lead: dict) -> None:
             """INSERT INTO leads
                (job_title, name, title, company, university, linkedin_url, snippet,
                 location_city, location_country, tenure_months, is_alumni,
-                dept_tag, scraped_rank, fetched_at, stale_after)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?)
+                dept_tag, scraped_rank, job_expected_email, job_opening_date, fetched_at, stale_after)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?)
                ON CONFLICT (linkedin_url) DO UPDATE SET
                  job_title=EXCLUDED.job_title,
                  name=EXCLUDED.name, title=EXCLUDED.title, company=EXCLUDED.company,
@@ -997,6 +1003,8 @@ def upsert_lead(lead: dict) -> None:
                  location_country=EXCLUDED.location_country,
                  tenure_months=EXCLUDED.tenure_months, is_alumni=EXCLUDED.is_alumni,
                  dept_tag=EXCLUDED.dept_tag, scraped_rank=EXCLUDED.scraped_rank,
+                 job_expected_email=EXCLUDED.job_expected_email,
+                 job_opening_date=EXCLUDED.job_opening_date,
                  fetched_at=NOW(), stale_after=EXCLUDED.stale_after""",
             (
                 lead.get("job_title", ""),
@@ -1004,7 +1012,8 @@ def upsert_lead(lead: dict) -> None:
                 lead.get("university", ""), lead["linkedin_url"], lead.get("snippet", ""),
                 lead.get("location_city", ""), lead.get("location_country", ""),
                 lead.get("tenure_months", 0), bool(lead.get("is_alumni", False)),
-                lead.get("dept_tag", ""), lead.get("scraped_rank", 0), stale_after,
+                lead.get("dept_tag", ""), lead.get("scraped_rank", 0),
+                lead.get("job_expected_email", ""), lead.get("job_opening_date", ""), stale_after,
             ),
         )
     else:
@@ -1012,8 +1021,8 @@ def upsert_lead(lead: dict) -> None:
             """INSERT INTO leads
                (job_title, name, title, company, university, linkedin_url, snippet,
                 location_city, location_country, tenure_months, is_alumni,
-                dept_tag, scraped_rank, fetched_at, stale_after)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?)
+                dept_tag, scraped_rank, job_expected_email, job_opening_date, fetched_at, stale_after)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?)
                ON CONFLICT (linkedin_url) DO UPDATE SET
                  job_title=excluded.job_title,
                  name=excluded.name, title=excluded.title, company=excluded.company,
@@ -1022,6 +1031,8 @@ def upsert_lead(lead: dict) -> None:
                  location_country=excluded.location_country,
                  tenure_months=excluded.tenure_months, is_alumni=excluded.is_alumni,
                  dept_tag=excluded.dept_tag, scraped_rank=excluded.scraped_rank,
+                 job_expected_email=excluded.job_expected_email,
+                 job_opening_date=excluded.job_opening_date,
                  fetched_at=datetime('now'), stale_after=excluded.stale_after""",
             (
                 lead.get("job_title", ""),
@@ -1029,7 +1040,8 @@ def upsert_lead(lead: dict) -> None:
                 lead.get("university", ""), lead["linkedin_url"], lead.get("snippet", ""),
                 lead.get("location_city", ""), lead.get("location_country", ""),
                 lead.get("tenure_months", 0), 1 if lead.get("is_alumni") else 0,
-                lead.get("dept_tag", ""), lead.get("scraped_rank", 0), stale_after,
+                lead.get("dept_tag", ""), lead.get("scraped_rank", 0),
+                lead.get("job_expected_email", ""), lead.get("job_opening_date", ""), stale_after,
             ),
         )
 

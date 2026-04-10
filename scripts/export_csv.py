@@ -49,7 +49,8 @@ EXPORTS = {
         "sql": """
             SELECT job_title, company, dept_tag,
                    COALESCE(NULLIF(location_city,''), location_country, '') AS job_location,
-                   scraped_rank, name, title, linkedin_url, snippet,
+                   job_opening_date,
+                   scraped_rank, name, title, linkedin_url, snippet, job_expected_email,
                    fetched_at, stale_after
             FROM leads
             ORDER BY company, dept_tag
@@ -59,24 +60,26 @@ EXPORTS = {
 
 
 LEADS_COLUMNS = [
-    "job_title", "job_company", "job_department", "job_location", "scraped_rank",
-    "scraped_name", "scraped_title",
-    "scraped_linkedin", "scraped_snippet",
+    "job_title", "job_company", "job_department", "job_location", "job_opening_date",
+    "scraped_rank", "scraped_name", "scraped_title",
+    "scraped_linkedin", "scraped_snippet", "expected_email",
     "fetched_at", "stale_after",
 ]
 
 
 def _transform_lead(row: dict) -> dict:
     return {
-        "job_title":      row.get("job_title", ""),
-        "job_company":    row.get("company", ""),
-        "job_department": row.get("dept_tag", ""),
-        "job_location":   row.get("job_location", ""),
-        "scraped_rank":   row.get("scraped_rank", ""),
+        "job_title":        row.get("job_title", ""),
+        "job_company":      row.get("company", ""),
+        "job_department":   row.get("dept_tag", ""),
+        "job_location":     row.get("job_location", ""),
+        "job_opening_date": row.get("job_opening_date", ""),
+        "scraped_rank":     row.get("scraped_rank", ""),
         "scraped_name":   row.get("name", ""),
         "scraped_title":  row.get("title", ""),
         "scraped_linkedin": row.get("linkedin_url", ""),
         "scraped_snippet":  row.get("snippet", ""),
+        "expected_email":   row.get("job_expected_email", ""),
         "fetched_at":     row.get("fetched_at", ""),
         "stale_after":    row.get("stale_after", ""),
     }
