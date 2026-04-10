@@ -376,6 +376,16 @@ def build_leads(
             continue
         seen_pairs.add(pair)
 
+        # Skip if leads already exist in DB for this (company, dept) pair
+        if not dry_run:
+            existing = fetchall(
+                "SELECT 1 FROM leads WHERE lower(company)=lower(?) AND dept_tag=? LIMIT 1",
+                (company, dept_name),
+            )
+            if existing:
+                logger.info(f"  Skipping {company} / {dept_name} — leads already in DB")
+                continue
+
         if max_companies and len(seen_pairs) > max_companies:
             logger.info(f"Reached max_companies={max_companies}, stopping.")
             break
