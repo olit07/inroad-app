@@ -155,5 +155,9 @@ if __name__ == "__main__":
         print(f"\n{len(rows)} company email formats stored:\n")
         for r in rows:
             print(f"  {r['company']:40s}  {r['fmt_code']:6s}  {r['domain']:35s}  [{r['source']}]")
+    elif "--fix-emails" in args:
+        from pipeline.lead_builder import fix_ats_email_formats
+        n = fix_ats_email_formats()
+        print(f"Fixed {n} ATS email format entries")
     else:
         run_daemon()

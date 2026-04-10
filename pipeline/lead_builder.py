@@ -97,6 +97,31 @@ def _guess_domain_fallback(company: str) -> str:
     return f"{name}.com" if name else ""
 
 
+# Known ATS / job-portal domains that are NEVER real employee email domains
+_ATS_DOMAINS = {
+    "workday.com", "myworkday.com", "myworkdaysite.com", "wd1.myworkdaysite.com",
+    "wd3.myworkdaysite.com", "wd5.myworkdaysite.com",
+    "myworkdayjobs.com", "wd1.myworkdayjobs.com", "wd3.myworkdayjobs.com",
+    "greenhouse.io", "lever.co", "ashbyhq.com", "tal.net",
+    "taleo.net", "icims.com", "smartrecruiters.com", "jobvite.com",
+    "successfactors.com", "bamboohr.com", "workable.com", "recruitee.com",
+    "linkedin.com", "indeed.com", "glassdoor.com",
+}
+
+
+def _is_ats_domain(domain: str) -> bool:
+    """Return True if domain is a job-portal / ATS platform, not a company email domain."""
+    d = domain.lower().strip()
+    # Exact match
+    if d in _ATS_DOMAINS:
+        return True
+    # Suffix match (e.g. "pjtpartners.wd1.myworkdayjobs.com")
+    for bad in _ATS_DOMAINS:
+        if d.endswith("." + bad) or d == bad:
+            return True
+    return False
+
+
 def _lookup_email_format_via_llm(company: str) -> tuple[str, str] | None:
     """
     Ask Groq (Llama 3) to determine the email format and domain for a company.
@@ -110,6 +135,9 @@ def _lookup_email_format_via_llm(company: str) -> tuple[str, str] | None:
         return None
     prompt = (
         f"What is the corporate email format and domain for employees at \"{company}\"?\n\n"
+        "IMPORTANT: Return the company's OWN email domain (e.g. snap.com, rothschildandco.com). "
+        "Do NOT return job portal or ATS domains like workday.com, greenhouse.io, lever.co, "
+        "tal.net, taleo.net, myworkdayjobs.com, or any similar hiring platform.\n\n"
         "Reply with ONLY a JSON object, no explanation:\n"
         "{\"format\": \"firstname.lastname\", \"domain\": \"company.com\"}\n\n"
         "Format must be one of: firstname.lastname | firstinitiallastname | firstinitial.lastname | "
@@ -144,7 +172,8 @@ def _lookup_email_format_via_llm(company: str) -> tuple[str, str] | None:
             "firstname":             "F",
         }
         fmt = fmt_map.get(fmt_str, "FL")
-        if not domain:
+        if not domain or _is_ats_domain(domain):
+            logger.debug(f"LLM returned ATS/invalid domain '{domain}' for {company}, discarding")
             return None
         return fmt, domain
     except Exception as e:
@@ -208,6 +237,54 @@ def _infer_email(name: str, company: str) -> str:
     if fmt == "F_L": return f"{first}_{last}@{domain}"
     if fmt == "F":   return f"{first}@{domain}"
     return ""
+
+
+def fix_ats_email_formats() -> int:
+    """
+    Delete company_email_formats rows where the stored domain is an ATS platform
+    (e.g. workday.com, tal.net), then re-lookup via Groq for those companies.
+    Returns number of rows fixed.
+    """
+    from db.database import fetchall as _fetchall, execute as _execute
+    rows = _fetchall("SELECT company, fmt_code, domain FROM company_email_formats")
+    bad_companies = [r["company"] for r in rows if _is_ats_domain(r["domain"])]
+    if not bad_companies:
+        logger.info("No ATS email format entries found — nothing to fix")
+        return 0
+    logger.info(f"Found {len(bad_companies)} ATS-domain entries to fix: {bad_companies}")
+    fixed = 0
+    for company in bad_companies:
+        # Remove bad entry so DB cache won't return it
+        _execute("DELETE FROM company_email_formats WHERE lower(company) = lower(?)", (company,))
+        # Also clear in-memory cache
+        _email_format_cache.pop(company.strip().lower(), None)
+        # Re-lookup via Groq
+        result = _lookup_email_format_via_llm(company)
+        if result:
+            from db.database import save_email_format as _save
+            _save(company, result[0], result[1], source="groq")
+            _email_format_cache[company.strip().lower()] = result
+            logger.info(f"  Fixed {company}: {result[0]} @ {result[1]}")
+        else:
+            domain = _guess_domain_fallback(company)
+            from db.database import save_email_format as _save
+            _save(company, "FL", domain, source="fallback")
+            logger.info(f"  Fallback {company}: FL @ {domain}")
+        fixed += 1
+    # Update job_expected_email on existing leads for affected companies
+    for company in bad_companies:
+        leads = _fetchall(
+            "SELECT id, name, company FROM leads WHERE lower(company) = lower(?)", (company,)
+        )
+        for lead in leads:
+            new_email = _infer_email(lead["name"], lead["company"])
+            if new_email:
+                _execute(
+                    "UPDATE leads SET job_expected_email = ? WHERE id = ?",
+                    (new_email, lead["id"]),
+                )
+    logger.info(f"Fixed {fixed} ATS email format entries and updated lead emails")
+    return fixed
 
 
 def _build_query_alumni(company: str, location: str, university_full: str, dept_keyword: str) -> str:
