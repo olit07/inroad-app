@@ -833,9 +833,9 @@ def upsert_job(conn, job: dict) -> tuple:
         _exec(
             conn,
             "UPDATE jobs SET title=?, company=?, url=?, location=?, "
-            "industry=?, company_size=?, posted_at=?, opening_date=?, closing_date=?, source=?, raw=? "
+            "industry=?, company_size=?, opening_date=?, closing_date=?, source=?, raw=? "
             "WHERE id=?",
-            (title, company, url, location, industry, company_sz, posted_at,
+            (title, company, url, location, industry, company_sz,
              opening_date, closing_date, source, raw, job_id)
         )
         return job_id, False
@@ -844,10 +844,10 @@ def upsert_job(conn, job: dict) -> tuple:
             cur = _exec(
                 conn,
                 "INSERT INTO jobs (title, company, url, location, industry, company_size, "
-                "posted_at, opening_date, closing_date, source, raw) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
+                "opening_date, closing_date, source, raw) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id",
                 (title, company, url, location, industry, company_sz,
-                 posted_at, opening_date, closing_date, source, raw)
+                 opening_date, closing_date, source, raw)
             )
             row = cur.fetchone()
             job_id = row["id"] if isinstance(row, dict) else row[0]
@@ -855,10 +855,10 @@ def upsert_job(conn, job: dict) -> tuple:
             cur = _exec(
                 conn,
                 "INSERT INTO jobs (title, company, url, location, industry, company_size, "
-                "posted_at, opening_date, closing_date, source, raw) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "opening_date, closing_date, source, raw) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (title, company, url, location, industry, company_sz,
-                 posted_at, opening_date, closing_date, source, raw)
+                 opening_date, closing_date, source, raw)
             )
             job_id = cur.lastrowid
         return job_id, True
