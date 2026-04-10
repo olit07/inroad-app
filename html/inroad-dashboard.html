@@ -388,7 +388,7 @@
   }
 
   .card-role-tag {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 5px;
     background: var(--surface);
@@ -401,9 +401,16 @@
     text-decoration: none;
     transition: border-color 0.15s, color 0.15s;
     width: 260px;
+    min-width: 260px;
+    max-width: 260px;
     white-space: nowrap;
     overflow: hidden;
+    box-sizing: border-box;
+  }
+  .card-role-tag .role-text {
+    overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .card-role-tag:hover {
@@ -977,7 +984,7 @@
           </div>
           <div class="card-bottom-row">
             <div class="card-bottom-left">
-              <a class="card-role-tag has-link" href="https://jefferies.tal.net/vx/lang-en-GB/mobile-0/appcentre-1/brand-4/user-415213/xf-5ac368c85a0a/candidate/so/pm/1/pl/2/opp/1666-2026-Risk-Management-Quant-Summer-Associate-Programme-London/en-GB" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>2026 Risk Management (Quant) Summer Associate ↗</a>
+              <a class="card-role-tag has-link" href="https://jefferies.tal.net/vx/lang-en-GB/mobile-0/appcentre-1/brand-4/user-415213/xf-5ac368c85a0a/candidate/so/pm/1/pl/2/opp/1666-2026-Risk-Management-Quant-Summer-Associate-Programme-London/en-GB" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">2026 Risk Management (Quant) Summer Associate ↗</span></a>
               <div class="card-posted">Opened on: 25 Mar 2026</div>
             </div>
             <div class="card-meta">
@@ -1002,7 +1009,7 @@
           </div>
           <div class="card-bottom-row">
             <div class="card-bottom-left">
-              <a class="card-role-tag has-link" href="https://www.linkedin.com/jobs/view/private-equity-m-a-intern-at-platinum-peak-holdings-ltd-4389484469/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>Private Equity (M&A) Intern ↗</a>
+              <a class="card-role-tag has-link" href="https://www.linkedin.com/jobs/view/private-equity-m-a-intern-at-platinum-peak-holdings-ltd-4389484469/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">Private Equity (M&A) Intern ↗</span></a>
               <div class="card-posted">Opened on: 24 Mar 2026</div>
             </div>
             <div class="card-meta">
@@ -1028,7 +1035,7 @@
           </div>
           <div class="card-bottom-row">
             <div class="card-bottom-left">
-              <a class="card-role-tag has-link" href="https://careers.eon.com/uk/job/Solihull-Quantitative-Risk-Intern/1376873533/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>Quantitative Risk Intern ↗</a>
+              <a class="card-role-tag has-link" href="https://careers.eon.com/uk/job/Solihull-Quantitative-Risk-Intern/1376873533/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">Quantitative Risk Intern ↗</span></a>
               <div class="card-posted">Opened on: 24 Mar 2026</div>
             </div>
             <div class="card-meta">
@@ -1294,7 +1301,7 @@
               </div>
               <div class="card-bottom-row">
                 <div class="card-bottom-left">
-                  ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div>${m.job_title || 'Open role'} ↗</a>` : ''}
+                  ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">${m.job_title || 'Open role'} ↗</span></a>` : ''}
                   <div class="card-posted">${m.opening_date ? 'Opened on: ' + fmtDate(m.opening_date) : (m.industry || '')}</div>
                 </div>
                 <div class="card-meta">
