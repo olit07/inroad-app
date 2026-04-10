@@ -102,7 +102,7 @@ def seconds_until(hour: int, minute: int = 0) -> float:
 
 
 def run_daemon():
-    init_db(DB_PATH)
+    init_db()
     logger.info(f"inroad scheduler started — pipeline fires daily at {PIPELINE_HOUR:02d}:00 UTC")
 
     stop = {"flag": False}
@@ -139,7 +139,7 @@ def run_daemon():
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    init_db(DB_PATH)
+    init_db()
 
     if "--once" in args:
         run_full_pipeline()

@@ -798,10 +798,10 @@ def get_active_jobs(conn, industries=None, region=None, seniority=None,
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     sql   = f"""
         SELECT id, title, company AS company_name, url, location, industry,
-               company_size, created_at AS posted_date, source, raw
+               company_size, opening_date, created_at AS posted_date, source, raw
         FROM   jobs
         {where}
-        ORDER  BY created_at DESC
+        ORDER  BY opening_date DESC NULLS LAST, created_at DESC
         LIMIT  {ph}
     """
     params.append(limit)
