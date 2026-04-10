@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Settings — inroad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,60 +34,60 @@
   .nav-back{font-size:0.83rem;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.15s}
   .nav-back:hover{color:var(--text)}
 
-  .page{max-width:620px;margin:0 auto;padding:48px 52px 80px}
-  h1{font-size:1.5rem;font-weight:900;letter-spacing:-0.02em;color:var(--text);margin-bottom:4px}
-  .page-sub{font-size:0.85rem;color:var(--muted);margin-bottom:36px}
+  .page{max-width:620px;margin:0 auto;padding:24px 52px 60px}
+  h1{font-size:1.35rem;font-weight:900;letter-spacing:-0.02em;color:var(--text);margin-bottom:2px}
+  .page-sub{font-size:0.82rem;color:var(--muted);margin-bottom:20px}
 
-  .section{margin-bottom:36px}
-  .section-label{font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:14px}
-  .section-card{background:var(--bg);border:0.5px solid var(--border);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:16px}
+  .section{margin-bottom:12px}
+  .section-label{font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px}
+  .section-card{background:var(--bg);border:0.5px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
 
-  .field{display:flex;flex-direction:column;gap:6px}
-  .field label{font-size:0.78rem;font-weight:700;color:var(--text-mid)}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:0.75rem;font-weight:700;color:var(--text-mid)}
   .field input,.field textarea,.field select{
-    background:var(--bg);border:1.5px solid var(--border);border-radius:10px;
-    padding:10px 14px;font-size:0.875rem;font-family:'Lato',sans-serif;font-weight:400;
+    background:var(--bg);border:1.5px solid var(--border);border-radius:9px;
+    padding:8px 12px;font-size:0.85rem;font-family:'Lato',sans-serif;font-weight:400;
     color:var(--text);outline:none;transition:border-color 0.15s,box-shadow 0.15s;
   }
   .field input:focus,.field textarea:focus,.field select:focus{
     border-color:var(--green);box-shadow:0 0 0 3px rgba(31,69,48,0.07)
   }
-  .field textarea{resize:vertical;min-height:80px;line-height:1.65}
-  .field-hint{font-size:0.72rem;color:var(--subtle);margin-top:2px}
+  .field textarea{resize:vertical;min-height:60px;line-height:1.55}
+  .field-hint{font-size:0.7rem;color:var(--subtle);margin-top:1px}
 
-  .industry-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .industry-grid{display:flex;flex-wrap:wrap;gap:6px}
   .industry-pill{
-    padding:6px 14px;border:1.5px solid var(--border);border-radius:100px;
-    font-size:0.8rem;font-weight:500;color:var(--text-mid);background:var(--bg);
+    padding:4px 11px;border:1.5px solid var(--border);border-radius:100px;
+    font-size:0.76rem;font-weight:500;color:var(--text-mid);background:var(--bg);
     cursor:pointer;transition:all 0.15s;user-select:none
   }
   .industry-pill.selected{border-color:var(--green);background:var(--green-lite);color:var(--green-deep)}
   .industry-pill.locked{color:var(--subtle);border-color:var(--border);background:var(--bg);cursor:not-allowed;opacity:0.55;pointer-events:none}
 
-  .size-row{display:flex;gap:10px}
+  .size-row{display:flex;gap:8px}
   .size-card{
-    flex:1;border:1.5px solid var(--border);border-radius:12px;padding:12px;
+    flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;
     cursor:pointer;background:var(--bg);transition:all 0.15s;text-align:center;user-select:none
   }
   .size-card:hover{border-color:var(--border-md)}
   .size-card.selected{border-color:var(--green);background:var(--green-lite)}
-  .size-card-label{font-size:0.85rem;font-weight:700;color:var(--text)}
-  .size-card-desc{font-size:0.72rem;color:var(--muted);margin-top:2px}
+  .size-card-label{font-size:0.8rem;font-weight:700;color:var(--text)}
+  .size-card-desc{font-size:0.69rem;color:var(--muted);margin-top:1px}
 
   .btn-save{
-    width:100%;background:var(--text);color:#fff;border:none;border-radius:11px;
-    padding:13px;font-size:0.9rem;font-weight:700;font-family:'Lato',sans-serif;
-    cursor:pointer;transition:background 0.15s,transform 0.1s;margin-top:8px
+    width:100%;background:var(--text);color:#fff;border:none;border-radius:10px;
+    padding:11px;font-size:0.875rem;font-weight:700;font-family:'Lato',sans-serif;
+    cursor:pointer;transition:background 0.15s,transform 0.1s;margin-top:4px
   }
   .btn-save:hover{background:var(--text-mid);transform:translateY(-1px)}
   .btn-save.saved{background:var(--green)}
 
-  .danger-zone{border:1px solid #FECACA;border-radius:12px;padding:16px 18px;margin-top:8px}
-  .danger-title{font-size:0.78rem;font-weight:700;color:var(--error);margin-bottom:8px}
-  .danger-desc{font-size:0.8rem;color:var(--muted);margin-bottom:12px}
+  .danger-zone{border:1px solid #FECACA;border-radius:10px;padding:12px 14px;margin-top:6px}
+  .danger-title{font-size:0.75rem;font-weight:700;color:var(--error);margin-bottom:4px}
+  .danger-desc{font-size:0.76rem;color:var(--muted);margin-bottom:10px}
   .btn-danger{
     background:transparent;color:var(--error);border:1px solid #FECACA;
-    border-radius:9px;padding:8px 16px;font-size:0.8rem;font-weight:700;
+    border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:700;
     font-family:'Lato',sans-serif;cursor:pointer;transition:all 0.15s
   }
   .btn-danger:hover{background:var(--error-bg)}
@@ -97,7 +97,7 @@
     z-index:999;opacity:0;transform:translateY(8px);transition:opacity 0.2s,transform 0.2s}
   .toast.show{opacity:1;transform:none}
 
-  @media(max-width:640px){nav{padding:0 20px}.page{padding:32px 20px 60px}}
+  @media(max-width:640px){nav{padding:0 20px}.page{padding:16px 20px 48px}}
 </style>
 </head>
 <body>
@@ -167,10 +167,30 @@
     </div>
   </div>
 
+  <!-- Notifications -->
+  <div class="section">
+    <div class="section-label">Notifications</div>
+    <div class="section-card">
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500;font-size:0.85rem">
+          <input type="checkbox" id="notify-matches" style="width:15px;height:15px;accent-color:var(--green);cursor:pointer">
+          Email me when my daily matches are ready
+        </label>
+      </div>
+      <div class="field">
+        <label>Frequency</label>
+        <select id="notify-frequency" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.85rem;color:var(--text-mid);background:#fff;cursor:pointer">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly (Mondays only)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
   <button class="btn-save" id="save-btn" onclick="saveSettings()">Save changes</button>
 
   <!-- Danger zone -->
-  <div class="section" style="margin-top:48px">
+  <div class="section" style="margin-top:20px">
     <div class="section-label">Account</div>
     <div class="danger-zone">
       <div class="danger-title">Delete account</div>
@@ -184,9 +204,9 @@
 
 <script>
 const INDUSTRIES = [
-  'Finance','Investment Banking','Technology','Software Engineering','Product Management',
-  'Data & Analytics','Law',
+  'Finance','Technology','Law',
   // Coming soon in V0
+  'Investment Banking','Software Engineering','Product Management','Data & Analytics',
   'Consulting','Strategy','Marketing','Growth','Healthcare','Media & Journalism',
   'Design & UX','Real Estate','Non-profit & Policy','Venture Capital'
 ];
@@ -252,6 +272,11 @@ async function loadSettings() {
     const sizeEl = document.querySelector(`[data-value="${data.company_size}"]`);
     if (sizeEl) selectSize(sizeEl);
 
+    // Notification preferences
+    document.getElementById('notify-matches').checked = !!data.notify_matches;
+    const freqEl = document.getElementById('notify-frequency');
+    if (freqEl) freqEl.value = data.notify_frequency || 'daily';
+
     document.getElementById('page-sub').textContent =
       `Signed in as ${data.email}`;
   } catch(e) {
@@ -272,10 +297,12 @@ async function saveSettings() {
   const size = document.querySelector('.size-card.selected')?.dataset.value || '';
 
   const payload = {
-    name:        document.getElementById('name-input').value.trim(),
-    bio:         document.getElementById('bio').value.trim(),
+    name:            document.getElementById('name-input').value.trim(),
+    bio:             document.getElementById('bio').value.trim(),
     industries,
-    companySize: size,
+    companySize:     size,
+    notifyMatches:   document.getElementById('notify-matches').checked,
+    notifyFrequency: document.getElementById('notify-frequency').value,
   };
 
   const btn = document.getElementById('save-btn');

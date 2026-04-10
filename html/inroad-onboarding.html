@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Get started — inroad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -730,12 +730,12 @@
 
       <div class="industry-grid">
         <span class="industry-pill" onclick="togglePill(this)">Finance</span>
-        <span class="industry-pill locked" title="Coming soon">Investment Banking</span>
         <span class="industry-pill" onclick="togglePill(this)">Technology</span>
+        <span class="industry-pill" onclick="togglePill(this)">Law</span>
+        <span class="industry-pill locked" title="Coming soon">Investment Banking</span>
         <span class="industry-pill locked" title="Coming soon">Software Engineering</span>
         <span class="industry-pill locked" title="Coming soon">Product Management</span>
         <span class="industry-pill locked" title="Coming soon">Data & Analytics</span>
-        <span class="industry-pill" onclick="togglePill(this)">Law</span>
         <span class="industry-pill locked" title="Coming soon">Consulting</span>
         <span class="industry-pill locked" title="Coming soon">Strategy</span>
         <span class="industry-pill locked" title="Coming soon">Marketing</span>
@@ -809,6 +809,17 @@
           rows="4"
         ></textarea>
         <p class="char-count" id="char-count">0 / 300</p>
+      </div>
+
+      <div class="field" style="margin-top:20px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.9rem;color:var(--text-mid)">
+          <input type="checkbox" id="notify-matches" checked style="width:16px;height:16px;accent-color:var(--green);cursor:pointer">
+          Email me when my daily matches are ready
+        </label>
+        <select id="notify-frequency" style="margin-top:10px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.85rem;color:var(--text-mid);background:#fff;width:100%;cursor:pointer">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly (Mondays only)</option>
+        </select>
       </div>
 
       <div class="step-actions">
@@ -1037,13 +1048,17 @@
     document.getElementById('onboarding-loading-overlay').classList.add('visible');
 
     async function saveAndGo() {
+      const notifyMatches   = document.getElementById('notify-matches')?.checked ?? false;
+      const notifyFrequency = document.getElementById('notify-frequency')?.value || 'daily';
       const payload = JSON.stringify({
         name,
-        age:         age ? parseInt(age) : null,
+        age:           age ? parseInt(age) : null,
         status,
         industries,
         companySize,
         bio,
+        notifyMatches,
+        notifyFrequency,
       });
 
       // apiFetch (from auth.js) adds the Bearer token automatically and handles

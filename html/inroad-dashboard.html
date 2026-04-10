@@ -109,6 +109,20 @@
 
   .nav-settings:hover { color: var(--text); }
 
+  .nav-refer-btn {
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .nav-refer-btn:hover { background: var(--green-deep); transform: translateY(-1px); }
+
   /* ─── LAYOUT ─── */
   .page {
     max-width: 860px;
@@ -745,6 +759,21 @@
 
   .btn-copy:hover { background: var(--green-deep); transform: translateY(-1px); }
 
+  .btn-open-mail {
+    background: var(--white);
+    color: var(--text-mid);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-open-mail:hover { border-color: var(--green); color: var(--green); }
+
   .btn-mark-sent {
     background: var(--white);
     color: var(--text-mid);
@@ -927,10 +956,28 @@
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
   </a>
   <div class="nav-right">
+    <button class="nav-refer-btn" id="nav-refer-btn" onclick="openReferModal()" style="display:none">Refer a friend → 5 cards/day</button>
     <a href="/settings" class="nav-settings" id="settings-link">Settings</a>
     <div class="nav-profile" title="Your profile"></div>
   </div>
 </nav>
+
+<!-- REFERRAL MODAL -->
+<div class="modal-overlay" id="refer-modal-overlay" style="display:none" onclick="if(event.target===this)closeReferModal()">
+  <div class="modal" id="refer-modal">
+    <div class="modal-header">
+      <div class="modal-title">Get 5 matches a day</div>
+      <button class="modal-close" onclick="closeReferModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <p style="color:var(--text-mid);line-height:1.6;margin:0 0 20px">Share your link. When a friend signs up and completes onboarding, you both unlock <strong>5 daily matches</strong> instead of 3.</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="refer-link-input" type="text" readonly style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;color:var(--text);background:var(--surface);outline:none;">
+        <button class="btn-copy" onclick="copyReferLink()" id="copy-refer-btn" style="flex-shrink:0">Copy link</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- PAGE -->
 <div class="page">
@@ -1085,6 +1132,7 @@
       <div class="modal-actions">
         <button class="btn-regenerate" onclick="regenerate()">↺ Regenerate</button>
         <button class="btn-copy" id="btn-copy" onclick="copyEmail()">Copy email</button>
+        <button class="btn-open-mail" onclick="openInMail()">Open in Mail ↗</button>
         <button class="btn-mark-sent" id="btn-mark-sent" onclick="markAsSent()">Mark as sent</button>
       </div>
     </div>
@@ -1116,9 +1164,16 @@
     document.getElementById('loading-overlay').classList.remove('visible');
   }
 
-  // ── GREETING HELPER ──
+  // ── GREETING + REFERRAL SETUP ──
   function updateGreeting(student) {
     if (!student) return;
+    // Referral button + link
+    if (student.referral_code) {
+      const referBtn = document.getElementById('nav-refer-btn');
+      if (referBtn) referBtn.style.display = '';
+      const referInput = document.getElementById('refer-link-input');
+      if (referInput) referInput.value = `https://www.the-inroad.com/signup?ref=${student.referral_code}`;
+    }
     const firstName = (student.name || '').split(' ')[0] || '';
     const nameEl = document.getElementById('user-name');
     if (nameEl && firstName) {
@@ -1381,6 +1436,24 @@ Alex`
     btn.querySelector('.toggle-label').textContent = isOpen ? 'Contact details' : 'Hide details';
   }
 
+  // ── REFERRAL MODAL ──
+  function openReferModal() {
+    document.getElementById('refer-modal-overlay').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeReferModal() {
+    document.getElementById('refer-modal-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  function copyReferLink() {
+    const val = document.getElementById('refer-link-input').value;
+    navigator.clipboard.writeText(val).then(() => {
+      const btn = document.getElementById('copy-refer-btn');
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
+    });
+  }
+
   // ── MODAL ──
   function openModal(cardId) {
     activeCard = cardId;
@@ -1516,6 +1589,21 @@ Alex`
       btn.textContent = 'Copied ✓';
       setTimeout(() => { btn.textContent = 'Copy email'; }, 2000);
     });
+  }
+
+  function openInMail() {
+    if (!activeCard) return;
+    const data = matches[activeCard];
+    if (!data) return;
+    const subject = document.getElementById('modal-subject-input').value;
+    const body    = document.getElementById('email-body').value;
+    const to      = data.to || '';
+    window.open(
+      'mailto:' + encodeURIComponent(to) +
+      '?subject=' + encodeURIComponent(subject) +
+      '&body='    + encodeURIComponent(body),
+      '_blank'
+    );
   }
 
   function markAsSent() {

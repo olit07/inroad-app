@@ -70,8 +70,30 @@ def run_cards_job():
     logger.info("CARDS JOB done")
 
 
+def run_notify_job():
+    logger.info("─" * 60)
+    logger.info("NOTIFY JOB starting")
+    from db.database import fetchall
+    from utils.notifications import send_daily_matches_ready
+    today_is_monday = datetime.utcnow().weekday() == 0
+    students = fetchall(
+        "SELECT id, email, name, notify_frequency FROM students "
+        "WHERE notify_matches = TRUE AND deactivated_at IS NULL"
+    )
+    sent = 0
+    for s in students:
+        if s["notify_frequency"] == "weekly" and not today_is_monday:
+            continue
+        try:
+            send_daily_matches_ready(dict(s))
+            sent += 1
+        except Exception as e:
+            logger.warning(f"Notify failed for {s['email']}: {e}")
+    logger.info(f"NOTIFY JOB done — {sent} emails sent")
+
+
 def run_full_pipeline():
-    """Run the complete daily pipeline: scrape → leads → cards."""
+    """Run the complete daily pipeline: scrape → leads → cards → notify."""
     logger.info("=" * 60)
     logger.info("FULL PIPELINE starting")
     start = time.time()
@@ -87,6 +109,10 @@ def run_full_pipeline():
         run_cards_job()
     except Exception as e:
         logger.error(f"Cards job crashed: {e}", exc_info=True)
+    try:
+        run_notify_job()
+    except Exception as e:
+        logger.error(f"Notify job crashed: {e}", exc_info=True)
     elapsed = round((time.time() - start) / 60, 1)
     logger.info(f"FULL PIPELINE done in {elapsed} min")
 
@@ -155,6 +181,8 @@ if __name__ == "__main__":
         print(f"\n{len(rows)} company email formats stored:\n")
         for r in rows:
             print(f"  {r['company']:40s}  {r['fmt_code']:6s}  {r['domain']:35s}  [{r['source']}]")
+    elif "--notify" in args:
+        run_notify_job()
     elif "--fix-emails" in args:
         from pipeline.lead_builder import fix_ats_email_formats
         n = fix_ats_email_formats()

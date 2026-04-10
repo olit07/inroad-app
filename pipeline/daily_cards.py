@@ -384,9 +384,12 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         return []
     student = dict(student)
 
+    # Per-student quota (referral bonus overrides global default)
+    quota = int(student.get("daily_cards_override") or DAILY_MATCH_QUOTA)
+
     # Check if today's cards already generated
-    if get_card_count_today(student_id) >= DAILY_MATCH_QUOTA:
-        logger.info(f"Student {student_id} already has {DAILY_MATCH_QUOTA} cards for {today_str}")
+    if get_card_count_today(student_id) >= quota:
+        logger.info(f"Student {student_id} already has {quota} cards for {today_str}")
         return []
 
     seen_job_ids  = get_seen_history(student_id)
@@ -440,7 +443,7 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
     # reflects the jobs already chosen this round.
     remaining_jobs = list(jobs)
 
-    while len(cards_written) < DAILY_MATCH_QUOTA and remaining_jobs:
+    while len(cards_written) < quota and remaining_jobs:
         scored_jobs = [
             (score_job(j, student, already_selected=cards_written), j)
             for j in remaining_jobs

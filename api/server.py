@@ -152,7 +152,7 @@ def require_session(f):
 
 # ── Magic link helpers ───────────────────────────────────────────────────────
 
-def send_magic_link(email: str, token: str, next_url: str = None):
+def send_magic_link(email: str, token: str, next_url: str = None, ref: str = None):
     """Send a magic-link email via Resend REST API."""
     import requests as req
     from urllib.parse import urlencode
@@ -160,6 +160,8 @@ def send_magic_link(email: str, token: str, next_url: str = None):
     qs = {"token": token}
     if next_url:
         qs["next"] = next_url
+    if ref:
+        qs["ref"] = ref
     verify_url = f"{APP_BASE_URL}/verify?{urlencode(qs)}"
 
     html = f"""<!DOCTYPE html>
@@ -416,6 +418,8 @@ def magic_link():
         next_url = "/dashboard"
     else:
         next_url = (data.get("next") or "").strip() or None
+    # Referral code passed from signup page (?ref=CODE or body.ref)
+    ref_code = (request.args.get("ref") or data.get("ref") or "").strip().upper() or None
     create_magic_token(email, token, expires_at_str)
 
     # Determine whether this is a new sign-up or a returning user login
@@ -431,12 +435,14 @@ def magic_link():
         qs_dev = {"token": token}
         if next_url:
             qs_dev["next"] = next_url
+        if ref_code:
+            qs_dev["ref"] = ref_code
         print(f"\n[DEV] Magic link for {email} (new={is_new_user}):")
         print(f"  {APP_BASE_URL}/verify?{urlencode(qs_dev)}\n")
         return jsonify({"status": "sent", "dev_token": token})
 
     if is_new_user and data.get("source") != "login":
-        ok = send_magic_link(email, token, next_url=next_url)
+        ok = send_magic_link(email, token, next_url=next_url, ref=ref_code)
     else:
         ok = send_login_link(email, token, next_url=next_url)
     if not ok:
@@ -470,6 +476,22 @@ def verify():
         uni_info = detect_university(email)
         if uni_info:
             update_student_fields(student_id, {"university": uni_info["name"]})
+
+    # Credit referrer if this is a new signup with a valid referral code
+    if is_new_user:
+        ref_code = request.args.get("ref", "").strip().upper()
+        if ref_code:
+            from db.database import get_student_by_referral_code, execute as db_execute
+            referrer = get_student_by_referral_code(ref_code)
+            if referrer:
+                db_execute(
+                    "UPDATE students SET referred_by = ? WHERE id = ?",
+                    (ref_code, student_id)
+                )
+                db_execute(
+                    "UPDATE students SET daily_cards_override = 5 WHERE referral_code = ?",
+                    (ref_code,)
+                )
 
     # next_param always wins (login page sets next=/dashboard).
     # New users with no next_param → onboarding. Everyone else → dashboard.
@@ -595,13 +617,15 @@ def update_me():
 
     # Map request keys to column names; only include keys present in body
     field_map = {
-        "name":        "name",
-        "age":         "age",
-        "status":      "status",
-        "industries":  "industries",
-        "companySize": "company_size",
-        "bio":         "bio",
-        "university":  "university",
+        "name":            "name",
+        "age":             "age",
+        "status":          "status",
+        "industries":      "industries",
+        "companySize":     "company_size",
+        "bio":             "bio",
+        "university":      "university",
+        "notifyMatches":   "notify_matches",
+        "notifyFrequency": "notify_frequency",
     }
     fields = {}
     for req_key, col in field_map.items():
@@ -648,6 +672,15 @@ def register_student():
         bio=data.get("bio", ""),
         university=data.get("university", student.get("university", "")),
     )
+    # Persist notification preferences set during onboarding
+    notify_fields = {}
+    if "notifyMatches" in data:
+        notify_fields["notify_matches"] = bool(data["notifyMatches"])
+    if "notifyFrequency" in data:
+        notify_fields["notify_frequency"] = data["notifyFrequency"]
+    if notify_fields:
+        update_student_fields(g.student_id, notify_fields)
+        student = get_student_by_id(g.student_id)
     return jsonify(student)
 
 

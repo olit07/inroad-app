@@ -106,10 +106,15 @@ CREATE TABLE IF NOT EXISTS students (
     industries     TEXT,
     company_size   TEXT,
     bio            TEXT,
-    university     TEXT,
-    created_at     TIMESTAMPTZ DEFAULT NOW(),
-    last_seen      TIMESTAMPTZ,
-    deactivated_at TIMESTAMPTZ
+    university          TEXT,
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+    last_seen           TIMESTAMPTZ,
+    deactivated_at      TIMESTAMPTZ,
+    notify_matches      BOOLEAN NOT NULL DEFAULT FALSE,
+    notify_frequency    TEXT    NOT NULL DEFAULT 'daily',
+    referral_code       TEXT UNIQUE,
+    referred_by         TEXT,
+    daily_cards_override INTEGER DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS magic_tokens (
@@ -261,10 +266,15 @@ CREATE TABLE IF NOT EXISTS students (
     industries     TEXT,
     company_size   TEXT,
     bio            TEXT,
-    university     TEXT,
-    created_at     TEXT DEFAULT (datetime('now')),
-    last_seen      TEXT,
-    deactivated_at TEXT
+    university           TEXT,
+    created_at           TEXT DEFAULT (datetime('now')),
+    last_seen            TEXT,
+    deactivated_at       TEXT,
+    notify_matches       INTEGER NOT NULL DEFAULT 0,
+    notify_frequency     TEXT    NOT NULL DEFAULT 'daily',
+    referral_code        TEXT UNIQUE,
+    referred_by          TEXT,
+    daily_cards_override INTEGER DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS magic_tokens (
@@ -503,6 +513,16 @@ def _run_migrations_postgres():
             source     TEXT DEFAULT 'groq',
             created_at TIMESTAMPTZ DEFAULT NOW()
         )""",
+        # Feature: email reminders
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS notify_matches BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS notify_frequency TEXT NOT NULL DEFAULT 'daily'",
+        # Feature: referral bonus
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS referral_code TEXT UNIQUE",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS referred_by TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS daily_cards_override INTEGER DEFAULT NULL",
+        # Referral code: backfill for existing students
+        """UPDATE students SET referral_code = substring(md5(random()::text || id::text), 1, 8)
+           WHERE referral_code IS NULL""",
     ]
     with get_conn() as conn:
         cur = conn.cursor()
@@ -587,9 +607,11 @@ def get_student_by_id(student_id):
 
 
 def create_student(email, university=None):
+    import secrets as _secrets, string as _string
+    referral_code = ''.join(_secrets.choice(_string.ascii_uppercase + _string.digits) for _ in range(8))
     execute(
-        "INSERT INTO students (email, university) VALUES (?, ?) ON CONFLICT (email) DO NOTHING",
-        (email, university)
+        "INSERT INTO students (email, university, referral_code) VALUES (?, ?, ?) ON CONFLICT (email) DO NOTHING",
+        (email, university, referral_code)
     )
     return get_student_by_email(email)
 
@@ -1116,6 +1138,11 @@ def save_email_format(company: str, fmt_code: str, domain: str, source: str = "g
                VALUES (?, ?, ?, ?)""",
             (company.strip().lower(), fmt_code, domain, source),
         )
+
+
+def get_student_by_referral_code(code: str) -> dict | None:
+    """Return the student row whose referral_code matches, or None."""
+    return fetchone("SELECT * FROM students WHERE referral_code = ?", (code.strip().upper(),))
 
 
 def get_seen_linkedin_urls(student_id: int) -> set:
