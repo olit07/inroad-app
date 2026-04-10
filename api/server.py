@@ -702,7 +702,7 @@ def matches_today(student_id):
                    m.email_subject, m.email_body,
                    m.status, m.sent_at, m.replied_at, m.created_at,
                    j.title as job_title, j.company, j.url as job_url,
-                   j.location, j.industry, j.posted_at
+                   j.location, j.industry, j.opening_date
             FROM matches m
             JOIN jobs j ON j.id = m.job_id
     """
@@ -800,14 +800,14 @@ def list_jobs():
             "FROM jobs WHERE company IS NOT NULL AND company != '' "
             "AND title IS NOT NULL AND title != '' "
             "ORDER BY NULLIF(raw::jsonb->>'opening_date', '') DESC NULLS LAST, "
-            "         posted_at DESC NULLS LAST LIMIT ?",
+            "         created_at DESC NULLS LAST LIMIT ?",
             (limit,)
         )
     else:
         rows = fetchall(
             "SELECT * FROM jobs WHERE company IS NOT NULL AND company != '' "
             "AND title IS NOT NULL AND title != '' "
-            "ORDER BY posted_at DESC NULLS LAST LIMIT ?",
+            "ORDER BY created_at DESC NULLS LAST LIMIT ?",
             (limit,)
         )
 
@@ -883,8 +883,8 @@ def admin_stats():
         now_minus_14 = "datetime('now', '-14 days')"
         today_expr   = "date('now')"
 
-    active_jobs  = (fetchone(f"SELECT COUNT(*) as n FROM jobs WHERE posted_at > {now_minus_14}") or {}).get("n", 0)
-    companies    = (fetchone(f"SELECT COUNT(DISTINCT company) as n FROM jobs WHERE posted_at > {now_minus_14}") or {}).get("n", 0)
+    active_jobs  = (fetchone(f"SELECT COUNT(*) as n FROM jobs WHERE created_at > {now_minus_14}") or {}).get("n", 0)
+    companies    = (fetchone(f"SELECT COUNT(DISTINCT company) as n FROM jobs WHERE created_at > {now_minus_14}") or {}).get("n", 0)
     students     = (fetchone("SELECT COUNT(*) as n FROM students") or {}).get("n", 0)
     matches_today = (fetchone(
         f"SELECT COUNT(*) as n FROM matches WHERE match_date = {today_expr}"
@@ -893,10 +893,10 @@ def admin_stats():
         f"SELECT COUNT(*) as n FROM matches WHERE status='sent' AND sent_at > {now_minus_7}"
     ) or {}).get("n", 0)
 
-    by_source_rows = fetchall(f"SELECT source, COUNT(*) as n FROM jobs WHERE source IS NOT NULL AND posted_at > {now_minus_14} GROUP BY source ORDER BY n DESC")
+    by_source_rows = fetchall(f"SELECT source, COUNT(*) as n FROM jobs WHERE source IS NOT NULL AND created_at > {now_minus_14} GROUP BY source ORDER BY n DESC")
     by_source = {r["source"]: r["n"] for r in by_source_rows}
 
-    by_industry_rows = fetchall(f"SELECT industry, COUNT(*) as n FROM jobs WHERE industry IS NOT NULL AND posted_at > {now_minus_14} GROUP BY industry ORDER BY n DESC LIMIT 10")
+    by_industry_rows = fetchall(f"SELECT industry, COUNT(*) as n FROM jobs WHERE industry IS NOT NULL AND created_at > {now_minus_14} GROUP BY industry ORDER BY n DESC LIMIT 10")
     by_industry = {r["industry"]: r["n"] for r in by_industry_rows}
 
     return jsonify({"data": {
@@ -981,6 +981,14 @@ def admin_scrape():
     import threading
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"status": "triggered"})
+
+
+@app.route("/api/admin/fix-email-formats", methods=["POST"])
+@require_admin
+def admin_fix_email_formats():
+    from pipeline.lead_builder import fix_ats_email_formats
+    n = fix_ats_email_formats()
+    return jsonify({"status": "done", "fixed": n})
 
 
 @app.route("/api/admin/runs")
