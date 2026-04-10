@@ -980,6 +980,55 @@ def admin_generate_cards():
     return jsonify({"status": "triggered", "student_id": student_id})
 
 
+@app.route("/api/admin/student-info")
+@require_admin
+def admin_student_info():
+    """Return referral/quota info for a student by email."""
+    email = request.args.get("email", "").strip().lower()
+    if not email:
+        return jsonify({"error": "email required"}), 400
+    from db.database import fetchone as _fetchone, fetchall as _fetchall
+    student = _fetchone(
+        "SELECT id, email, name, referral_code, referred_by, daily_cards_override, notify_matches, notify_frequency "
+        "FROM students WHERE lower(email) = ?", (email,)
+    )
+    if not student:
+        return jsonify({"error": "not found"}), 404
+    cards_today = _fetchall(
+        "SELECT id, created_at FROM matches WHERE student_id = ? AND DATE(created_at) = CURRENT_DATE",
+        (student["id"],)
+    )
+    return jsonify({"student": dict(student), "cards_today": len(cards_today)})
+
+
+@app.route("/api/admin/credit-referral", methods=["POST"])
+@require_admin
+def admin_credit_referral():
+    """Manually set daily_cards_override=5 for a student and top up today's cards."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "email required"}), 400
+    from db.database import fetchone as _fetchone, execute as _execute
+    student = _fetchone("SELECT id FROM students WHERE lower(email) = ?", (email,))
+    if not student:
+        return jsonify({"error": "not found"}), 404
+    student_id = student["id"]
+    _execute("UPDATE students SET daily_cards_override = 5 WHERE id = ?", (student_id,))
+
+    # Generate the extra cards in background (generate_daily_cards will fill up to quota)
+    def _run():
+        try:
+            from pipeline.daily_cards import generate_daily_cards
+            generate_daily_cards(student_id)
+            print(f"[admin/credit-referral] cards topped up for student {student_id}")
+        except Exception as exc:
+            print(f"[admin/credit-referral] error: {exc}")
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "ok", "student_id": student_id, "daily_cards_override": 5})
+
+
 @app.route("/api/admin/build-leads", methods=["POST"])
 @require_admin
 def admin_build_leads():

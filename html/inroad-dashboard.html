@@ -984,7 +984,7 @@
       <button class="modal-close" onclick="closeReferModal()">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-family:'Lato',sans-serif;font-size:0.88rem;color:var(--text-mid);line-height:1.65;margin:0 0 20px">Share your link. When a friend signs up and completes onboarding, you both unlock <strong style="color:var(--text)">5 daily matches</strong> instead of 3.</p>
+      <p style="font-family:'Lato',sans-serif;font-size:0.88rem;color:var(--text-mid);line-height:1.65;margin:0 0 20px">Share your link. When a friend signs up and completes onboarding, you unlock <strong style="color:var(--text)">5 daily matches</strong> instead of 3.</p>
       <div style="display:flex;gap:8px;align-items:center">
         <input id="refer-link-input" type="text" readonly style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.8rem;font-family:'Lato',sans-serif;color:var(--text-mid);background:var(--surface);outline:none;">
         <button class="btn-copy" onclick="copyReferLink()" id="copy-refer-btn" style="flex-shrink:0">Copy link</button>
@@ -1252,7 +1252,9 @@
         const meData = await meResp.json();
         student = meData.data?.student || meData.student || meData || null;
         if (student) {
+          dailyQuota = parseInt(student.daily_cards_override) || 3;
           updateGreeting(student);
+          initQuotaUI(dailyQuota);
         }
       }
     } catch (e) { /* ignore, show defaults */ }
@@ -1329,7 +1331,7 @@
     const container = document.querySelector('.matches');
     if (!container || !liveMatches.length) return;
     container.innerHTML = '';
-    liveMatches.slice(0, 3).forEach((m, idx) => {
+    liveMatches.slice(0, dailyQuota).forEach((m, idx) => {
       const cardId = `live-card-${idx}`;
       const avatarUrl = pickAvatar(m.person_name || String(idx));
       const isAlumni = m.is_alumni;
@@ -1437,7 +1439,8 @@ Alex`
   };
 
   let activeCard = null;
-  let sentCount = 0;
+  let sentCount  = 0;
+  let dailyQuota = 3;  // updated from student.daily_cards_override on load
 
   // ── TOGGLE CONTACT DETAILS ──
   function toggleDetails(cardId, btn) {
@@ -1712,8 +1715,24 @@ Alex`
     setTimeout(() => { reviewBody.scrollTop = 0; }, 50);
   }
 
+  function initQuotaUI(total) {
+    // Rebuild "of N sent" label
+    const countEl = document.querySelector('.quota-count');
+    if (countEl) countEl.innerHTML = `<strong>0</strong> of ${total} sent`;
+    // Rebuild pips
+    const pipsEl = document.querySelector('.quota-pips');
+    if (pipsEl) {
+      pipsEl.innerHTML = '';
+      for (let i = 0; i < total; i++) {
+        const d = document.createElement('div');
+        d.className = 'pip off';
+        pipsEl.appendChild(d);
+      }
+    }
+  }
+
   function updateQuota(sent) {
-    const total = 3;
+    const total = dailyQuota;
     const fill = document.getElementById('quota-fill');
     if (fill) fill.style.width = Math.min(sent / total * 100, 100) + '%';
 
