@@ -233,6 +233,14 @@ CREATE TABLE IF NOT EXISTS leads (
     stale_after      TIMESTAMPTZ
 );
 
+CREATE TABLE IF NOT EXISTS company_email_formats (
+    company    TEXT PRIMARY KEY,
+    fmt_code   TEXT NOT NULL,
+    domain     TEXT NOT NULL,
+    source     TEXT DEFAULT 'groq',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token   ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email   ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student      ON matches(student_id);
@@ -380,6 +388,14 @@ CREATE TABLE IF NOT EXISTS leads (
     stale_after      TEXT
 );
 
+CREATE TABLE IF NOT EXISTS company_email_formats (
+    company    TEXT PRIMARY KEY,
+    fmt_code   TEXT NOT NULL,
+    domain     TEXT NOT NULL,
+    source     TEXT DEFAULT 'groq',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student    ON matches(student_id);
@@ -480,6 +496,13 @@ def _run_migrations_postgres():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS scraped_rank INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS job_title TEXT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS job_expected_email TEXT",
+        """CREATE TABLE IF NOT EXISTS company_email_formats (
+            company    TEXT PRIMARY KEY,
+            fmt_code   TEXT NOT NULL,
+            domain     TEXT NOT NULL,
+            source     TEXT DEFAULT 'groq',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )""",
     ]
     with get_conn() as conn:
         cur = conn.cursor()
@@ -1063,6 +1086,35 @@ def get_leads_for_company(company: str) -> list[dict]:
                AND (stale_after IS NULL OR stale_after > datetime('now'))
                ORDER BY is_alumni DESC, tenure_months DESC""",
             (company,),
+        )
+
+
+def get_email_format(company: str) -> tuple[str, str] | None:
+    """Return (fmt_code, domain) for a company from the persistent cache, or None."""
+    row = fetchone(
+        "SELECT fmt_code, domain FROM company_email_formats WHERE lower(company) = lower(?)",
+        (company.strip(),),
+    )
+    if row:
+        return row["fmt_code"], row["domain"]
+    return None
+
+
+def save_email_format(company: str, fmt_code: str, domain: str, source: str = "groq") -> None:
+    """Persist a company email format to the DB (upsert)."""
+    if USE_POSTGRES:
+        execute(
+            """INSERT INTO company_email_formats (company, fmt_code, domain, source)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT (company) DO UPDATE SET
+                 fmt_code=EXCLUDED.fmt_code, domain=EXCLUDED.domain, source=EXCLUDED.source""",
+            (company.strip().lower(), fmt_code, domain, source),
+        )
+    else:
+        execute(
+            """INSERT OR REPLACE INTO company_email_formats (company, fmt_code, domain, source)
+               VALUES (?, ?, ?, ?)""",
+            (company.strip().lower(), fmt_code, domain, source),
         )
 
 

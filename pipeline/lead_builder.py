@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from config.settings   import (
     DEPT_MAP, TITLE_DEPT_MAP, UNI_FULL_NAMES, REGION_LOCATION_FALLBACK,
 )
-from db.database       import fetchall, upsert_lead, USE_POSTGRES
+from db.database       import fetchall, upsert_lead, USE_POSTGRES, get_email_format, save_email_format
 from pipeline.matcher  import LinkedInMatcher, _extract_university, _extract_tenure, _extract_location, _infer_seniority_from_title
 
 logger = logging.getLogger(__name__)
@@ -155,18 +155,37 @@ def _lookup_email_format_via_llm(company: str) -> tuple[str, str] | None:
 def _get_email_format(company: str) -> tuple[str, str]:
     """
     Return (fmt_code, domain) for a company.
-    Checks per-run cache first, then calls Claude, falls back to domain guess.
+    Priority: in-memory cache → DB (already looked up) → Groq LLM → domain guess fallback.
+    Persists new Groq results to DB so they're not re-fetched on future runs.
     """
     key = company.strip().lower()
+
+    # 1. In-memory cache (fastest, avoids repeated DB hits within a run)
     if key in _email_format_cache:
         cached = _email_format_cache[key]
         return cached if cached else ("FL", _guess_domain_fallback(company))
 
+    # 2. Persistent DB cache (skip Groq for already-known companies)
+    try:
+        db_result = get_email_format(company)
+        if db_result:
+            _email_format_cache[key] = db_result
+            return db_result
+    except Exception:
+        pass
+
+    # 3. Groq LLM lookup for new companies
     result = _lookup_email_format_via_llm(company)
     _email_format_cache[key] = result
     if result:
-        logger.debug(f"  Email format for {company}: {result[0]} @ {result[1]}")
+        logger.info(f"  Email format (Groq) for {company}: {result[0]} @ {result[1]}")
+        try:
+            save_email_format(company, result[0], result[1], source="groq")
+        except Exception:
+            pass
         return result
+
+    # 4. Fallback: guess domain from company name
     domain = _guess_domain_fallback(company)
     return ("FL", domain)
 
