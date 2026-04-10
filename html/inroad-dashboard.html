@@ -110,18 +110,32 @@
   .nav-settings:hover { color: var(--text); }
 
   .nav-refer-btn {
-    background: var(--green);
-    color: #fff;
+    background: #A8D8B8;
+    color: #1F4530;
     border: none;
     border-radius: 8px;
     padding: 6px 14px;
     font-size: 0.78rem;
     font-weight: 600;
+    font-family: 'Lato', sans-serif;
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.15s, transform 0.15s;
   }
-  .nav-refer-btn:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .nav-refer-btn:hover { background: #8fcca4; transform: translateY(-1px); }
+
+  .refer-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,23,20,0.45);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .refer-modal-backdrop.open { display: flex; }
 
   /* ─── LAYOUT ─── */
   .page {
@@ -956,23 +970,23 @@
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
   </a>
   <div class="nav-right">
-    <button class="nav-refer-btn" id="nav-refer-btn" onclick="openReferModal()" style="display:none">Refer a friend → 5 cards/day</button>
+    <button class="nav-refer-btn" id="nav-refer-btn" onclick="openReferModal()" style="display:none">Refer a friend, get 5 matches daily</button>
     <a href="/settings" class="nav-settings" id="settings-link">Settings</a>
     <div class="nav-profile" title="Your profile"></div>
   </div>
 </nav>
 
 <!-- REFERRAL MODAL -->
-<div class="modal-overlay" id="refer-modal-overlay" style="display:none" onclick="if(event.target===this)closeReferModal()">
-  <div class="modal" id="refer-modal">
+<div class="refer-modal-backdrop" id="refer-modal-overlay" onclick="if(event.target===this)closeReferModal()">
+  <div class="modal" style="max-width:420px;width:100%">
     <div class="modal-header">
       <div class="modal-title">Get 5 matches a day</div>
       <button class="modal-close" onclick="closeReferModal()">✕</button>
     </div>
-    <div class="modal-body" style="padding:20px 24px">
-      <p style="color:var(--text-mid);line-height:1.6;margin:0 0 20px">Share your link. When a friend signs up and completes onboarding, you both unlock <strong>5 daily matches</strong> instead of 3.</p>
+    <div class="modal-body">
+      <p style="font-family:'Lato',sans-serif;font-size:0.88rem;color:var(--text-mid);line-height:1.65;margin:0 0 20px">Share your link. When a friend signs up and completes onboarding, you both unlock <strong style="color:var(--text)">5 daily matches</strong> instead of 3.</p>
       <div style="display:flex;gap:8px;align-items:center">
-        <input id="refer-link-input" type="text" readonly style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;color:var(--text);background:var(--surface);outline:none;">
+        <input id="refer-link-input" type="text" readonly style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.8rem;font-family:'Lato',sans-serif;color:var(--text-mid);background:var(--surface);outline:none;">
         <button class="btn-copy" onclick="copyReferLink()" id="copy-refer-btn" style="flex-shrink:0">Copy link</button>
       </div>
     </div>
@@ -1438,11 +1452,11 @@ Alex`
 
   // ── REFERRAL MODAL ──
   function openReferModal() {
-    document.getElementById('refer-modal-overlay').style.display = 'flex';
+    document.getElementById('refer-modal-overlay').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
   function closeReferModal() {
-    document.getElementById('refer-modal-overlay').style.display = 'none';
+    document.getElementById('refer-modal-overlay').classList.remove('open');
     document.body.style.overflow = '';
   }
   function copyReferLink() {
