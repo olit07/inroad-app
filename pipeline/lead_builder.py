@@ -25,13 +25,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.settings   import (
     DEPT_MAP, TITLE_DEPT_MAP, UNI_FULL_NAMES, REGION_LOCATION_FALLBACK,
-    COMPANY_EMAIL_FORMATS,
 )
 from db.database       import fetchall, upsert_lead, USE_POSTGRES
 from pipeline.matcher  import LinkedInMatcher, _extract_university, _extract_tenure, _extract_location, _infer_seniority_from_title
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+# Per-run cache: company (lowercase) → (fmt_code, domain) or None
+_email_format_cache: dict[str, tuple[str, str] | None] = {}
 
 # Output path for training dataset
 TRAINING_FILE = Path(__file__).parent.parent / "data" / "leads_training.jsonl"
@@ -78,8 +80,8 @@ def _dept_from_title(title: str) -> str:
     return "software_engineering"
 
 
-def _guess_domain(company: str) -> str:
-    """Derive email domain from company name for unknown companies."""
+def _guess_domain_fallback(company: str) -> str:
+    """Fallback domain guess if Claude call fails."""
     name = company.lower()
     for suffix in [
         " capital management", " asset management", " investment management",
@@ -95,17 +97,82 @@ def _guess_domain(company: str) -> str:
     return f"{name}.com" if name else ""
 
 
-def _infer_email(name: str, company: str) -> str:
-    """Build expected email address from name + company using known format table."""
-    key   = company.strip().lower()
-    entry = COMPANY_EMAIL_FORMATS.get(key)
-    if entry:
-        fmt, domain = entry
-    else:
-        domain = _guess_domain(company)
+def _lookup_email_format_via_claude(company: str) -> tuple[str, str] | None:
+    """
+    Ask Claude to determine the email format and domain for a company.
+    Returns (fmt_code, domain) or None on failure.
+    fmt_code: "FL" = firstname.lastname, "fL" = flastname,
+              "f.L" = f.lastname, "F_L" = firstname_lastname, "F" = firstname
+    """
+    import anthropic
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return None
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=120,
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"What is the corporate email format and domain for employees at \"{company}\"?\n\n"
+                    "Reply with ONLY a JSON object like:\n"
+                    "{\"format\": \"firstname.lastname\", \"domain\": \"company.com\"}\n\n"
+                    "Format options: firstname.lastname | firstinitiallastname | firstinitial.lastname | "
+                    "firstname_lastname | firstname\n\n"
+                    "If you are not confident, make your best guess based on the company name."
+                ),
+            }],
+        )
+        raw = msg.content[0].text.strip()
+        # Extract JSON even if wrapped in markdown
+        match = re.search(r'\{.*?\}', raw, re.DOTALL)
+        if not match:
+            return None
+        data = json.loads(match.group())
+        domain = (data.get("domain") or "").strip().lower().lstrip("@")
+        fmt_str = (data.get("format") or "").strip().lower()
+        fmt_map = {
+            "firstname.lastname":     "FL",
+            "firstinitiallastname":   "fL",
+            "firstinitial.lastname":  "f.L",
+            "firstname_lastname":     "F_L",
+            "firstname":              "F",
+        }
+        fmt = fmt_map.get(fmt_str, "FL")
         if not domain:
-            return ""
-        fmt = "FL"
+            return None
+        return fmt, domain
+    except Exception as e:
+        logger.debug(f"Claude email lookup failed for {company}: {e}")
+        return None
+
+
+def _get_email_format(company: str) -> tuple[str, str]:
+    """
+    Return (fmt_code, domain) for a company.
+    Checks per-run cache first, then calls Claude, falls back to domain guess.
+    """
+    key = company.strip().lower()
+    if key in _email_format_cache:
+        cached = _email_format_cache[key]
+        return cached if cached else ("FL", _guess_domain_fallback(company))
+
+    result = _lookup_email_format_via_claude(company)
+    _email_format_cache[key] = result
+    if result:
+        logger.debug(f"  Email format for {company}: {result[0]} @ {result[1]}")
+        return result
+    domain = _guess_domain_fallback(company)
+    return ("FL", domain)
+
+
+def _infer_email(name: str, company: str) -> str:
+    """Build expected email from name + company using Claude-determined format."""
+    fmt, domain = _get_email_format(company)
+    if not domain:
+        return ""
     parts = name.strip().split()
     if len(parts) < 2:
         return ""
