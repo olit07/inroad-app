@@ -131,9 +131,9 @@ def expire_stale_jobs(db_path=DB_PATH, max_age_days: int = 14) -> int:
     """
     from db.database import USE_POSTGRES, execute as db_execute
     if USE_POSTGRES:
-        sql = f"DELETE FROM jobs WHERE posted_at < NOW() - INTERVAL '{max_age_days} days'"
+        sql = f"DELETE FROM jobs WHERE created_at < NOW() - INTERVAL '{max_age_days} days'"
     else:
-        sql = f"DELETE FROM jobs WHERE posted_at < datetime('now', '-{max_age_days} days')"
+        sql = f"DELETE FROM jobs WHERE created_at < datetime('now', '-{max_age_days} days')"
     deleted = db_execute(sql) or 0
     return deleted
 
