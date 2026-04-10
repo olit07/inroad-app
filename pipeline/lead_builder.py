@@ -105,7 +105,7 @@ def _lookup_email_format_via_claude(company: str) -> tuple[str, str] | None:
               "f.L" = f.lastname, "F_L" = firstname_lastname, "F" = firstname
     """
     import anthropic
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY", "")
     if not api_key:
         return None
     try:
