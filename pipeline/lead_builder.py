@@ -97,36 +97,39 @@ def _guess_domain_fallback(company: str) -> str:
     return f"{name}.com" if name else ""
 
 
-def _lookup_email_format_via_claude(company: str) -> tuple[str, str] | None:
+def _lookup_email_format_via_llm(company: str) -> tuple[str, str] | None:
     """
-    Ask Claude to determine the email format and domain for a company.
+    Ask Groq (Llama 3) to determine the email format and domain for a company.
     Returns (fmt_code, domain) or None on failure.
     fmt_code: "FL" = firstname.lastname, "fL" = flastname,
               "f.L" = f.lastname, "F_L" = firstname_lastname, "F" = firstname
     """
-    import anthropic
-    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY", "")
+    import requests as _req
+    api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
         return None
+    prompt = (
+        f"What is the corporate email format and domain for employees at \"{company}\"?\n\n"
+        "Reply with ONLY a JSON object, no explanation:\n"
+        "{\"format\": \"firstname.lastname\", \"domain\": \"company.com\"}\n\n"
+        "Format must be one of: firstname.lastname | firstinitiallastname | firstinitial.lastname | "
+        "firstname_lastname | firstname\n\n"
+        "If unsure, make your best guess based on the company name."
+    )
     try:
-        client = anthropic.Anthropic(api_key=api_key)
-        msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=120,
-            messages=[{
-                "role": "user",
-                "content": (
-                    f"What is the corporate email format and domain for employees at \"{company}\"?\n\n"
-                    "Reply with ONLY a JSON object like:\n"
-                    "{\"format\": \"firstname.lastname\", \"domain\": \"company.com\"}\n\n"
-                    "Format options: firstname.lastname | firstinitiallastname | firstinitial.lastname | "
-                    "firstname_lastname | firstname\n\n"
-                    "If you are not confident, make your best guess based on the company name."
-                ),
-            }],
+        resp = _req.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "llama-3.1-8b-instant",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 80,
+                "temperature": 0,
+            },
+            timeout=10,
         )
-        raw = msg.content[0].text.strip()
-        # Extract JSON even if wrapped in markdown
+        resp.raise_for_status()
+        raw = resp.json()["choices"][0]["message"]["content"].strip()
         match = re.search(r'\{.*?\}', raw, re.DOTALL)
         if not match:
             return None
@@ -134,18 +137,18 @@ def _lookup_email_format_via_claude(company: str) -> tuple[str, str] | None:
         domain = (data.get("domain") or "").strip().lower().lstrip("@")
         fmt_str = (data.get("format") or "").strip().lower()
         fmt_map = {
-            "firstname.lastname":     "FL",
-            "firstinitiallastname":   "fL",
-            "firstinitial.lastname":  "f.L",
-            "firstname_lastname":     "F_L",
-            "firstname":              "F",
+            "firstname.lastname":    "FL",
+            "firstinitiallastname":  "fL",
+            "firstinitial.lastname": "f.L",
+            "firstname_lastname":    "F_L",
+            "firstname":             "F",
         }
         fmt = fmt_map.get(fmt_str, "FL")
         if not domain:
             return None
         return fmt, domain
     except Exception as e:
-        logger.debug(f"Claude email lookup failed for {company}: {e}")
+        logger.debug(f"LLM email lookup failed for {company}: {e}")
         return None
 
 
@@ -159,7 +162,7 @@ def _get_email_format(company: str) -> tuple[str, str]:
         cached = _email_format_cache[key]
         return cached if cached else ("FL", _guess_domain_fallback(company))
 
-    result = _lookup_email_format_via_claude(company)
+    result = _lookup_email_format_via_llm(company)
     _email_format_cache[key] = result
     if result:
         logger.debug(f"  Email format for {company}: {result[0]} @ {result[1]}")
