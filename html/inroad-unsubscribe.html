@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unsubscribe · inroad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green:      #1F4530;
+    --green-lite: #EBF4EF;
+    --green-mid:  #A8D8B8;
+    --text:       #1A1714;
+    --muted:      #7A7068;
+    --subtle:     #ADA79F;
+    --border:     #E2DED8;
+    --surface:    #F3F1EE;
+    --bg:         #F5F5F2;
+    --white:      #FFFFFF;
+  }
+
+  body {
+    font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    max-width: 440px;
+    width: 100%;
+    padding: 48px 44px;
+    text-align: center;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 36px;
+    text-decoration: none;
+  }
+
+  .logo-text {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 1.35rem;
+    color: var(--green);
+    letter-spacing: -0.02em;
+  }
+
+  /* States */
+  .state { display: none; }
+  .state.active { display: block; }
+
+  /* Confirm state */
+  .icon-wrap {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+  }
+
+  h1 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.35;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+
+  .btn-unsubscribe {
+    display: block;
+    width: 100%;
+    background: var(--text);
+    color: var(--white);
+    border: none;
+    border-radius: 10px;
+    padding: 13px 24px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 12px;
+  }
+
+  .btn-unsubscribe:hover { background: #3A3330; }
+  .btn-unsubscribe:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-back {
+    display: block;
+    width: 100%;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-back:hover { border-color: var(--green-mid); color: var(--green); }
+
+  /* Done state */
+  .icon-wrap.green {
+    background: var(--green-lite);
+    border-color: var(--green-mid);
+  }
+
+  /* Error state */
+  .error-text {
+    font-size: 0.85rem;
+    color: #B91C1C;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- Logo -->
+  <a href="/" class="logo">
+    <svg width="26" height="26" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="88" height="88" rx="22" fill="#1F4530"/>
+      <path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/>
+    </svg>
+    <span class="logo-text">inroad</span>
+  </a>
+
+  <!-- Confirm state -->
+  <div class="state active" id="state-confirm">
+    <div class="icon-wrap">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A7068" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </div>
+    <h1>Unsubscribe from match emails?</h1>
+    <p>You'll stop receiving daily match notifications. You can re-enable them any time from your settings.</p>
+    <button class="btn-unsubscribe" id="confirm-btn" onclick="confirmUnsubscribe()">Yes, unsubscribe me</button>
+    <a href="/settings" class="btn-back">No, keep my emails</a>
+  </div>
+
+  <!-- Done state -->
+  <div class="state" id="state-done">
+    <div class="icon-wrap green">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F4530" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h1>You've been unsubscribed.</h1>
+    <p>You won't receive match emails anymore. You can always turn them back on in your settings.</p>
+    <a href="/settings" class="btn-back">Go to settings</a>
+  </div>
+
+  <!-- Error state -->
+  <div class="state" id="state-error">
+    <div class="icon-wrap">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <h1>This link has expired.</h1>
+    <p>Unsubscribe links expire after 30 days. Sign in to manage your notification preferences directly.</p>
+    <a href="/settings" class="btn-back">Go to settings</a>
+  </div>
+
+</div>
+
+<script>
+  function getToken() {
+    return new URLSearchParams(window.location.search).get('token') || '';
+  }
+
+  async function confirmUnsubscribe() {
+    const token = getToken();
+    const btn   = document.getElementById('confirm-btn');
+    btn.disabled    = true;
+    btn.textContent = 'Unsubscribing…';
+
+    try {
+      const res = await fetch('/api/unsubscribe', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ token }),
+      });
+      if (res.ok) {
+        show('state-done');
+      } else {
+        show('state-error');
+      }
+    } catch {
+      show('state-error');
+    }
+  }
+
+  function show(id) {
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // If no token in URL, go straight to error
+  if (!getToken()) show('state-error');
+</script>
+
+</body>
+</html>

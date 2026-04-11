@@ -1192,6 +1192,28 @@ def admin_page():
     return _send_html("inroad-admin.html")
 
 
+@app.route("/unsubscribe")
+def unsubscribe_page():
+    return _send_html("inroad-unsubscribe.html")
+
+
+@app.route("/api/unsubscribe", methods=["POST"])
+def api_unsubscribe():
+    """Consume an unsubscribe token and set notify_matches=False."""
+    from utils.notifications import verify_magic_token
+    data  = request.get_json(silent=True) or {}
+    token = data.get("token", "").strip()
+    if not token:
+        return jsonify(error="missing token"), 400
+    result = verify_magic_token(token)
+    if not result or result.get("purpose") != "unsubscribe":
+        return jsonify(error="invalid or expired token"), 400
+    email = result["email"]
+    execute("UPDATE students SET notify_matches = FALSE WHERE LOWER(email) = ?", (email,))
+    logger.info(f"Unsubscribed {email} from match emails")
+    return jsonify(status="unsubscribed", email=email)
+
+
 @app.route("/privacy")
 def privacy_page():
     return _send_html("privacy.html")

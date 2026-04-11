@@ -57,6 +57,20 @@ def init_tokens_table(db_path=DB_PATH):
         conn.executescript(TOKENS_SCHEMA)
 
 
+def create_unsubscribe_token(email: str, db_path=DB_PATH) -> str:
+    """Generate a long-lived (30-day) unsubscribe token."""
+    init_tokens_table(db_path)
+    token   = secrets.token_urlsafe(32)
+    now     = datetime.utcnow()
+    expires = now + timedelta(days=30)
+    with db_conn(db_path) as conn:
+        conn.execute(
+            "INSERT INTO magic_tokens (token,email,purpose,created_at,expires_at) VALUES (?,?,?,?,?)",
+            (token, email.lower().strip(), "unsubscribe", now.isoformat(), expires.isoformat())
+        )
+    return token
+
+
 def create_magic_token(email: str, purpose: str = "login", db_path=DB_PATH) -> str:
     """Generate and store a magic link token. Returns the token string."""
     init_tokens_table(db_path)
@@ -164,8 +178,11 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
         return False
 
     # Generate a magic token that lands straight on the dashboard
-    token     = create_magic_token(email, purpose="login", db_path=db_path)
-    dash_link = f"{APP_BASE_URL}/auth/verify?token={token}&next=/dashboard"
+    token            = create_magic_token(email, purpose="login", db_path=db_path)
+    dash_link        = f"{APP_BASE_URL}/auth/verify?token={token}&next=/dashboard"
+    unsub_token      = create_unsubscribe_token(email, db_path=db_path)
+    unsub_link       = f"{APP_BASE_URL}/unsubscribe?token={unsub_token}"
+    settings_link    = f"{APP_BASE_URL}/settings"
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -250,7 +267,10 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
   <!-- Footer -->
   <div style="padding:18px 40px;border-top:1px solid #E2DED8;">
     <p style="margin:0;font-size:0.76rem;color:#ADA79F;">
-      inroad · <a href="{APP_BASE_URL}/settings" style="color:#ADA79F;text-decoration:none;">Manage notifications</a>
+      inroad ·
+      <a href="{settings_link}" style="color:#ADA79F;text-decoration:none;">Manage notifications</a>
+      ·
+      <a href="{unsub_link}" style="color:#ADA79F;text-decoration:none;">Unsubscribe</a>
     </p>
   </div>
 
