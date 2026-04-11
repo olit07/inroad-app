@@ -603,9 +603,12 @@
     border-radius: 20px;
     width: 100%;
     max-width: 640px;
+    max-height: calc(100vh - 48px);
     box-shadow: 0 24px 80px rgba(26,23,20,0.18);
     animation: rise 0.3s ease forwards;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .modal-header {
@@ -644,7 +647,7 @@
 
   .modal-close:hover { color: var(--text); }
 
-  .modal-body { padding: 20px 24px; }
+  .modal-body { padding: 20px 24px; flex: 1; overflow-y: auto; }
 
   /* Editable subject line */
   .modal-subject {
@@ -1504,7 +1507,9 @@ Alex`
     updateWordCount();
     document.getElementById('modal').classList.add('open');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => { emailBody.focus(); emailBody.scrollTop = 0; }, 50);
+    const modalBody = document.querySelector('#modal .modal-body');
+    if (modalBody) modalBody.scrollTop = 0;
+    setTimeout(() => { emailBody.focus(); emailBody.scrollTop = 0; if (modalBody) modalBody.scrollTop = 0; }, 50);
   }
 
   function closeModal() {
