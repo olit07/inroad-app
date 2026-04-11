@@ -18,13 +18,9 @@ For SendGrid: use smtp.sendgrid.net port 587, user=apikey, pass=SG.xxx
 For Resend: use smtp.resend.com port 465, user=resend, pass=re_xxx
 """
 import os
-import smtplib
 import logging
-import hashlib
 import secrets
 from datetime import datetime, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from pathlib import Path
 
 import sys
@@ -35,11 +31,9 @@ from db.database import db_conn
 logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-SMTP_HOST    = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT    = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER    = os.environ.get("SMTP_USER", "")
-SMTP_PASS    = os.environ.get("SMTP_PASS", "")
-FROM_NAME    = os.environ.get("FROM_NAME", "Coffee Chat Connect")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+FROM_EMAIL   = os.environ.get("FROM_EMAIL", "noreply@signin.the-inroad.com")
+FROM_NAME    = os.environ.get("FROM_NAME", "inroad")
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://localhost:5001")
 MAGIC_LINK_TTL_HOURS = 24
 
@@ -98,36 +92,38 @@ def verify_magic_token(token: str, db_path=DB_PATH) -> dict | None:
         return {"email": row["email"], "purpose": row["purpose"]}
 
 
-def _smtp_available() -> bool:
-    return bool(SMTP_USER and SMTP_PASS)
-
-
 def _send(to: str, subject: str, html_body: str, text_body: str = "") -> bool:
-    """Send an email. Returns True on success."""
-    if not _smtp_available():
-        logger.warning(f"SMTP not configured — would have sent to {to}: {subject}")
-        logger.debug(f"  Body preview: {text_body[:200]}")
+    """Send an email via Resend REST API. Returns True on success."""
+    api_key = RESEND_API_KEY
+    if not api_key:
+        logger.warning(f"RESEND_API_KEY not set — skipping email to {to}: {subject}")
         return False
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"]    = f"{FROM_NAME} <{SMTP_USER}>"
-    msg["To"]      = to
-
+    import requests as _req
+    payload: dict = {
+        "from":    f"{FROM_NAME} <{FROM_EMAIL}>",
+        "to":      [to],
+        "subject": subject,
+        "html":    html_body,
+    }
     if text_body:
-        msg.attach(MIMEText(text_body, "plain"))
-    msg.attach(MIMEText(html_body, "html"))
+        payload["text"] = text_body
 
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASS)
-            server.sendmail(SMTP_USER, to, msg.as_string())
+        resp = _req.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type":  "application/json",
+            },
+            json=payload,
+            timeout=10,
+        )
+        resp.raise_for_status()
         logger.info(f"Email sent to {to}: {subject}")
         return True
     except Exception as e:
-        logger.error(f"SMTP send failed to {to}: {e}")
+        logger.error(f"Resend send failed to {to}: {e}")
         return False
 
 
