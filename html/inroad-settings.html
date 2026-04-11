@@ -172,17 +172,20 @@
     <div class="section-label">Notifications</div>
     <div class="section-card">
       <div class="field">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500;font-size:0.85rem">
-          <input type="checkbox" id="notify-matches" style="width:15px;height:15px;accent-color:var(--green);cursor:pointer">
-          Email me when my daily matches are ready
-        </label>
+        <label style="font-size:0.75rem;font-weight:700;color:var(--text-mid);margin-bottom:8px;display:block">Email me matches</label>
+        <div style="display:flex;flex-wrap:wrap;gap:9px">
+          <div class="industry-pill" id="notify-on-pill" onclick="setNotify(true)" style="cursor:pointer">Email me</div>
+          <div class="industry-pill" id="notify-off-pill" onclick="setNotify(false)" style="cursor:pointer">No emails</div>
+        </div>
+        <input type="hidden" id="notify-matches" value="false">
       </div>
-      <div class="field">
-        <label>Frequency</label>
-        <select id="notify-frequency" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.85rem;color:var(--text-mid);background:#fff;cursor:pointer">
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly (Mondays only)</option>
-        </select>
+      <div class="field" style="margin-top:14px">
+        <label style="font-size:0.75rem;font-weight:700;color:var(--text-mid);margin-bottom:8px;display:block">Frequency</label>
+        <div style="display:flex;flex-wrap:wrap;gap:9px">
+          <div class="industry-pill" id="freq-daily-pill" onclick="setFreq('daily')" style="cursor:pointer">Daily</div>
+          <div class="industry-pill" id="freq-weekly-pill" onclick="setFreq('weekly')" style="cursor:pointer">Weekly (Mondays)</div>
+        </div>
+        <input type="hidden" id="notify-frequency" value="daily">
       </div>
     </div>
   </div>
@@ -221,6 +224,17 @@ document.getElementById('back-btn').addEventListener('click', function(e) {
   const tok = getAccessToken();
   if (tok) sessionStorage.setItem('inroad_token', tok);
 });
+
+function setNotify(on) {
+  document.getElementById('notify-matches').value = on ? 'true' : 'false';
+  document.getElementById('notify-on-pill').classList.toggle('selected', on);
+  document.getElementById('notify-off-pill').classList.toggle('selected', !on);
+}
+function setFreq(val) {
+  document.getElementById('notify-frequency').value = val;
+  document.getElementById('freq-daily-pill').classList.toggle('selected', val === 'daily');
+  document.getElementById('freq-weekly-pill').classList.toggle('selected', val === 'weekly');
+}
 
 // Populate industry pills
 const grid = document.getElementById('industry-grid');
@@ -273,9 +287,8 @@ async function loadSettings() {
     if (sizeEl) selectSize(sizeEl);
 
     // Notification preferences
-    document.getElementById('notify-matches').checked = !!data.notify_matches;
-    const freqEl = document.getElementById('notify-frequency');
-    if (freqEl) freqEl.value = data.notify_frequency || 'daily';
+    setNotify(!!data.notify_matches);
+    setFreq(data.notify_frequency || 'daily');
 
     document.getElementById('page-sub').textContent =
       `Signed in as ${data.email}`;
@@ -301,7 +314,7 @@ async function saveSettings() {
     bio:             document.getElementById('bio').value.trim(),
     industries,
     companySize:     size,
-    notifyMatches:   document.getElementById('notify-matches').checked,
+    notifyMatches:   document.getElementById('notify-matches').value === 'true',
     notifyFrequency: document.getElementById('notify-frequency').value,
   };
 

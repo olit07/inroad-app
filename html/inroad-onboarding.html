@@ -812,14 +812,18 @@
       </div>
 
       <div class="field" style="margin-top:20px">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.9rem;color:var(--text-mid)">
-          <input type="checkbox" id="notify-matches" checked style="width:16px;height:16px;accent-color:var(--green);cursor:pointer">
-          Email me when my daily matches are ready
-        </label>
-        <select id="notify-frequency" style="margin-top:10px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.85rem;color:var(--text-mid);background:#fff;width:100%;cursor:pointer">
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly (Mondays only)</option>
-        </select>
+        <p style="font-size:0.82rem;font-weight:700;color:var(--text-mid);margin:0 0 10px;letter-spacing:0.01em">Email notifications</p>
+        <div style="display:flex;flex-wrap:wrap;gap:9px">
+          <div class="industry-pill selected" id="notify-on-pill" onclick="toggleNotifyPill()" style="cursor:pointer">Email me matches</div>
+          <div class="industry-pill" id="notify-off-pill" onclick="toggleNotifyPill()" style="cursor:pointer">No emails</div>
+        </div>
+        <input type="hidden" id="notify-matches" value="true">
+        <p style="font-size:0.82rem;font-weight:700;color:var(--text-mid);margin:16px 0 10px;letter-spacing:0.01em">Frequency</p>
+        <div style="display:flex;flex-wrap:wrap;gap:9px">
+          <div class="industry-pill selected" id="freq-daily-pill" onclick="selectFreq('daily')" style="cursor:pointer">Daily</div>
+          <div class="industry-pill" id="freq-weekly-pill" onclick="selectFreq('weekly')" style="cursor:pointer">Weekly (Mondays)</div>
+        </div>
+        <input type="hidden" id="notify-frequency" value="daily">
       </div>
 
       <div class="step-actions">
@@ -1034,6 +1038,19 @@
     observer.observe(p, { attributes: true, attributeFilter: ['class'] });
   });
 
+  // ── NOTIFICATION PILL TOGGLES ──
+  function toggleNotifyPill() {
+    const isOn = document.getElementById('notify-matches').value === 'true';
+    document.getElementById('notify-matches').value = isOn ? 'false' : 'true';
+    document.getElementById('notify-on-pill').classList.toggle('selected', !isOn);
+    document.getElementById('notify-off-pill').classList.toggle('selected', isOn);
+  }
+  function selectFreq(val) {
+    document.getElementById('notify-frequency').value = val;
+    document.getElementById('freq-daily-pill').classList.toggle('selected', val === 'daily');
+    document.getElementById('freq-weekly-pill').classList.toggle('selected', val === 'weekly');
+  }
+
   // ── FINISH ──
 
   function finish() {
@@ -1048,7 +1065,7 @@
     document.getElementById('onboarding-loading-overlay').classList.add('visible');
 
     async function saveAndGo() {
-      const notifyMatches   = document.getElementById('notify-matches')?.checked ?? false;
+      const notifyMatches   = document.getElementById('notify-matches')?.value === 'true';
       const notifyFrequency = document.getElementById('notify-frequency')?.value || 'daily';
       const payload = JSON.stringify({
         name,
