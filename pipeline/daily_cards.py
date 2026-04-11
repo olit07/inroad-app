@@ -193,6 +193,32 @@ INDUSTRY_TONE_HINTS: dict[str, str] = {
 }
 
 
+_SENIORITY_WORDS = {
+    "summer", "intern", "internship", "associate", "analyst", "graduate",
+    "junior", "senior", "lead", "head", "director", "manager", "officer",
+    "specialist", "coordinator", "advisor", "consultant", "programme",
+    "program", "placement", "spring", "winter", "year", "graduate",
+}
+
+def _job_department(job_title: str) -> str:
+    """
+    Extract a clean department label from a job title.
+    e.g. '2026 Risk Management (Quant) Summer Associate' → 'Risk Management'
+         'Software Engineering Intern' → 'Software Engineering'
+    """
+    import re
+    title = job_title or ""
+    # Strip leading year (e.g. "2026 ...")
+    title = re.sub(r'^\d{4}\s+', '', title)
+    # Strip content in parentheses
+    title = re.sub(r'\(.*?\)', '', title)
+    # Remove seniority/programme words from the end
+    words = title.split()
+    cleaned = [w for w in words if w.lower() not in _SENIORITY_WORDS]
+    result = " ".join(cleaned).strip(" –-,")
+    return result or title.strip()
+
+
 def _get_industry_tone(job: dict) -> str:
     industries = job.get("industries", [])
     if isinstance(industries, str):
@@ -234,6 +260,7 @@ def generate_email_draft(
         "recipient_company":  lead.get("company", job.get("company_name", "")),
         "is_alumni":          lead.get("is_alumni", False),
         "job_title":          job.get("title", ""),
+        "job_department":     _job_department(job.get("title", "")),
         "job_url":            job.get("url", ""),
         "industry_tone":      _get_industry_tone(job),
         "tenure_hint":        tenure_hint,
@@ -316,7 +343,7 @@ RULES:
 - Do NOT include any URLs or links
 
 OUTPUT FORMAT:
-SUBJECT: Quick question about {ctx['recipient_company']}
+SUBJECT: Student with a query on {ctx['job_department']}
 BODY:
 <email body>"""
 
@@ -368,6 +395,7 @@ def _template_draft(ctx: dict) -> tuple[str, str]:
         "student_bio":           ctx.get("student_bio", ""),
         "recipient_first_name":  name_parts[0] if name_parts else "there",
         "recipient_company":     ctx["recipient_company"] or "your company",
+        "job_department":        ctx.get("job_department", ""),
         "industry_hint":         "this field",
     }
     return template_standard(template_ctx)

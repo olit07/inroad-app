@@ -22,7 +22,7 @@ def _bio_line(ctx: dict) -> str:
 
 
 def template_standard(ctx: dict) -> tuple[str, str]:
-    subject = f"Quick question about {ctx['recipient_company']}"
+    subject = f"Student with a query on {ctx.get('job_department') or ctx.get('industry_hint', 'your team')}"
     body = f"""Hi {ctx['recipient_first_name']},
 
 I know you are incredibly busy and get a lot of emails, so this will only take 30 seconds to read.
