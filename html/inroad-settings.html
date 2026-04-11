@@ -174,17 +174,11 @@
       <div class="field">
         <label style="font-size:0.75rem;font-weight:700;color:var(--text-mid);margin-bottom:8px;display:block">Email me matches</label>
         <div style="display:flex;flex-wrap:wrap;gap:9px">
-          <div class="industry-pill" id="notify-on-pill" onclick="setNotify(true)" style="cursor:pointer">Email me</div>
-          <div class="industry-pill" id="notify-off-pill" onclick="setNotify(false)" style="cursor:pointer">No emails</div>
+          <div class="industry-pill" id="notify-daily-pill"  onclick="setNotifyFreq('daily')"  style="cursor:pointer">Daily</div>
+          <div class="industry-pill" id="notify-weekly-pill" onclick="setNotifyFreq('weekly')" style="cursor:pointer">Weekly (Mondays)</div>
+          <div class="industry-pill" id="notify-never-pill"  onclick="setNotifyFreq('never')"  style="cursor:pointer">Never</div>
         </div>
-        <input type="hidden" id="notify-matches" value="false">
-      </div>
-      <div class="field" style="margin-top:14px">
-        <label style="font-size:0.75rem;font-weight:700;color:var(--text-mid);margin-bottom:8px;display:block">Frequency</label>
-        <div style="display:flex;flex-wrap:wrap;gap:9px">
-          <div class="industry-pill" id="freq-daily-pill" onclick="setFreq('daily')" style="cursor:pointer">Daily</div>
-          <div class="industry-pill" id="freq-weekly-pill" onclick="setFreq('weekly')" style="cursor:pointer">Weekly (Mondays)</div>
-        </div>
+        <input type="hidden" id="notify-matches"   value="false">
         <input type="hidden" id="notify-frequency" value="daily">
       </div>
     </div>
@@ -225,15 +219,14 @@ document.getElementById('back-btn').addEventListener('click', function(e) {
   if (tok) sessionStorage.setItem('inroad_token', tok);
 });
 
-function setNotify(on) {
-  document.getElementById('notify-matches').value = on ? 'true' : 'false';
-  document.getElementById('notify-on-pill').classList.toggle('selected', on);
-  document.getElementById('notify-off-pill').classList.toggle('selected', !on);
-}
-function setFreq(val) {
-  document.getElementById('notify-frequency').value = val;
-  document.getElementById('freq-daily-pill').classList.toggle('selected', val === 'daily');
-  document.getElementById('freq-weekly-pill').classList.toggle('selected', val === 'weekly');
+function setNotifyFreq(val) {
+  // val: 'daily' | 'weekly' | 'never'
+  const on = val !== 'never';
+  document.getElementById('notify-matches').value   = on ? 'true' : 'false';
+  document.getElementById('notify-frequency').value = on ? val : 'daily';
+  document.getElementById('notify-daily-pill').classList.toggle('selected',  val === 'daily');
+  document.getElementById('notify-weekly-pill').classList.toggle('selected', val === 'weekly');
+  document.getElementById('notify-never-pill').classList.toggle('selected',  val === 'never');
 }
 
 // Populate industry pills
@@ -287,8 +280,8 @@ async function loadSettings() {
     if (sizeEl) selectSize(sizeEl);
 
     // Notification preferences
-    setNotify(!!data.notify_matches);
-    setFreq(data.notify_frequency || 'daily');
+    const freq = data.notify_frequency || 'daily';
+    setNotifyFreq(data.notify_matches ? freq : 'never');
 
     document.getElementById('page-sub').textContent =
       `Signed in as ${data.email}`;

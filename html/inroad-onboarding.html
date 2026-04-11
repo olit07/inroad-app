@@ -728,7 +728,7 @@
 
       <div class="error-msg" id="err-4"><span>⚠</span><span>Please select at least one industry.</span></div>
 
-      <div class="industry-grid">
+      <div class="industry-grid" id="industry-grid">
         <span class="industry-pill" onclick="togglePill(this)">Finance</span>
         <span class="industry-pill" onclick="togglePill(this)">Technology</span>
         <span class="industry-pill" onclick="togglePill(this)">Law</span>
@@ -812,17 +812,13 @@
       </div>
 
       <div class="field" style="margin-top:20px">
-        <p style="font-size:0.82rem;font-weight:700;color:var(--text-mid);margin:0 0 10px;letter-spacing:0.01em">Email notifications</p>
+        <p style="font-size:0.82rem;font-weight:700;color:var(--text-mid);margin:0 0 10px;letter-spacing:0.01em">Email me matches</p>
         <div style="display:flex;flex-wrap:wrap;gap:9px">
-          <div class="industry-pill selected" id="notify-on-pill" onclick="toggleNotifyPill()" style="cursor:pointer">Email me matches</div>
-          <div class="industry-pill" id="notify-off-pill" onclick="toggleNotifyPill()" style="cursor:pointer">No emails</div>
+          <div class="industry-pill selected" id="notify-daily-pill"  onclick="selectNotifyFreq('daily')"  style="cursor:pointer">Daily</div>
+          <div class="industry-pill"          id="notify-weekly-pill" onclick="selectNotifyFreq('weekly')" style="cursor:pointer">Weekly (Mondays)</div>
+          <div class="industry-pill"          id="notify-never-pill"  onclick="selectNotifyFreq('never')"  style="cursor:pointer">Never</div>
         </div>
-        <input type="hidden" id="notify-matches" value="true">
-        <p style="font-size:0.82rem;font-weight:700;color:var(--text-mid);margin:16px 0 10px;letter-spacing:0.01em">Frequency</p>
-        <div style="display:flex;flex-wrap:wrap;gap:9px">
-          <div class="industry-pill selected" id="freq-daily-pill" onclick="selectFreq('daily')" style="cursor:pointer">Daily</div>
-          <div class="industry-pill" id="freq-weekly-pill" onclick="selectFreq('weekly')" style="cursor:pointer">Weekly (Mondays)</div>
-        </div>
+        <input type="hidden" id="notify-matches"   value="true">
         <input type="hidden" id="notify-frequency" value="daily">
       </div>
 
@@ -1039,16 +1035,13 @@
   });
 
   // ── NOTIFICATION PILL TOGGLES ──
-  function toggleNotifyPill() {
-    const isOn = document.getElementById('notify-matches').value === 'true';
-    document.getElementById('notify-matches').value = isOn ? 'false' : 'true';
-    document.getElementById('notify-on-pill').classList.toggle('selected', !isOn);
-    document.getElementById('notify-off-pill').classList.toggle('selected', isOn);
-  }
-  function selectFreq(val) {
-    document.getElementById('notify-frequency').value = val;
-    document.getElementById('freq-daily-pill').classList.toggle('selected', val === 'daily');
-    document.getElementById('freq-weekly-pill').classList.toggle('selected', val === 'weekly');
+  function selectNotifyFreq(val) {
+    const on = val !== 'never';
+    document.getElementById('notify-matches').value   = on ? 'true' : 'false';
+    document.getElementById('notify-frequency').value = on ? val : 'daily';
+    document.getElementById('notify-daily-pill').classList.toggle('selected',  val === 'daily');
+    document.getElementById('notify-weekly-pill').classList.toggle('selected', val === 'weekly');
+    document.getElementById('notify-never-pill').classList.toggle('selected',  val === 'never');
   }
 
   // ── FINISH ──
@@ -1057,7 +1050,7 @@
     const name        = document.getElementById('name-input').value.trim();
     const age         = document.getElementById('age-input').value;
     const status      = document.querySelector('[data-group="status"].selected')?.dataset.value;
-    const industries  = [...document.querySelectorAll('.industry-pill.selected')].map(p => p.textContent);
+    const industries  = [...document.querySelectorAll('#industry-grid .industry-pill.selected')].map(p => p.textContent);
     const companySize = document.querySelector('[data-group="size"].selected')?.dataset.value;
     const bio         = document.getElementById('bio-input').value.trim();
 
