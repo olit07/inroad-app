@@ -707,6 +707,7 @@
     outline: none;
     transition: border-color 0.15s;
     min-height: 260px;
+    overflow: hidden;
   }
 
   .email-textarea:focus {
@@ -1485,7 +1486,8 @@ Alex`
     document.getElementById('modal-subject-input').value = data.subject;
     const emailBody = document.getElementById('email-body');
     emailBody.value = data.body;
-    emailBody.scrollTop = 0;
+    emailBody.style.height = 'auto';
+    emailBody.style.height = emailBody.scrollHeight + 'px';
 
     const roleLink = document.getElementById('modal-role-link');
     if (data.applyUrl) {
@@ -1508,12 +1510,16 @@ Alex`
     document.getElementById('modal').classList.add('open');
     document.body.style.overflow = 'hidden';
     const modalBody = document.querySelector('#modal .modal-body');
-    setTimeout(() => {
-      emailBody.setSelectionRange(0, 0);
-      emailBody.focus({ preventScroll: true });
+    emailBody.setSelectionRange(0, 0);
+    emailBody.focus({ preventScroll: true });
+    requestAnimationFrame(() => {
       emailBody.scrollTop = 0;
       if (modalBody) modalBody.scrollTop = 0;
-    }, 50);
+      requestAnimationFrame(() => {
+        emailBody.scrollTop = 0;
+        if (modalBody) modalBody.scrollTop = 0;
+      });
+    });
   }
 
   function closeModal() {
@@ -1536,11 +1542,15 @@ Alex`
   });
 
   function updateWordCount() {
-    const text = document.getElementById('email-body').value.trim();
+    const el = document.getElementById('email-body');
+    const text = el.value.trim();
     const words = text ? text.split(/\s+/).length : 0;
     const wc = document.getElementById('word-count');
     wc.textContent = words + ' word' + (words !== 1 ? 's' : '');
     wc.style.color = words > 150 ? '#B91C1C' : 'var(--subtle)';
+    // auto-expand
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
   }
 
   async function regenerate() {
