@@ -1166,7 +1166,7 @@ def admin_regenerate_all_drafts():
         )
         updated += 1
 
-    logger.info(f"Regenerated drafts for {updated} matches")
+    app.logger.info(f"Regenerated drafts for {updated} matches")
     return jsonify({"status": "ok", "updated": updated})
 
 
