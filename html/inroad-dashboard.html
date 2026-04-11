@@ -424,7 +424,7 @@
   }
 
   .card-role-tag {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 5px;
     background: var(--surface);
@@ -436,16 +436,10 @@
     color: var(--text-mid);
     text-decoration: none;
     transition: border-color 0.15s, color 0.15s;
-    width: 260px;
-    min-width: 260px;
-    max-width: 260px;
-    white-space: nowrap;
-    overflow: hidden;
+    max-width: 100%;
     box-sizing: border-box;
   }
   .card-role-tag .role-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
