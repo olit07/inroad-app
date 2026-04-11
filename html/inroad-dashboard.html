@@ -321,7 +321,7 @@
     gap: 12px;
   }
 
-  /* Row 3: all items in one column */
+  /* Row 3: role tag then 2-col grid */
   .card-bottom-row {
     display: flex;
     flex-direction: column;
@@ -330,7 +330,17 @@
   }
 
   .card-bottom-left {
-    display: contents;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .card-details-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 3px 20px;
+    align-items: baseline;
+    margin-top: 1px;
   }
 
   /* Avatar */
@@ -517,7 +527,7 @@
 
   /* ─── CARD META (inline contact details) ─── */
   .card-meta {
-    display: contents;
+    display: contents; /* items flow into .card-details-grid */
   }
 
   .meta-item { display: flex; flex-direction: row; align-items: baseline; gap: 5px; }
@@ -983,7 +993,7 @@
       <button class="modal-close" onclick="closeReferModal()">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-family:'Lato',sans-serif;font-size:0.88rem;color:var(--text-mid);line-height:1.65;margin:0 0 20px">Share your link. When a friend signs up and completes onboarding, you unlock <strong style="color:var(--text)">5 daily matches</strong> instead of 3.</p>
+      <p style="font-family:'Lato',sans-serif;font-size:0.88rem;color:var(--text-mid);line-height:1.65;margin:0 0 20px">Share your link. When a friend signs up, you unlock <strong style="color:var(--text)">5 daily matches</strong> instead of 3.</p>
       <div style="display:flex;gap:8px;align-items:center">
         <input id="refer-link-input" type="text" readonly style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.8rem;font-family:'Lato',sans-serif;color:var(--text-mid);background:var(--surface);outline:none;">
         <button class="btn-copy" onclick="copyReferLink()" id="copy-refer-btn" style="flex-shrink:0">Copy link</button>
@@ -1045,12 +1055,12 @@
           <div class="card-bottom-row">
             <div class="card-bottom-left">
               <a class="card-role-tag has-link" href="https://jefferies.tal.net/vx/lang-en-GB/mobile-0/appcentre-1/brand-4/user-415213/xf-5ac368c85a0a/candidate/so/pm/1/pl/2/opp/1666-2026-Risk-Management-Quant-Summer-Associate-Programme-London/en-GB" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">2026 Risk Management (Quant) Summer Associate ↗</span></a>
-              <div class="card-posted">Opened on: 25 Mar 2026</div>
-              <div class="card-posted">Industry: Finance</div>
-            </div>
-            <div class="card-meta">
-              <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value"><a href="https://www.linkedin.com/in/james-f" target="_blank" rel="noopener noreferrer">linkedin.com/in/james-f</a></span></div>
-              <div class="meta-item"><span class="meta-label">Expected email:</span><span class="meta-value">j.fletcher@jefferies.com</span></div>
+              <div class="card-details-grid">
+                <div class="card-posted">Opened on: 25 Mar 2026</div>
+                <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value"><a href="https://www.linkedin.com/in/james-f" target="_blank" rel="noopener noreferrer">linkedin.com/in/james-f</a></span></div>
+                <div class="meta-item"><span class="meta-label">Industry:</span><span class="meta-value">Finance</span></div>
+                <div class="meta-item"><span class="meta-label">Expected email:</span><span class="meta-value">j.fletcher@jefferies.com</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1071,12 +1081,12 @@
           <div class="card-bottom-row">
             <div class="card-bottom-left">
               <a class="card-role-tag has-link" href="https://www.linkedin.com/jobs/view/private-equity-m-a-intern-at-platinum-peak-holdings-ltd-4389484469/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">Private Equity (M&A) Intern ↗</span></a>
-              <div class="card-posted">Opened on: 24 Mar 2026</div>
-              <div class="card-posted">Industry: Finance</div>
-            </div>
-            <div class="card-meta">
-              <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value"><a href="https://www.linkedin.com/in/oliver-m" target="_blank" rel="noopener noreferrer">linkedin.com/in/oliver-m</a></span></div>
-              <div class="meta-item"><span class="meta-label">Expected email:</span><span class="meta-value">o.morgan@platinumpeakholdings.com</span></div>
+              <div class="card-details-grid">
+                <div class="card-posted">Opened on: 24 Mar 2026</div>
+                <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value"><a href="https://www.linkedin.com/in/oliver-m" target="_blank" rel="noopener noreferrer">linkedin.com/in/oliver-m</a></span></div>
+                <div class="meta-item"><span class="meta-label">Industry:</span><span class="meta-value">Finance</span></div>
+                <div class="meta-item"><span class="meta-label">Expected email:</span><span class="meta-value">o.morgan@platinumpeakholdings.com</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1098,12 +1108,12 @@
           <div class="card-bottom-row">
             <div class="card-bottom-left">
               <a class="card-role-tag has-link" href="https://careers.eon.com/uk/job/Solihull-Quantitative-Risk-Intern/1376873533/" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">Quantitative Risk Intern ↗</span></a>
-              <div class="card-posted">Opened on: 24 Mar 2026</div>
-              <div class="card-posted">Industry: Finance</div>
-            </div>
-            <div class="card-meta">
-              <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value"><a href="https://www.linkedin.com/in/sara-p" target="_blank" rel="noopener noreferrer">linkedin.com/in/sara-p</a></span></div>
-              <div class="meta-item"><span class="meta-label">Expected email:</span><span class="meta-value">s.patel@eon.com</span></div>
+              <div class="card-details-grid">
+                <div class="card-posted">Opened on: 24 Mar 2026</div>
+                <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value"><a href="https://www.linkedin.com/in/sara-p" target="_blank" rel="noopener noreferrer">linkedin.com/in/sara-p</a></span></div>
+                <div class="meta-item"><span class="meta-label">Industry:</span><span class="meta-value">Finance</span></div>
+                <div class="meta-item"><span class="meta-label">Expected email:</span><span class="meta-value">s.patel@eon.com</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1375,12 +1385,12 @@
               <div class="card-bottom-row">
                 <div class="card-bottom-left">
                   ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">${m.job_title || 'Open role'} ↗</span></a>` : ''}
-                  ${m.opening_date ? `<div class="card-posted">Opened on: ${fmtDate(m.opening_date)}</div>` : ''}
-                  ${m.industry ? `<div class="card-posted">Industry: ${m.industry}</div>` : ''}
-                </div>
-                <div class="card-meta">
-                  <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value">${linkedinUrl !== '#' ? `<a href="${linkedinUrl}" target="_blank" rel="noopener noreferrer">${linkedinUrl.replace('https://','').replace('http://','')}</a>` : '—'}</span></div>
-                  <div class="meta-item"><span class="meta-label">Expected email:</span><span class="meta-value">${m.expected_email || '—'}</span></div>
+                  <div class="card-details-grid">
+                    <div class="card-posted">${m.opening_date ? 'Opened on: ' + fmtDate(m.opening_date) : '—'}</div>
+                    <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value">${linkedinUrl !== '#' ? `<a href="${linkedinUrl}" target="_blank" rel="noopener noreferrer">${linkedinUrl.replace('https://','').replace('http://','')}</a>` : '—'}</span></div>
+                    <div class="meta-item"><span class="meta-label">Industry:</span><span class="meta-value">${m.industry || '—'}</span></div>
+                    <div class="meta-item"><span class="meta-label">Expected email:</span><span class="meta-value">${m.expected_email || '—'}</span></div>
+                  </div>
                 </div>
               </div>
             </div>
