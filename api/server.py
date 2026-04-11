@@ -1129,6 +1129,7 @@ def admin_students():
 def admin_regenerate_all_drafts():
     """Regenerate email subject + body for every match using the current template."""
     from pipeline.email_templates import template_standard
+    from db.database import execute as db_execute, USE_POSTGRES
 
     rows = fetchall("""
         SELECT m.id,
@@ -1144,6 +1145,7 @@ def admin_regenerate_all_drafts():
         WHERE m.status != 'sent'
     """)
 
+    ph = "%s" if USE_POSTGRES else "?"
     updated = 0
     for r in rows:
         name_parts = (r.get("person_name") or "").split()
@@ -1158,8 +1160,8 @@ def admin_regenerate_all_drafts():
             "industry_hint":        r.get("industry") or "this field",
         }
         subject, body = template_standard(ctx)
-        execute(
-            "UPDATE matches SET email_subject = ?, email_body = ? WHERE id = ?",
+        db_execute(
+            f"UPDATE matches SET email_subject = {ph}, email_body = {ph} WHERE id = {ph}",
             (subject, body, r["id"])
         )
         updated += 1
