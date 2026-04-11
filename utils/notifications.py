@@ -161,43 +161,62 @@ def send_magic_link(email: str, db_path=DB_PATH) -> bool:
 def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -> bool:
     """Notify a student their daily matches are ready."""
     email      = student.get("email", "")
-    first_name = student.get("first_name", "there")
+    full_name  = student.get("name", "") or ""
+    first_name = full_name.split()[0] if full_name.strip() else "there"
     student_id = student.get("id")
 
     if not email:
         return False
 
-    dash_link = f"{APP_BASE_URL.replace(':5001','')}/ccc-dashboard-live.html?student_id={student_id}"
+    dash_link = f"{APP_BASE_URL}/dashboard"
 
     html = f"""<!DOCTYPE html>
-<html><body style="font-family:system-ui,sans-serif;max-width:480px;margin:40px auto;color:#1A1714">
-<div style="margin-bottom:24px">
-  <span style="font-size:1.4rem;font-weight:700">Coffee<span style="color:#1F4530">Chat</span>Connect</span>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="margin:0;padding:0;background:#F5F5F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<div style="background:#F5F5F2;padding:40px 20px;">
+<div style="background:#FFFFFF;border-radius:16px;max-width:520px;margin:0 auto;overflow:hidden;border:1px solid #E2DED8;">
+
+  <div style="background:#1F4530;padding:36px 40px;">
+    <div style="display:inline-flex;align-items:center;gap:12px;">
+      <svg width="32" height="32" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="88" height="88" rx="22" fill="rgba(255,255,255,0.18)"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+      <span style="font-family:Georgia,serif;font-weight:700;font-size:1.4rem;color:#FFFFFF;letter-spacing:-0.02em;">inroad</span>
+    </div>
+  </div>
+
+  <div style="padding:36px 40px;">
+    <h2 style="margin:0 0 12px;font-size:1.2rem;font-weight:700;color:#1A1714;">
+      Your matches for today are ready, {first_name}.
+    </h2>
+    <p style="margin:0 0 28px;color:#7A7068;line-height:1.65;font-size:0.95rem;">
+      We've found {n_cards} people who could get you through the door.
+      Each one is connected to a live opening that fits your profile —
+      draft emails are already written.
+    </p>
+    <a href="{dash_link}" style="display:inline-block;background:#1F4530;color:#FFFFFF;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.9rem;">
+      See today's matches →
+    </a>
+  </div>
+
+  <div style="padding:20px 40px;border-top:1px solid #E2DED8;">
+    <p style="margin:0;font-size:0.78rem;color:#ADA79F;">
+      inroad · <a href="{APP_BASE_URL}/settings" style="color:#ADA79F;">Manage notifications</a>
+    </p>
+  </div>
+
 </div>
-<h2 style="font-weight:700;font-size:1.2rem;margin-bottom:8px">
-  Your {n_cards} matches for today are ready, {first_name}.
-</h2>
-<p style="color:#7A7068;line-height:1.65;margin-bottom:24px">
-  We've found {n_cards} people who could get you through the door.
-  Each one is connected to a live opening that fits your profile.
-  Draft emails are already written — you just approve and send.
-</p>
-<a href="{dash_link}" style="display:inline-block;background:#1F4530;color:white;padding:12px 24px;
-   border-radius:9px;text-decoration:none;font-weight:700;font-size:0.9rem">
-  See today's matches →
-</a>
-<p style="margin-top:32px;font-size:0.8rem;color:#ADA79F">
-  Coffee Chat Connect · Free for university students ·
-  <a href="{APP_BASE_URL}/unsubscribe?email={email}" style="color:#ADA79F">Unsubscribe</a>
-</p>
+</div>
 </body></html>"""
 
     text = (
-        f"Your {n_cards} matches for today are ready.\n\n"
+        f"Your matches for today are ready, {first_name}.\n\n"
         f"See them here: {dash_link}\n\n"
-        f"— Coffee Chat Connect"
+        f"— inroad"
     )
-    return _send(email, f"Your {n_cards} matches for today are ready", html, text)
+    return _send(email, "Your matches for today are ready", html, text)
 
 
 def send_weekly_digest_email(student: dict, digest: dict) -> bool:

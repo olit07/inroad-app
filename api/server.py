@@ -1073,6 +1073,27 @@ def admin_fix_email_formats():
     return jsonify({"status": "done", "fixed": n})
 
 
+@app.route("/api/admin/send-notification", methods=["POST"])
+@require_admin
+def admin_send_notification():
+    """Manually send the daily matches notification to a student by email."""
+    data  = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "email required"}), 400
+    student = fetchone("SELECT * FROM students WHERE lower(email) = ?", (email,))
+    if not student:
+        return jsonify({"error": "student not found"}), 404
+    # Also enable notify_matches if it wasn't set
+    if not student.get("notify_matches"):
+        update_student_fields(student["id"], {"notify_matches": True})
+        student = dict(student)
+        student["notify_matches"] = True
+    from utils.notifications import send_daily_matches_ready
+    ok = send_daily_matches_ready(dict(student))
+    return jsonify({"status": "sent" if ok else "failed", "email": email})
+
+
 @app.route("/api/admin/runs")
 @require_admin
 def admin_runs():
