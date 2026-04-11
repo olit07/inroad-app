@@ -1012,7 +1012,7 @@
     const cc = document.getElementById('char-count');
     const len = ta.value.length;
     cc.textContent = len + ' / 300';
-    cc.classList.toggle('warn', len > 270);
+    cc.classList.toggle('warn', len >= 300);
   }
 
   // Enter to advance on text/number inputs

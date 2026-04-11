@@ -294,7 +294,7 @@ function updateBioCount() {
   const bio = document.getElementById('bio');
   const cnt = document.getElementById('bio-count');
   cnt.textContent = `${bio.value.length} / 300`;
-  cnt.style.color = bio.value.length > 270 ? '#B91C1C' : 'var(--subtle)';
+  cnt.style.color = bio.value.length >= 300 ? '#B91C1C' : 'var(--subtle)';
 }
 document.getElementById('bio').addEventListener('input', updateBioCount);
 
