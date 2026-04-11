@@ -110,19 +110,20 @@
   .nav-settings:hover { color: var(--text); }
 
   .nav-refer-btn {
-    background: #A8D8B8;
-    color: #111110;
-    border: 1.5px solid #111110;
-    border-radius: 8px;
-    padding: 5px 13px;
-    font-size: 0.78rem;
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.55);
+    border-radius: 100px;
+    padding: 4px 12px;
+    font-size: 11px;
     font-weight: 700;
     font-family: 'Lato', sans-serif;
     cursor: pointer;
     white-space: nowrap;
-    transition: opacity 0.15s;
+    letter-spacing: 0.01em;
+    transition: border-color 0.15s, background 0.15s;
   }
-  .nav-refer-btn:hover { opacity: 0.85; }
+  .nav-refer-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.8); }
 
   .refer-modal-backdrop {
     display: none;
