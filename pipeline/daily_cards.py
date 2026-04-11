@@ -275,39 +275,48 @@ def _claude_draft(ctx: dict, api_key: str, tighten: bool = False) -> tuple[str, 
     )
     tenure_note = f"\n- {ctx['tenure_hint']}" if ctx.get("tenure_hint") else ""
 
-    tighten_note = "\n\nIMPORTANT: Previous draft was too long or used filler phrases. Make this version sharper, under 80 words, more direct." if tighten else ""
+    tighten_note = "\n\nIMPORTANT: The bio paragraph must be used EXACTLY as provided — do not paraphrase or shorten it." if tighten else ""
 
-    prompt = f"""You are a career coach writing a cold outreach email for a university student.
+    bio = (ctx.get("student_bio") or "").strip() or f"I'm a student at {ctx['student_university']} interested in {ctx.get('industry_tone', 'this field')}."
+
+    prompt = f"""You are writing a cold outreach email on behalf of a university student. Follow the structure EXACTLY — do not deviate.{tighten_note}
 
 STUDENT:
 - Name: {ctx['student_name']}
 - University: {ctx['student_university']}
-- Bio: {ctx['student_bio']}
+- Bio (use verbatim as the intro paragraph): {bio}
 
 RECIPIENT:
-- Name: {ctx['recipient_name']}
+- First name: {ctx['recipient_first_name']}
 - Title: {ctx['recipient_title']} at {ctx['recipient_company']}{tenure_note}
-- {alumni_note}
 
-ROLE: {ctx['job_title']} at {ctx['recipient_company']}
+REQUIRED STRUCTURE (copy this exactly, filling in the placeholders):
 
-TONE: {ctx.get('industry_tone', 'Be genuine and concise.')}{tighten_note}
+Hi [recipient first name],
+I know you are incredibly busy and get a lot of emails, so this will only take 30 seconds to read.
 
-STRICT RULES:
-- Under 120 words total in body
-- Plain text only — no markdown, bullets, or HTML
-- Start with "Dear {ctx['recipient_name']},"
-- Second line: "I know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read."
-- Third paragraph: student's personal background (use their bio if provided, otherwise infer from university and role)
-- Fourth paragraph: one specific, genuine question tied to the role and company
-- Second-to-last paragraph: "I totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day."
-- Sign off with "All the best," then student name on next line
+[Student bio — paste it verbatim, no changes]
+
+What do you think are the most critical skills or qualities that an aspiring analyst on your team should possess?
+
+I totally understand if you are too busy to reply.
+Even a 1 or 2 line response will completely make my day.
+
+All the best,
+[Student name]
+
+[Student university]
+
+RULES:
+- Plain text only — no markdown, bullets, asterisks, or HTML
+- Do NOT change or paraphrase the bio — use it word for word
+- Do NOT add any extra sentences, questions, or paragraphs
+- Do NOT mention the specific job title or company name in the body
 - Do NOT ask for a meeting, coffee chat, or call
-- Do NOT include any booking links, cal.com links, or URLs
-- NEVER use: "I hope this finds you well", "reach out", "touch base", "passionate about", "leverage", "I am writing to"
+- Do NOT include any URLs or links
 
 OUTPUT FORMAT:
-SUBJECT: <subject line>
+SUBJECT: Quick question about {ctx['recipient_company']}
 BODY:
 <email body>"""
 
@@ -349,23 +358,19 @@ BODY:
 
 
 def _template_draft(ctx: dict) -> tuple[str, str]:
-    """Fallback template email when Claude API is unavailable. Picks randomly."""
-    import random
-    from pipeline.email_templates import TEMPLATES
+    """Fallback template email when Claude API is unavailable."""
+    from pipeline.email_templates import template_standard
 
+    name_parts = (ctx.get("recipient_name") or "").split()
     template_ctx = {
         "student_name":          ctx["student_name"],
         "student_university":    ctx["student_university"],
         "student_bio":           ctx.get("student_bio", ""),
-        "student_cal_link":      "",
-        "recipient_first_name":  ctx["recipient_name"] or "there",
+        "recipient_first_name":  name_parts[0] if name_parts else "there",
         "recipient_company":     ctx["recipient_company"] or "your company",
-        "is_alumni":             ctx.get("is_alumni", False),
-        "job_title":             ctx["job_title"] or "this role",
-        "tenure_years":          0,
         "industry_hint":         "this field",
     }
-    return random.choice(TEMPLATES)(template_ctx)
+    return template_standard(template_ctx)
 
 
 # ── Main daily card generation ────────────────────────────────────────────────
