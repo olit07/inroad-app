@@ -159,12 +159,13 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
     email      = student.get("email", "")
     full_name  = student.get("name", "") or ""
     first_name = full_name.split()[0] if full_name.strip() else "there"
-    student_id = student.get("id")
 
     if not email:
         return False
 
-    dash_link = f"{APP_BASE_URL}/dashboard"
+    # Generate a magic token that lands straight on the dashboard
+    token     = create_magic_token(email, purpose="login", db_path=db_path)
+    dash_link = f"{APP_BASE_URL}/auth/verify?token={token}&next=/dashboard"
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -176,30 +177,80 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
 <div style="background:#F5F5F2;padding:40px 20px;">
 <div style="background:#FFFFFF;border-radius:16px;max-width:520px;margin:0 auto;overflow:hidden;border:1px solid #E2DED8;">
 
-  <div style="background:#1F4530;padding:36px 40px;">
+  <!-- Header -->
+  <div style="background:#1F4530;padding:32px 40px;">
     <div style="display:inline-flex;align-items:center;gap:12px;">
-      <svg width="32" height="32" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="88" height="88" rx="22" fill="rgba(255,255,255,0.18)"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
-      <span style="font-family:Georgia,serif;font-weight:700;font-size:1.4rem;color:#FFFFFF;letter-spacing:-0.02em;">inroad</span>
+      <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="88" height="88" rx="22" fill="rgba(255,255,255,0.18)"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+      <span style="font-family:Georgia,serif;font-weight:700;font-size:1.35rem;color:#FFFFFF;letter-spacing:-0.02em;">inroad</span>
     </div>
   </div>
 
-  <div style="padding:36px 40px;">
-    <h2 style="margin:0 0 12px;font-size:1.2rem;font-weight:700;color:#1A1714;">
-      Your matches for today are ready, {first_name}.
+  <!-- Body -->
+  <div style="padding:36px 40px 28px;">
+    <h2 style="margin:0 0 14px;font-size:1.15rem;font-weight:700;color:#1A1714;line-height:1.3;">
+      Your daily matches are ready, {first_name}.
     </h2>
-    <p style="margin:0 0 28px;color:#7A7068;line-height:1.65;font-size:0.95rem;">
-      We've found {n_cards} people who could get you through the door.
-      Each one is connected to a live opening that fits your profile —
-      draft emails are already written.
+    <p style="margin:0 0 24px;color:#7A7068;line-height:1.65;font-size:0.92rem;">
+      We've found {n_cards} people connected to live openings that fit your profile, draft emails are written and waiting to be sent.
     </p>
-    <a href="{dash_link}" style="display:inline-block;background:#1F4530;color:#FFFFFF;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.9rem;">
+
+    <!-- CTA button -->
+    <a href="{dash_link}" style="display:inline-block;background:#1F4530;color:#FFFFFF;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.88rem;margin-bottom:32px;">
       See today's matches →
     </a>
+
+    <!-- Blurred card previews -->
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+
+      <!-- Card 1 -->
+      <div style="border:1px solid #E2DED8;border-radius:12px;padding:16px 18px;filter:blur(4px);user-select:none;pointer-events:none;opacity:0.85;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="width:110px;height:13px;background:#D4CFC9;border-radius:4px;margin-bottom:6px;"></div>
+            <div style="width:80px;height:11px;background:#E2DED8;border-radius:4px;margin-bottom:6px;"></div>
+            <div style="width:140px;height:10px;background:#ECEAE6;border-radius:4px;"></div>
+          </div>
+          <div style="width:40px;height:40px;border-radius:50%;background:#D4CFC9;flex-shrink:0;"></div>
+        </div>
+        <div style="width:100%;height:9px;background:#ECEAE6;border-radius:4px;margin-bottom:5px;"></div>
+        <div style="width:85%;height:9px;background:#ECEAE6;border-radius:4px;"></div>
+      </div>
+
+      <!-- Card 2 -->
+      <div style="border:1px solid #E2DED8;border-radius:12px;padding:16px 18px;filter:blur(4px);user-select:none;pointer-events:none;opacity:0.7;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="width:95px;height:13px;background:#D4CFC9;border-radius:4px;margin-bottom:6px;"></div>
+            <div style="width:120px;height:11px;background:#E2DED8;border-radius:4px;margin-bottom:6px;"></div>
+            <div style="width:100px;height:10px;background:#ECEAE6;border-radius:4px;"></div>
+          </div>
+          <div style="width:40px;height:40px;border-radius:50%;background:#D4CFC9;flex-shrink:0;"></div>
+        </div>
+        <div style="width:100%;height:9px;background:#ECEAE6;border-radius:4px;margin-bottom:5px;"></div>
+        <div style="width:70%;height:9px;background:#ECEAE6;border-radius:4px;"></div>
+      </div>
+
+      <!-- Card 3 -->
+      <div style="border:1px solid #E2DED8;border-radius:12px;padding:16px 18px;filter:blur(4px);user-select:none;pointer-events:none;opacity:0.55;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="width:130px;height:13px;background:#D4CFC9;border-radius:4px;margin-bottom:6px;"></div>
+            <div style="width:90px;height:11px;background:#E2DED8;border-radius:4px;margin-bottom:6px;"></div>
+            <div style="width:115px;height:10px;background:#ECEAE6;border-radius:4px;"></div>
+          </div>
+          <div style="width:40px;height:40px;border-radius:50%;background:#D4CFC9;flex-shrink:0;"></div>
+        </div>
+        <div style="width:100%;height:9px;background:#ECEAE6;border-radius:4px;margin-bottom:5px;"></div>
+        <div style="width:90%;height:9px;background:#ECEAE6;border-radius:4px;"></div>
+      </div>
+
+    </div>
   </div>
 
-  <div style="padding:20px 40px;border-top:1px solid #E2DED8;">
-    <p style="margin:0;font-size:0.78rem;color:#ADA79F;">
-      inroad · <a href="{APP_BASE_URL}/settings" style="color:#ADA79F;">Manage notifications</a>
+  <!-- Footer -->
+  <div style="padding:18px 40px;border-top:1px solid #E2DED8;">
+    <p style="margin:0;font-size:0.76rem;color:#ADA79F;">
+      inroad · <a href="{APP_BASE_URL}/settings" style="color:#ADA79F;text-decoration:none;">Manage notifications</a>
     </p>
   </div>
 
@@ -208,11 +259,13 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
 </body></html>"""
 
     text = (
-        f"Your matches for today are ready, {first_name}.\n\n"
+        f"Your daily matches are ready, {first_name}.\n\n"
+        f"We've found {n_cards} people connected to live openings that fit your profile, "
+        f"draft emails are written and waiting to be sent.\n\n"
         f"See them here: {dash_link}\n\n"
-        f"— inroad"
+        f"inroad"
     )
-    return _send(email, "Your matches for today are ready", html, text)
+    return _send(email, "Your daily matches are ready", html, text)
 
 
 def send_weekly_digest_email(student: dict, digest: dict) -> bool:
