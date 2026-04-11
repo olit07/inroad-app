@@ -1508,8 +1508,12 @@ Alex`
     document.getElementById('modal').classList.add('open');
     document.body.style.overflow = 'hidden';
     const modalBody = document.querySelector('#modal .modal-body');
-    if (modalBody) modalBody.scrollTop = 0;
-    setTimeout(() => { emailBody.focus(); emailBody.scrollTop = 0; if (modalBody) modalBody.scrollTop = 0; }, 50);
+    setTimeout(() => {
+      emailBody.setSelectionRange(0, 0);
+      emailBody.focus({ preventScroll: true });
+      emailBody.scrollTop = 0;
+      if (modalBody) modalBody.scrollTop = 0;
+    }, 50);
   }
 
   function closeModal() {
