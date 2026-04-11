@@ -711,8 +711,8 @@
     resize: none;
     outline: none;
     transition: border-color 0.15s;
-    min-height: 260px;
-    overflow: hidden;
+    height: 280px;
+    overflow-y: auto;
   }
 
   .email-textarea:focus {
@@ -1495,8 +1495,6 @@ Alex`
     document.getElementById('modal-subject-input').value = data.subject;
     const emailBody = document.getElementById('email-body');
     emailBody.value = data.body;
-    emailBody.style.height = 'auto';
-    emailBody.style.height = emailBody.scrollHeight + 'px';
 
     const roleLink = document.getElementById('modal-role-link');
     if (data.applyUrl) {
@@ -1557,9 +1555,6 @@ Alex`
     const wc = document.getElementById('word-count');
     wc.textContent = words + ' word' + (words !== 1 ? 's' : '');
     wc.style.color = words > 150 ? '#B91C1C' : 'var(--subtle)';
-    // auto-expand
-    el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
   }
 
   async function regenerate() {
