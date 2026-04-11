@@ -1124,6 +1124,50 @@ def admin_students():
     return jsonify({"data": {"students": rows}})
 
 
+@app.route("/api/admin/regenerate-all-drafts", methods=["POST"])
+@require_admin
+def admin_regenerate_all_drafts():
+    """Regenerate email subject + body for every match using the current template."""
+    from pipeline.email_templates import template_standard
+
+    rows = fetchall("""
+        SELECT m.id,
+               m.person_name, m.person_company,
+               s.name  AS student_name,
+               s.university AS student_university,
+               s.bio   AS student_bio,
+               j.title AS job_title,
+               j.industry
+        FROM matches m
+        JOIN students s ON s.id = m.student_id
+        JOIN jobs    j ON j.id = m.job_id
+        WHERE m.status != 'sent'
+    """)
+
+    updated = 0
+    for r in rows:
+        name_parts = (r.get("person_name") or "").split()
+        first = name_parts[0] if name_parts else "there"
+        ctx = {
+            "student_name":         r.get("student_name") or "there",
+            "student_university":   r.get("student_university") or "",
+            "student_bio":          r.get("student_bio") or "",
+            "recipient_first_name": first,
+            "recipient_company":    r.get("person_company") or "",
+            "job_department":       "",
+            "industry_hint":        r.get("industry") or "this field",
+        }
+        subject, body = template_standard(ctx)
+        execute(
+            "UPDATE matches SET email_subject = ?, email_body = ? WHERE id = ?",
+            (subject, body, r["id"])
+        )
+        updated += 1
+
+    logger.info(f"Regenerated drafts for {updated} matches")
+    return jsonify({"status": "ok", "updated": updated})
+
+
 @app.route("/api/admin/suppressions")
 @require_admin
 def admin_suppressions():
