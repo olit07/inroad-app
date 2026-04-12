@@ -924,13 +924,16 @@ def outlook_auth_callback():
     error = request.args.get("error", "")
 
     if error or not code:
+        app.logger.error(f"[outlook/callback] Microsoft returned error: {error!r}, code present: {bool(code)}")
         return redirect(f"{APP_BASE_URL}/dashboard?outlook=error")
 
     student_id = _verify_outlook_state(state)
     if not student_id:
+        app.logger.error(f"[outlook/callback] State verification failed for state: {state[:40]!r}")
         return redirect(f"{APP_BASE_URL}/dashboard?outlook=error")
 
     redirect_uri = f"{APP_BASE_URL}/api/auth/outlook/callback"
+    app.logger.info(f"[outlook/callback] Exchanging code for tokens, redirect_uri={redirect_uri!r}, client_id={AZURE_CLIENT_ID!r}")
     r = req.post(_MS_TOKEN_URL, data={
         "client_id":     AZURE_CLIENT_ID,
         "client_secret": AZURE_CLIENT_SECRET,
@@ -941,6 +944,7 @@ def outlook_auth_callback():
     }, timeout=10)
 
     if r.status_code != 200:
+        app.logger.error(f"[outlook/callback] Token exchange failed {r.status_code}: {r.text[:400]}")
         return redirect(f"{APP_BASE_URL}/dashboard?outlook=error")
 
     data = r.json()
