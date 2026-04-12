@@ -20,9 +20,22 @@ let _accessToken = null;
 
 function setAccessToken(token) {
   _accessToken = token;
+  // Persist within the tab so page refreshes don't require a round-trip
+  // to /auth/refresh before the first authenticated request.
+  // sessionStorage is cleared when the tab is closed.
+  if (token) {
+    sessionStorage.setItem('inroad_token', token);
+  } else {
+    sessionStorage.removeItem('inroad_token');
+  }
 }
 
 function getAccessToken() {
+  // Restore from sessionStorage on first call after a page refresh
+  if (!_accessToken) {
+    const stored = sessionStorage.getItem('inroad_token');
+    if (stored) _accessToken = stored;
+  }
   return _accessToken;
 }
 

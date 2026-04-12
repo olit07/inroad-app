@@ -1128,7 +1128,7 @@
   <!-- Outlook status box -->
   <div class="outlook-box outlook-box--disconnected" id="outlook-box-disconnected" style="display:none">
     <div class="outlook-box-text">
-      <strong>Send emails in one click.</strong> Connect your Outlook account to send directly from the dashboard. No copy-pasting. No switching apps. <a href="/outlook-help" target="_blank" rel="noopener noreferrer" style="color:var(--text-mid);text-underline-offset:2px;font-weight:600">Having trouble connecting?</a>
+      <strong>Send emails in one click.</strong> Connect your Outlook account to send directly from the dashboard. No copy & pasting. No switching apps. <a href="/outlook-help" target="_blank" rel="noopener noreferrer" style="color:var(--text-mid);text-underline-offset:2px;font-weight:600">Having trouble connecting?</a>
     </div>
     <button class="outlook-box-btn outlook-box-btn--connect" onclick="connectOutlook()">Connect Outlook</button>
   </div>
@@ -1428,13 +1428,9 @@
     if (sub) sub.textContent = `${dayName}, ${dateStr} · Here are today's matches.`;
 
     // 1. Refresh access token via HttpOnly cookie (uses auth.js)
-    // Also check sessionStorage in case we just came from verify.html
-    const _stored = sessionStorage.getItem('inroad_token');
-    if (_stored) { setAccessToken(_stored); sessionStorage.removeItem('inroad_token'); }
-
     const refreshed = await _tryRefresh();
-    // Allow access if refresh failed but we still have a valid token (e.g. just
-    // came from onboarding or verify.html and sessionStorage token was restored above).
+    // Stay logged in if refresh failed but we still have a valid token in memory
+    // (restored from sessionStorage by getAccessToken(), or just set by verify.html).
     if (!refreshed && !getAccessToken()) {
       window.location.href = '/login';
       return;
