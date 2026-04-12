@@ -644,15 +644,25 @@
     font-size: 0.78rem;
     color: var(--muted);
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
     outline: none;
-    padding: 0;
+    padding: 2px 8px;
     flex: 1;
     font-family: 'Lato', sans-serif;
     min-width: 0;
+    transition: border-color 0.15s, background 0.15s;
+    pointer-events: none;
   }
 
-  .modal-to-input:focus { color: var(--text); }
+  .modal-to-input.editable {
+    background: var(--surface);
+    border-color: var(--border);
+    pointer-events: auto;
+    cursor: text;
+  }
+
+  .modal-to-input.editable:focus { border-color: var(--green); color: var(--text); background: var(--bg); }
 
   .modal-close {
     background: none;
@@ -1681,7 +1691,10 @@ Alex`
     if (!data) return;
 
     document.getElementById('modal-title').textContent = 'Draft email to ' + data.name;
-    document.getElementById('modal-to-input').value = data.to || '';
+    const toInput = document.getElementById('modal-to-input');
+    toInput.value = data.to || '';
+    toInput.readOnly = !outlookConnected;
+    toInput.classList.toggle('editable', outlookConnected);
     document.getElementById('modal-subject-input').value = data.subject;
     const emailBody = document.getElementById('email-body');
     emailBody.value = data.body;
