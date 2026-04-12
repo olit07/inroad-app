@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact — inroad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#FFFFFF; --surface:#F3F1EE; --border:#E6E2DB;
+    --green:#1F4530; --green-lite:#EAF2EC; --green-mid:#A8C9B0; --green-deep:#122B1E;
+    --text:#1A1714; --text-mid:#3D3831; --muted:#7A7068; --subtle:#ADA79F;
+    --serif:'Lora',Georgia,serif; --sans:'Lato',system-ui,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+
+  nav{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 52px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:50}
+  .wordmark{display:flex;align-items:center;gap:9px;text-decoration:none}
+  .nav-back{font-size:0.83rem;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.15s}
+  .nav-back:hover{color:var(--text)}
+
+  .page{max-width:680px;margin:0 auto;padding:60px 52px 100px;flex:1}
+
+  .page-eyebrow{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);margin-bottom:12px}
+  h1{font-family:var(--serif);font-size:2.2rem;font-weight:700;letter-spacing:-0.02em;line-height:1.2;color:var(--text);margin-bottom:14px}
+  .page-intro{font-size:0.95rem;color:var(--text-mid);line-height:1.7;margin-bottom:48px;max-width:520px}
+
+  /* ── Form ── */
+  .contact-form{display:flex;flex-direction:column;gap:18px;margin-bottom:48px}
+
+  .field{display:flex;flex-direction:column;gap:6px}
+  label{font-size:0.78rem;font-weight:700;color:var(--text);letter-spacing:0.01em}
+
+  input[type=text],input[type=email],textarea{
+    width:100%;padding:10px 14px;
+    border:1.5px solid var(--border);border-radius:9px;
+    font-size:0.88rem;font-family:var(--sans);color:var(--text);
+    background:var(--bg);outline:none;
+    transition:border-color 0.15s,box-shadow 0.15s;
+  }
+  input[type=text]:focus,input[type=email]:focus,textarea:focus{
+    border-color:var(--green);
+    box-shadow:0 0 0 3px rgba(31,69,48,0.07);
+  }
+  textarea{resize:vertical;min-height:130px;line-height:1.65}
+
+  .submit-btn{
+    align-self:flex-start;
+    background:var(--green);color:#fff;border:none;
+    border-radius:9px;padding:11px 28px;
+    font-size:0.88rem;font-weight:700;font-family:var(--sans);
+    cursor:pointer;transition:background 0.15s,transform 0.1s;
+  }
+  .submit-btn:hover{background:var(--green-deep);transform:translateY(-1px)}
+  .submit-btn:disabled{opacity:0.6;cursor:default;transform:none}
+
+  .form-success{
+    display:none;
+    background:var(--green-lite);border:1.5px solid var(--green-mid);
+    border-radius:10px;padding:16px 20px;
+    font-size:0.88rem;color:var(--green);font-weight:600;
+  }
+
+  /* ── Direct contact ── */
+  .divider{border:none;border-top:1px solid var(--border);margin-bottom:36px}
+
+  .contact-details{display:flex;flex-direction:column;gap:14px}
+  .contact-item{display:flex;align-items:center;gap:12px}
+  .contact-icon{
+    width:34px;height:34px;flex-shrink:0;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:0.85rem;
+  }
+  .contact-label{font-size:0.75rem;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1px}
+  .contact-value{font-size:0.9rem;color:var(--text-mid)}
+  .contact-value a{color:var(--green);text-decoration:none}
+  .contact-value a:hover{text-decoration:underline;text-underline-offset:2px}
+
+  footer{border-top:1px solid var(--border);padding:20px 52px;display:flex;align-items:center;justify-content:space-between;font-size:0.76rem;color:var(--subtle)}
+  footer a{color:var(--subtle);text-decoration:underline;text-underline-offset:2px}
+  footer a:hover{color:var(--text)}
+  .footer-links{display:flex;gap:20px}
+
+  @media(max-width:640px){nav{padding:0 20px}.page{padding:40px 20px 80px}footer{padding:20px;flex-direction:column;gap:12px;text-align:center}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text)">inroad</span>
+  </a>
+  <a href="/" class="nav-back">← Home</a>
+</nav>
+
+<div class="page">
+  <p class="page-eyebrow">Get in touch</p>
+  <h1>Contact us</h1>
+  <p class="page-intro">Got any questions, feedback or partnerships? Feel free to reach out — we'd love to hear from you. We welcome feedback, questions or proposals from users and businesses alike. Fill out the form below, or reach us directly using the details at the bottom. We aim to respond quickly.</p>
+
+  <form class="contact-form" id="contact-form" onsubmit="handleSubmit(event)">
+    <div class="field">
+      <label for="cf-name">Your name</label>
+      <input type="text" id="cf-name" name="name" placeholder="Jane Smith" required>
+    </div>
+    <div class="field">
+      <label for="cf-email">Email address</label>
+      <input type="email" id="cf-email" name="email" placeholder="jane@example.com" required>
+    </div>
+    <div class="field">
+      <label for="cf-subject">Subject</label>
+      <input type="text" id="cf-subject" name="subject" placeholder="Feedback, partnership, question…">
+    </div>
+    <div class="field">
+      <label for="cf-message">Message</label>
+      <textarea id="cf-message" name="message" placeholder="Tell us what's on your mind…" required></textarea>
+    </div>
+    <button type="submit" class="submit-btn" id="submit-btn">Send message</button>
+  </form>
+
+  <div class="form-success" id="form-success">
+    Message sent — we'll be in touch shortly.
+  </div>
+
+  <hr class="divider">
+
+  <div class="contact-details">
+    <div class="contact-item">
+      <div class="contact-icon">✉</div>
+      <div>
+        <div class="contact-label">Email</div>
+        <div class="contact-value"><a href="mailto:oliver@the-inroad.com">oliver@the-inroad.com</a></div>
+      </div>
+    </div>
+    <div class="contact-item">
+      <div class="contact-icon">☎</div>
+      <div>
+        <div class="contact-label">Phone</div>
+        <div class="contact-value"><a href="tel:+447300299637">+44 7300 299637</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 inroad</span>
+  <div class="footer-links">
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="/contact">Contact</a>
+  </div>
+</footer>
+
+<script>
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.textContent = 'Sending…';
+    btn.disabled = true;
+
+    const body = {
+      name:    document.getElementById('cf-name').value,
+      email:   document.getElementById('cf-email').value,
+      subject: document.getElementById('cf-subject').value,
+      message: document.getElementById('cf-message').value,
+    };
+
+    try {
+      const r = await fetch('/api/contact', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+      if (r.ok) {
+        document.getElementById('contact-form').style.display = 'none';
+        document.getElementById('form-success').style.display = 'block';
+      } else {
+        btn.textContent = 'Send message';
+        btn.disabled = false;
+        alert('Something went wrong. Please email us directly at oliver@the-inroad.com');
+      }
+    } catch {
+      btn.textContent = 'Send message';
+      btn.disabled = false;
+      alert('Something went wrong. Please email us directly at oliver@the-inroad.com');
+    }
+  }
+</script>
+
+</body>
+</html>

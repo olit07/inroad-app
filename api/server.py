@@ -1486,7 +1486,50 @@ def terms_page():
 
 @app.route("/contact")
 def contact_page():
-    return "", 204  # placeholder — returns empty for now
+    return _send_html("contact.html")
+
+
+@app.route("/api/contact", methods=["POST"])
+def api_contact():
+    """Forward a contact form submission to oliver@the-inroad.com via Resend."""
+    import requests as req
+    data    = request.get_json(silent=True) or {}
+    name    = (data.get("name")    or "").strip()
+    email   = (data.get("email")   or "").strip()
+    subject = (data.get("subject") or "Contact form").strip()
+    message = (data.get("message") or "").strip()
+
+    if not email or not message:
+        return jsonify({"error": "email and message required"}), 400
+
+    from config.settings import RESEND_API_KEY
+    if not RESEND_API_KEY:
+        return jsonify({"error": "email not configured"}), 503
+
+    body_html = f"""
+    <p><strong>From:</strong> {name} &lt;{email}&gt;</p>
+    <p><strong>Subject:</strong> {subject}</p>
+    <hr>
+    <p style="white-space:pre-wrap">{message}</p>
+    """
+
+    r = req.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+        json={
+            "from":    f"{FROM_NAME} <{FROM_EMAIL}>",
+            "to":      ["oliver@the-inroad.com"],
+            "reply_to": email,
+            "subject": f"[inroad contact] {subject}",
+            "html":    body_html,
+        },
+        timeout=10,
+    )
+    if r.status_code not in (200, 201):
+        app.logger.error(f"[contact] Resend error {r.status_code}: {r.text[:200]}")
+        return jsonify({"error": "Failed to send"}), 502
+
+    return jsonify({"status": "sent"})
 
 
 @app.route("/verify")
