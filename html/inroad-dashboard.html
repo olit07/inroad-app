@@ -1289,7 +1289,12 @@
       const r = await apiFetch('/api/auth/outlook');
       if (!r.ok) { alert('Outlook connect unavailable. Please try again later.'); return; }
       const { redirect_url } = await r.json();
-      if (redirect_url) window.location.href = redirect_url;
+      if (redirect_url) {
+        // Persist the access token so it survives the full-page navigation to Microsoft and back
+        const tok = getAccessToken();
+        if (tok) sessionStorage.setItem('inroad_token', tok);
+        window.location.href = redirect_url;
+      }
     } catch (e) {
       console.error('connectOutlook error:', e);
     }
