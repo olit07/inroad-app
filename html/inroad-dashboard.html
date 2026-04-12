@@ -826,43 +826,35 @@
   .btn-send-outlook:hover { background: var(--green-deep); transform: translateY(-1px); }
   .btn-send-outlook:disabled { opacity: 0.6; cursor: default; transform: none; }
 
-  /* ─── CONNECT OUTLOOK BANNER ─── */
-  .outlook-banner {
-    display: flex;
+  /* ─── OUTLOOK STATUS PILL ─── */
+  .outlook-pill {
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 18px;
-    margin-bottom: 20px;
-  }
-
-  .outlook-banner-text {
-    font-size: 0.83rem;
-    color: var(--text-mid);
-    line-height: 1.5;
-  }
-
-  .outlook-banner-text strong { color: var(--text); }
-
-  .outlook-connect-btn {
-    flex-shrink: 0;
-    background: var(--green);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-size: 0.8rem;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 0.74rem;
     font-weight: 700;
     font-family: 'Lato', sans-serif;
-    cursor: pointer;
-    transition: background 0.15s;
+    letter-spacing: 0.01em;
     white-space: nowrap;
   }
 
-  .outlook-connect-btn:hover { background: var(--green-deep); }
+  .outlook-pill--connected {
+    background: var(--green-lite);
+    border: 1.5px solid var(--green-mint);
+    color: var(--green-mint);
+  }
+
+  .outlook-pill--disconnected {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .outlook-pill--disconnected:hover { border-color: var(--green-mid); color: var(--green); }
 
   /* ─── SENT SUCCESS OVERLAY ─── */
   .sent-overlay {
@@ -1084,12 +1076,10 @@
     That's all 3 done for today. Great work! You are 1 step closer to landing your next role. Check back tomorrow for your next set of matches.
   </div>
 
-  <!-- Connect Outlook banner -->
-  <div class="outlook-banner" id="outlook-banner" style="display:none">
-    <div class="outlook-banner-text">
-      <strong>Send in one click</strong> — connect your Outlook or university Microsoft account to send emails directly without leaving the page.
-    </div>
-    <button class="outlook-connect-btn" onclick="connectOutlook()">Connect Outlook</button>
+  <!-- Outlook status pill -->
+  <div id="outlook-status" style="display:none;margin-bottom:16px">
+    <span class="outlook-pill outlook-pill--connected" id="outlook-pill-connected" style="display:none">✓ Outlook connected</span>
+    <button class="outlook-pill outlook-pill--disconnected" id="outlook-pill-disconnected" style="display:none" onclick="connectOutlook()">Connect Outlook to send in one click →</button>
   </div>
 
   <!-- Section label -->
@@ -1280,11 +1270,15 @@
 
   function _updateOutlookUI(connected) {
     outlookConnected = connected;
-    const banner  = document.getElementById('outlook-banner');
-    const sendBtn = document.getElementById('btn-send-outlook');
-    const mailBtn = document.getElementById('btn-open-mail');
-    const markBtn = document.getElementById('btn-mark-sent');
-    if (banner)  banner.style.display  = connected ? 'none' : '';
+    const statusWrap   = document.getElementById('outlook-status');
+    const pillConn     = document.getElementById('outlook-pill-connected');
+    const pillDisconn  = document.getElementById('outlook-pill-disconnected');
+    const sendBtn      = document.getElementById('btn-send-outlook');
+    const mailBtn      = document.getElementById('btn-open-mail');
+    const markBtn      = document.getElementById('btn-mark-sent');
+    if (statusWrap)  statusWrap.style.display  = '';
+    if (pillConn)    pillConn.style.display    = connected ? '' : 'none';
+    if (pillDisconn) pillDisconn.style.display = connected ? 'none' : '';
     if (sendBtn) sendBtn.style.display = connected ? ''     : 'none';
     if (mailBtn) mailBtn.style.display = connected ? 'none' : '';
     if (markBtn) markBtn.style.display = connected ? 'none' : '';
