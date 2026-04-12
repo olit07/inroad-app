@@ -426,6 +426,7 @@
   .card-role-tag {
     display: inline-flex;
     align-items: center;
+    align-self: flex-start;
     gap: 5px;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -808,6 +809,61 @@
   .btn-mark-sent:hover { border-color: var(--green); color: var(--green); }
   .btn-mark-sent.done { background: var(--green-lite); border-color: var(--green-mid); color: var(--green); }
 
+  .btn-send-outlook {
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 9px;
+    padding: 8px 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .btn-send-outlook:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .btn-send-outlook:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+  /* ─── CONNECT OUTLOOK BANNER ─── */
+  .outlook-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+  }
+
+  .outlook-banner-text {
+    font-size: 0.83rem;
+    color: var(--text-mid);
+    line-height: 1.5;
+  }
+
+  .outlook-banner-text strong { color: var(--text); }
+
+  .outlook-connect-btn {
+    flex-shrink: 0;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  .outlook-connect-btn:hover { background: var(--green-deep); }
+
   /* ─── SENT SUCCESS OVERLAY ─── */
   .sent-overlay {
     display: none;
@@ -1028,6 +1084,14 @@
     That's all 3 done for today. Great work! You are 1 step closer to landing your next role. Check back tomorrow for your next set of matches.
   </div>
 
+  <!-- Connect Outlook banner -->
+  <div class="outlook-banner" id="outlook-banner" style="display:none">
+    <div class="outlook-banner-text">
+      <strong>Send in one click</strong> — connect your Outlook or university Microsoft account to send emails directly without leaving the page.
+    </div>
+    <button class="outlook-connect-btn" onclick="connectOutlook()">Connect Outlook</button>
+  </div>
+
   <!-- Section label -->
   <p class="section-label">Today's matches</p>
 
@@ -1152,8 +1216,9 @@
       <div class="modal-actions">
         <button class="btn-regenerate" onclick="regenerate()">↺ Regenerate</button>
         <button class="btn-copy" id="btn-copy" onclick="copyEmail()">Copy email</button>
-        <button class="btn-open-mail" onclick="openInMail()">Open in Mail ↗</button>
+        <button class="btn-open-mail" id="btn-open-mail" onclick="openInMail()">Open in Mail ↗</button>
         <button class="btn-mark-sent" id="btn-mark-sent" onclick="markAsSent()">Mark as sent</button>
+        <button class="btn-send-outlook" id="btn-send-outlook" onclick="sendViaOutlook()" style="display:none">Send →</button>
       </div>
     </div>
   </div>
@@ -1210,6 +1275,64 @@
     }
   }
 
+  // ── OUTLOOK INTEGRATION ──
+  let outlookConnected = false;
+
+  function _updateOutlookUI(connected) {
+    outlookConnected = connected;
+    const banner  = document.getElementById('outlook-banner');
+    const sendBtn = document.getElementById('btn-send-outlook');
+    const mailBtn = document.getElementById('btn-open-mail');
+    const markBtn = document.getElementById('btn-mark-sent');
+    if (banner)  banner.style.display  = connected ? 'none' : '';
+    if (sendBtn) sendBtn.style.display = connected ? ''     : 'none';
+    if (mailBtn) mailBtn.style.display = connected ? 'none' : '';
+    if (markBtn) markBtn.style.display = connected ? 'none' : '';
+  }
+
+  async function connectOutlook() {
+    try {
+      const r = await apiFetch('/api/auth/outlook');
+      if (!r.ok) { alert('Outlook connect unavailable. Please try again later.'); return; }
+      const { redirect_url } = await r.json();
+      if (redirect_url) window.location.href = redirect_url;
+    } catch (e) {
+      console.error('connectOutlook error:', e);
+    }
+  }
+
+  async function sendViaOutlook() {
+    if (!activeCard) return;
+    const card    = matches[activeCard];
+    if (!card) return;
+
+    const subject = document.getElementById('modal-subject-input').value;
+    const body    = document.getElementById('email-body').value;
+    const sendBtn = document.getElementById('btn-send-outlook');
+    sendBtn.textContent = 'Sending…';
+    sendBtn.disabled = true;
+
+    try {
+      const r = await apiFetch(`/api/matches/${card.id}/send`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ subject, body }),
+      });
+      if (r.ok) {
+        _triggerSentUI(activeCard);
+      } else {
+        const err = await r.json().catch(() => ({}));
+        alert(err.error || 'Failed to send email. Please try again.');
+        sendBtn.textContent = 'Send →';
+        sendBtn.disabled = false;
+      }
+    } catch (e) {
+      console.error('sendViaOutlook error:', e);
+      sendBtn.textContent = 'Send →';
+      sendBtn.disabled = false;
+    }
+  }
+
   // ── INIT ──
   async function init() {
     // Show loading overlay immediately — page content is hidden until data loads
@@ -1261,9 +1384,19 @@
           dailyQuota = parseInt(student.daily_cards_override) || 3;
           updateGreeting(student);
           initQuotaUI(dailyQuota);
+          _updateOutlookUI(!!student.outlook_connected);
         }
       }
     } catch (e) { /* ignore, show defaults */ }
+
+    // Handle Outlook OAuth callback result
+    const _params = new URLSearchParams(window.location.search);
+    if (_params.get('outlook') === 'connected') {
+      history.replaceState({}, '', window.location.pathname);
+    } else if (_params.get('outlook') === 'error') {
+      history.replaceState({}, '', window.location.pathname);
+      alert('Failed to connect Outlook. Please try again.');
+    }
 
     // 3. Load today's matches
     if (student && student.id) {
@@ -1501,11 +1634,13 @@ Alex`
     // Reset buttons
     const copyBtn = document.getElementById('btn-copy');
     const markBtn = document.getElementById('btn-mark-sent');
+    const sendBtn = document.getElementById('btn-send-outlook');
     copyBtn.textContent = 'Copy email';
     copyBtn.classList.remove('copied');
     markBtn.textContent = 'Mark as sent';
     markBtn.classList.remove('done');
     markBtn.disabled = false;
+    if (sendBtn) { sendBtn.textContent = 'Send →'; sendBtn.disabled = false; }
 
     updateWordCount();
     document.getElementById('modal').classList.add('open');
@@ -1640,30 +1775,18 @@ Alex`
     );
   }
 
-  function markAsSent() {
-    if (!activeCard) return;
-
-    const cardId = activeCard;
-    const data = matches[cardId];
-
-    // Freeze mark-sent button
-    const markBtn = document.getElementById('btn-mark-sent');
-    markBtn.textContent = 'Sent ✓';
-    markBtn.classList.add('done');
-    markBtn.disabled = true;
-
+  function _triggerSentUI(cardId) {
     // Close modal
     closeModal();
 
-    // Show Apple Pay success overlay
+    // Show success overlay
     const overlay = document.getElementById('sent-overlay');
     overlay.classList.add('visible');
 
-    // After animation completes, hide overlay and update card
     setTimeout(() => {
       overlay.classList.remove('visible');
 
-      // Rebuild the ring/tick so it re-animates next time
+      // Rebuild ring/tick so it re-animates next time
       const wrap = overlay.querySelector('.sent-checkmark-wrap');
       wrap.innerHTML = `
         <div class="sent-ring"></div>
@@ -1673,26 +1796,53 @@ Alex`
           </svg>
         </div>`;
 
-      // Mark card as sent
+      // Mark card as sent in the UI
       const card = document.getElementById(cardId);
-      card.classList.add('sent');
-
-      // Replace draft button with sent label + review link
-      const action = card.querySelector('.card-action');
-      action.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-          <div class="sent-label">
-            <div class="sent-check">✓</div>
-            Sent
-          </div>
-          <button class="card-review-link" onclick="reviewDraft('${cardId}')">Review draft</button>
-        </div>`;
+      if (card) {
+        card.classList.add('sent');
+        const action = card.querySelector('.card-action');
+        action.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <div class="sent-label">
+              <div class="sent-check">✓</div>
+              Sent
+            </div>
+            <button class="card-review-link" onclick="reviewDraft('${cardId}')">Review draft</button>
+          </div>`;
+      }
 
       // Update quota bar
       sentCount++;
       updateQuota(sentCount);
-
     }, 1600);
+  }
+
+  function markAsSent() {
+    if (!activeCard) return;
+
+    const cardId = activeCard;
+    const card   = matches[cardId];
+
+    // Freeze mark-sent button
+    const markBtn = document.getElementById('btn-mark-sent');
+    markBtn.textContent = 'Sent ✓';
+    markBtn.classList.add('done');
+    markBtn.disabled = true;
+
+    // Persist to backend (best-effort — UI proceeds regardless)
+    if (card && card.id) {
+      apiFetch(`/api/matches/${card.id}/send`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          subject: document.getElementById('modal-subject-input').value,
+          body:    document.getElementById('email-body').value,
+          manual:  true,
+        }),
+      }).catch(() => {});
+    }
+
+    _triggerSentUI(cardId);
   }
 
   function reviewDraft(cardId) {

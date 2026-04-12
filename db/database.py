@@ -520,6 +520,10 @@ def _run_migrations_postgres():
         "ALTER TABLE students ADD COLUMN IF NOT EXISTS referral_code TEXT UNIQUE",
         "ALTER TABLE students ADD COLUMN IF NOT EXISTS referred_by TEXT",
         "ALTER TABLE students ADD COLUMN IF NOT EXISTS daily_cards_override INTEGER DEFAULT NULL",
+        # Feature: Outlook OAuth (one-click email send)
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS outlook_access_token TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS outlook_refresh_token TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS outlook_token_expiry INTEGER",
         # Referral code: backfill for existing students
         """UPDATE students SET referral_code = substring(md5(random()::text || id::text), 1, 8)
            WHERE referral_code IS NULL""",
@@ -594,6 +598,20 @@ def _run_migrations_sqlite():
                 cur.execute("ALTER TABLE card_queue ADD COLUMN score_breakdown TEXT")
             except Exception as e:
                 print(f"[db] Migration warning (card_queue.score_breakdown): {e}")
+
+        # Feature: Outlook OAuth (one-click email send)
+        cur.execute("PRAGMA table_info(students)")
+        existing_student_cols = {row[1] for row in cur.fetchall()}
+        for col, col_type in [
+            ("outlook_access_token",  "TEXT"),
+            ("outlook_refresh_token", "TEXT"),
+            ("outlook_token_expiry",  "INTEGER"),
+        ]:
+            if col not in existing_student_cols:
+                try:
+                    cur.execute(f"ALTER TABLE students ADD COLUMN {col} {col_type}")
+                except Exception as e:
+                    print(f"[db] Migration warning (students.{col}): {e}")
 
 
 # ── Convenience wrappers used by api/server.py ──────────────────────────────

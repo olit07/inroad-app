@@ -59,6 +59,11 @@ DEV_MODE = os.environ.get("DEV_MODE", "false").lower() == "true"
 
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
 
+# ── Microsoft / Outlook OAuth ─────────────────────────────────────────────────
+
+AZURE_CLIENT_ID     = os.environ.get("AZURE_CLIENT_ID", "")
+AZURE_CLIENT_SECRET = os.environ.get("AZURE_CLIENT_SECRET", "")
+
 # ── Pipeline ─────────────────────────────────────────────────────────────────
 
 DAILY_MATCH_QUOTA   = int(os.environ.get("DAILY_MATCH_QUOTA",   "3"))

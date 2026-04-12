@@ -29,7 +29,8 @@ from config.settings import (
     APP_BASE_URL, SESSION_SECRET, FROM_EMAIL, FROM_NAME,
     MAGIC_LINK_EXPIRY_MINUTES, MAGIC_LINK_RATE_LIMIT,
     MAGIC_LINK_RATE_WINDOW, SESSION_DAYS, ALLOWED_ORIGINS, DEV_MODE,
-    JWT_REFRESH_TTL_DAYS, ADMIN_SECRET
+    JWT_REFRESH_TTL_DAYS, ADMIN_SECRET,
+    AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
 )
 from db.database import (
     init_db, get_student_by_email, get_student_by_id,
@@ -601,13 +602,24 @@ def logout():
 
 # ── Current user ─────────────────────────────────────────────────────────────
 
+def _sanitise_student(student: dict) -> dict:
+    """Strip sensitive OAuth token fields; expose a safe boolean instead."""
+    s = dict(student)
+    connected = bool(s.get("outlook_access_token"))
+    s.pop("outlook_access_token", None)
+    s.pop("outlook_refresh_token", None)
+    s.pop("outlook_token_expiry", None)
+    s["outlook_connected"] = connected
+    return s
+
+
 @app.route("/api/me")
 @require_jwt
 def me():
     student = get_student_by_id(g.student_id)
     if not student:
         return jsonify({"error": "Student not found"}), 404
-    return jsonify(student)
+    return jsonify(_sanitise_student(student))
 
 
 @app.route("/api/me", methods=["PATCH"])
@@ -638,7 +650,7 @@ def update_me():
     student = get_student_by_id(g.student_id)
     if not student:
         return jsonify({"error": "Student not found"}), 401
-    return jsonify(student)
+    return jsonify(_sanitise_student(student))
 
 
 @app.route("/api/me", methods=["DELETE"])
@@ -816,6 +828,208 @@ def match_reply(match_id):
         (match_id,)
     )
     return jsonify({"status": "ok"})
+
+
+# ── Outlook OAuth ─────────────────────────────────────────────────────────────
+
+_MS_AUTH_URL   = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+_MS_TOKEN_URL  = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+_MS_GRAPH_SEND = "https://graph.microsoft.com/v1.0/me/sendMail"
+_MS_SCOPES     = "Mail.Send Mail.Read offline_access openid"
+
+
+def _make_outlook_state(student_id: int) -> str:
+    """Sign student_id so the OAuth callback can verify who initiated the flow."""
+    payload = str(student_id)
+    b64 = base64.urlsafe_b64encode(payload.encode()).decode()
+    sig = hmac.new(SESSION_SECRET.encode(), b64.encode(), hashlib.sha256).hexdigest()
+    return f"{b64}.{sig}"
+
+
+def _verify_outlook_state(state: str):
+    """Return student_id (int) if state is valid, else None."""
+    try:
+        b64, sig = state.rsplit(".", 1)
+        if not hmac.compare_digest(
+            hmac.new(SESSION_SECRET.encode(), b64.encode(), hashlib.sha256).hexdigest(),
+            sig,
+        ):
+            return None
+        return int(base64.urlsafe_b64decode(b64.encode()).decode())
+    except Exception:
+        return None
+
+
+def _refresh_outlook_token(student_id: int, refresh_token: str):
+    """Exchange refresh_token for a new access token. Updates DB. Returns new access_token or None."""
+    import requests as req
+    r = req.post(_MS_TOKEN_URL, data={
+        "client_id":     AZURE_CLIENT_ID,
+        "client_secret": AZURE_CLIENT_SECRET,
+        "grant_type":    "refresh_token",
+        "refresh_token": refresh_token,
+        "scope":         _MS_SCOPES,
+    }, timeout=10)
+    if r.status_code != 200:
+        return None
+    data = r.json()
+    expiry = int(datetime.now(timezone.utc).timestamp()) + int(data.get("expires_in", 3600))
+    update_student_fields(student_id, {
+        "outlook_access_token":  data["access_token"],
+        "outlook_refresh_token": data.get("refresh_token", refresh_token),
+        "outlook_token_expiry":  expiry,
+    })
+    return data["access_token"]
+
+
+def _get_valid_outlook_token(student_id: int) -> str | None:
+    """Return a valid Outlook access token for student, refreshing if needed."""
+    student = get_student_by_id(student_id)
+    if not student or not student.get("outlook_access_token"):
+        return None
+    now = int(datetime.now(timezone.utc).timestamp())
+    expiry = student.get("outlook_token_expiry") or 0
+    if now < expiry - 60:
+        return student["outlook_access_token"]
+    # Token expired — refresh
+    return _refresh_outlook_token(student_id, student["outlook_refresh_token"])
+
+
+@app.route("/api/auth/outlook")
+@require_jwt
+def outlook_auth_start():
+    """Kick off Microsoft OAuth flow. Returns {redirect_url} for the frontend."""
+    if not AZURE_CLIENT_ID:
+        return jsonify({"error": "Outlook OAuth not configured"}), 503
+    state = _make_outlook_state(g.student_id)
+    redirect_uri = f"{APP_BASE_URL}/api/auth/outlook/callback"
+    from urllib.parse import urlencode
+    params = urlencode({
+        "client_id":     AZURE_CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri":  redirect_uri,
+        "scope":         _MS_SCOPES,
+        "state":         state,
+        "response_mode": "query",
+    })
+    return jsonify({"redirect_url": f"{_MS_AUTH_URL}?{params}"})
+
+
+@app.route("/api/auth/outlook/callback")
+def outlook_auth_callback():
+    """Microsoft redirects here with ?code=...&state=... after user consent."""
+    import requests as req
+    code  = request.args.get("code", "")
+    state = request.args.get("state", "")
+    error = request.args.get("error", "")
+
+    if error or not code:
+        return redirect(f"{APP_BASE_URL}/dashboard?outlook=error")
+
+    student_id = _verify_outlook_state(state)
+    if not student_id:
+        return redirect(f"{APP_BASE_URL}/dashboard?outlook=error")
+
+    redirect_uri = f"{APP_BASE_URL}/api/auth/outlook/callback"
+    r = req.post(_MS_TOKEN_URL, data={
+        "client_id":     AZURE_CLIENT_ID,
+        "client_secret": AZURE_CLIENT_SECRET,
+        "grant_type":    "authorization_code",
+        "code":          code,
+        "redirect_uri":  redirect_uri,
+        "scope":         _MS_SCOPES,
+    }, timeout=10)
+
+    if r.status_code != 200:
+        return redirect(f"{APP_BASE_URL}/dashboard?outlook=error")
+
+    data = r.json()
+    expiry = int(datetime.now(timezone.utc).timestamp()) + int(data.get("expires_in", 3600))
+    update_student_fields(student_id, {
+        "outlook_access_token":  data["access_token"],
+        "outlook_refresh_token": data.get("refresh_token", ""),
+        "outlook_token_expiry":  expiry,
+    })
+    return redirect(f"{APP_BASE_URL}/dashboard?outlook=connected")
+
+
+@app.route("/api/auth/outlook/disconnect", methods=["POST"])
+@require_jwt
+def outlook_auth_disconnect():
+    update_student_fields(g.student_id, {
+        "outlook_access_token":  None,
+        "outlook_refresh_token": None,
+        "outlook_token_expiry":  None,
+    })
+    return jsonify({"status": "ok"})
+
+
+@app.route("/api/matches/<int:match_id>/send", methods=["POST"])
+@require_jwt
+def send_match_email(match_id):
+    """Send the match email.
+
+    If `manual: true` in the request body, just marks the match as sent in the
+    DB without using Outlook (user sent it themselves via another client).
+    Otherwise sends via the student's connected Outlook account.
+    """
+    import requests as req
+    from db.database import execute as db_execute, USE_POSTGRES
+
+    match = fetchone(
+        "SELECT m.*, j.title as job_title FROM matches m JOIN jobs j ON j.id = m.job_id"
+        " WHERE m.id = ? AND m.student_id = ?",
+        (match_id, g.student_id),
+    )
+    if not match:
+        return jsonify({"error": "Match not found"}), 404
+
+    data   = request.get_json(silent=True) or {}
+    manual = bool(data.get("manual"))
+
+    def _mark_sent():
+        if USE_POSTGRES:
+            db_execute("UPDATE matches SET status = 'sent', sent_at = NOW() WHERE id = ?", (match_id,))
+        else:
+            db_execute("UPDATE matches SET status = 'sent', sent_at = datetime('now') WHERE id = ?", (match_id,))
+
+    if manual:
+        _mark_sent()
+        return jsonify({"status": "sent"})
+
+    # ── Outlook send ──
+    subject = data.get("subject") or match.get("email_subject") or ""
+    body    = data.get("body")    or match.get("email_body")    or ""
+    to_addr = match.get("expected_email") or ""
+
+    if not to_addr:
+        return jsonify({"error": "No recipient email address for this match"}), 400
+
+    token = _get_valid_outlook_token(g.student_id)
+    if not token:
+        return jsonify({"error": "Outlook not connected"}), 403
+
+    payload = {
+        "message": {
+            "subject": subject,
+            "body": {"contentType": "Text", "content": body},
+            "toRecipients": [{"emailAddress": {"address": to_addr}}],
+        },
+        "saveToSentItems": True,
+    }
+    r = req.post(
+        _MS_GRAPH_SEND,
+        json=payload,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        timeout=15,
+    )
+
+    if r.status_code not in (200, 202):
+        app.logger.error(f"[outlook/send] Graph API error {r.status_code}: {r.text[:200]}")
+        return jsonify({"error": "Failed to send email"}), 502
+
+    _mark_sent()
+    return jsonify({"status": "sent"})
 
 
 # ── Jobs ──────────────────────────────────────────────────────────────────────
