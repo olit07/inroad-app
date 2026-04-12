@@ -1488,6 +1488,11 @@ def terms_page():
     return _send_html("terms.html")
 
 
+@app.route("/outlook-help")
+def outlook_help_page():
+    return _send_html("outlook-help.html")
+
+
 @app.route("/contact")
 def contact_page():
     return _send_html("contact.html")

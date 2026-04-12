@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trouble connecting Outlook — inroad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#FFFFFF; --surface:#F3F1EE; --border:#E6E2DB;
+    --green:#1F4530; --green-lite:#EAF2EC; --green-mid:#A8C9B0; --green-deep:#122B1E;
+    --text:#1A1714; --text-mid:#3D3831; --muted:#7A7068; --subtle:#ADA79F;
+    --serif:'Lora',Georgia,serif; --sans:'Lato',system-ui,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+
+  nav{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 52px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:50}
+  .wordmark{display:flex;align-items:center;gap:9px;text-decoration:none}
+  .nav-back{font-size:0.83rem;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.15s}
+  .nav-back:hover{color:var(--text)}
+
+  .page{max-width:680px;margin:0 auto;padding:60px 52px 100px;flex:1}
+
+  .page-eyebrow{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);margin-bottom:12px}
+  h1{font-family:var(--serif);font-size:2.2rem;font-weight:700;letter-spacing:-0.02em;line-height:1.2;color:var(--text);margin-bottom:20px}
+  h2{font-size:1rem;font-weight:700;color:var(--text);margin:36px 0 10px}
+  p{color:var(--text-mid);margin-bottom:14px;font-size:0.93rem}
+  a{color:var(--green);text-underline-offset:2px}
+
+  .callout {
+    background: var(--green-lite);
+    border: 1.5px solid var(--green-mid);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 28px 0;
+  }
+
+  .callout p { color: var(--green); margin: 0; font-weight: 600; }
+
+  .step-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 16px 0 24px;
+  }
+
+  .step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    background: var(--green);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-top: 1px;
+  }
+
+  .step-text { font-size: 0.93rem; color: var(--text-mid); line-height: 1.6; }
+  .step-text strong { color: var(--text); }
+
+  .contact-nudge {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-top: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .contact-nudge p { color: var(--text-mid); font-size: 0.88rem; margin: 0; }
+  .contact-nudge strong { color: var(--text); }
+
+  .contact-btn {
+    flex-shrink: 0;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: var(--sans);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  .contact-btn:hover { background: var(--green-deep); }
+
+  footer{border-top:1px solid var(--border);padding:20px 52px;display:flex;align-items:center;justify-content:space-between;font-size:0.76rem;color:var(--subtle)}
+  footer a{color:var(--subtle);text-decoration:underline;text-underline-offset:2px}
+  footer a:hover{color:var(--text)}
+  .footer-links{display:flex;gap:20px}
+
+  @media(max-width:640px){nav{padding:0 20px}.page{padding:40px 20px 80px}footer{padding:20px;flex-direction:column;gap:12px;text-align:center}.contact-nudge{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text)">inroad</span>
+  </a>
+  <a href="/dashboard" class="nav-back">← Back to dashboard</a>
+</nav>
+
+<div class="page">
+  <p class="page-eyebrow">Help</p>
+  <h1>Trouble connecting Outlook?</h1>
+
+  <p>Most Microsoft accounts connect without any issues. However, if your account is provided by a university or employer, their IT department may have restricted which third-party apps can access it. This is a security policy on their end — not a problem with inroad.</p>
+
+  <h2>Why university accounts are sometimes blocked</h2>
+  <p>Universities manage their own Microsoft 365 tenants and can choose to require IT admin approval before any external app is granted access. When this restriction is in place, you'll either see an "Approval required" screen or the connection will fail silently. There is nothing you can do to bypass this — it requires your university IT team to whitelist the app.</p>
+
+  <div class="callout">
+    <p>The simplest fix: connect a personal Microsoft account (Outlook.com or Hotmail) instead of your university one. Your emails will still come from that address and reach recipients just as effectively.</p>
+  </div>
+
+  <h2>How to connect a personal Microsoft account</h2>
+  <div class="step-list">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">If you don't already have one, create a free personal Microsoft account at <a href="https://outlook.com" target="_blank" rel="noopener noreferrer">outlook.com</a>. Use your name — e.g. <strong>jane.smith@outlook.com</strong> — so emails look professional.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">On your inroad dashboard, click <strong>Connect Outlook</strong> and sign in with your personal Microsoft account when prompted.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Once connected, clicking <strong>Send →</strong> on any match card will send the email directly from your personal Outlook address.</div>
+    </div>
+  </div>
+
+  <h2>Still not working?</h2>
+  <p>If you're using a personal account and still seeing an error, it may be a temporary issue. Try disconnecting and reconnecting from the dashboard. If the problem persists, get in touch and we'll sort it out.</p>
+
+  <div class="contact-nudge">
+    <p><strong>Need help?</strong> Reach out and we'll troubleshoot it with you directly.</p>
+    <a href="/contact" class="contact-btn">Contact us</a>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 inroad</span>
+  <div class="footer-links">
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="/contact">Contact</a>
+  </div>
+</footer>
+
+</body>
+</html>
