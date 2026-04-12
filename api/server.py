@@ -1004,7 +1004,7 @@ def send_match_email(match_id):
     # ── Outlook send ──
     subject = data.get("subject") or match.get("email_subject") or ""
     body    = data.get("body")    or match.get("email_body")    or ""
-    to_addr = match.get("expected_email") or ""
+    to_addr = data.get("to")      or match.get("expected_email") or ""
 
     if not to_addr:
         return jsonify({"error": "No recipient email address for this match"}), 400
