@@ -242,7 +242,7 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
         except Exception:
             return str(d)[:10]
 
-    _opacities = [0.9, 0.7, 0.5, 0.35, 0.2]
+    _opacities = [0.2, 0.15, 0.11, 0.08, 0.05]
 
     def _card_html(idx):
         row = _rows[idx] if idx < len(_rows) else {}
@@ -258,7 +258,7 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
         return f"""
       <!-- Card {idx+1} -->
       <div style="padding:8px 0;">
-        <div style="filter:blur(5px);user-select:none;pointer-events:none;opacity:{opc};">
+        <div style="filter:blur(8px);user-select:none;pointer-events:none;opacity:{opc};">
           <div style="background:#FFFFFF;border:1px solid #E2DED8;border-radius:10px;overflow:hidden;">
             <div style="padding:8px 10px;display:flex;align-items:flex-start;gap:14px;">
               <img src="{av}" alt="" width="22" height="22" style="width:22px;height:22px;border-radius:50%;object-fit:cover;display:block;flex-shrink:0;">
