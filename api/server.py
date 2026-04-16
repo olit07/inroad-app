@@ -801,6 +801,18 @@ def register_student():
     if notify_fields:
         update_student_fields(g.student_id, notify_fields)
         student = get_student_by_id(g.student_id)
+
+    # Generate today's cards immediately so the dashboard isn't empty on first login
+    _sid = g.student_id
+    def _gen_cards():
+        try:
+            from pipeline.daily_cards import generate_daily_cards
+            generate_daily_cards(_sid)
+        except Exception as exc:
+            logging.getLogger("cards").warning(f"Card gen on signup failed for student {_sid}: {exc}")
+    import threading
+    threading.Thread(target=_gen_cards, daemon=True).start()
+
     return jsonify(student)
 
 
