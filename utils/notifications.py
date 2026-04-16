@@ -184,17 +184,102 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
     unsub_link       = f"{APP_BASE_URL}/unsubscribe?token={unsub_token}"
     settings_link    = f"{APP_BASE_URL}/settings"
 
-    # Pre-blurred card PNG — entire card is baked into the image so blur works
-    # in every email client (no CSS filter dependency)
-    _card_img_url = f"{APP_BASE_URL}/static/blurred-card.png"
-    _opacities    = [0.9, 0.7, 0.5, 0.35, 0.2]
+    # ── Avatar pool — identical to dashboard pickAvatar ──────────────────────
+    _UB = 'https://images.unsplash.com/photo-'
+    _UQ = '?w=150&h=150&fit=crop&crop=faces&q=80'
+    AVATAR_POOL = [
+        _UB + '1560250097-0b93528c311a' + _UQ,
+        _UB + '1573496359142-b8d87734a5a2' + _UQ,
+        _UB + '1507003211169-0a1dd7228f2d' + _UQ,
+        _UB + '1500648767791-00dcc994a43e' + _UQ,
+        _UB + '1566492031773-4f4e44671857' + _UQ,
+        _UB + '1580489944761-15a19d654956' + _UQ,
+        _UB + '1519085360753-af0119f7cbe7' + _UQ,
+        _UB + '1531427186611-ecfd6d936c79' + _UQ,
+        _UB + '1472099645785-5658abf4ff4e' + _UQ,
+        _UB + '1438761681033-6461ffad8d80' + _UQ,
+        _UB + '1552058544-f2b08422138a' + _UQ,
+        _UB + '1570295999919-56ceb5ecca61' + _UQ,
+        _UB + '1463453091185-61582044d556' + _UQ,
+        _UB + '1594744803329-e58b31de8bf5' + _UQ,
+        _UB + '1547425260-76bcadfb4f2c' + _UQ,
+        _UB + '1534528741775-53994a69daeb' + _UQ,
+        _UB + '1551836022-d5d88e9218df' + _UQ,
+        _UB + '1567532939604-b6b5b0db2604' + _UQ,
+        _UB + '1539571696357-5a69c17a67c6' + _UQ,
+        _UB + '1506794778202-cad84cf45f1d' + _UQ,
+    ]
+
+    import ctypes as _ct
+    def _pick_avatar(name):
+        """Replicates JS pickAvatar: Math.imul(31,h) + charCode, then abs(h) % len."""
+        h = 0
+        for c in (name or ""):
+            h = _ct.c_int32(31 * h + ord(c)).value
+        return AVATAR_POOL[abs(h) % len(AVATAR_POOL)]
+
+    # ── Fetch today's real cards from DB ──────────────────────────────────────
+    from db.database import fetchall as _fetchall
+    student_id = student.get("id")
+    _rows = _fetchall(
+        """SELECT m.person_name, m.person_title, m.person_company, m.expected_email,
+                  j.title AS job_title, j.opening_date
+           FROM matches m
+           LEFT JOIN jobs j ON j.id = m.job_id
+           WHERE m.student_id = %s AND m.match_date = CURRENT_DATE
+           ORDER BY m.relevance_score DESC""",
+        (student_id,),
+    ) if student_id else []
+
+    def _fmt_date(d):
+        if not d:
+            return ""
+        try:
+            from datetime import date as _date
+            if isinstance(d, _date):
+                return d.strftime("%-d %b %Y")
+            return str(d)[:10]
+        except Exception:
+            return str(d)[:10]
+
+    _opacities = [0.9, 0.7, 0.5, 0.35, 0.2]
 
     def _card_html(idx):
-        opc = _opacities[idx]
+        row = _rows[idx] if idx < len(_rows) else {}
+        name    = row.get("person_name") or "—"
+        title   = (row.get("person_title") or "").replace("&", "&amp;")
+        company = (row.get("person_company") or "").replace("&", "&amp;")
+        role    = f"{title} · {company}" if title and company else (title or company)
+        job     = (row.get("job_title") or "").replace("&", "&amp;")
+        opened  = _fmt_date(row.get("opening_date"))
+        mail    = row.get("expected_email") or ""
+        av      = _pick_avatar(name)
+        opc     = _opacities[idx] if idx < len(_opacities) else 0.2
         return f"""
       <!-- Card {idx+1} -->
-      <div style="padding:4px 0;opacity:{opc};">
-        <img src="{_card_img_url}" width="500" alt="" style="display:block;width:100%;max-width:500px;border-radius:10px;">
+      <div style="padding:8px 0;">
+        <div style="filter:blur(5px);user-select:none;pointer-events:none;opacity:{opc};">
+          <div style="background:#FFFFFF;border:1px solid #E2DED8;border-radius:10px;overflow:hidden;">
+            <div style="padding:8px 10px;display:flex;align-items:flex-start;gap:14px;">
+              <img src="{av}" alt="" width="22" height="22" style="width:22px;height:22px;border-radius:50%;object-fit:cover;display:block;flex-shrink:0;">
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:3px;">
+                  <div style="min-width:0;overflow:hidden;">
+                    <span style="font-size:0.63rem;font-weight:700;color:#1A1714;">{name}</span>
+                    <span style="font-size:0.63rem;color:#ADA79F;"> – </span>
+                    <span style="font-size:0.6rem;font-weight:500;color:#7A7068;">{role}</span>
+                  </div>
+                  <div style="background:#1A1714;color:#FFFFFF;border-radius:5px;padding:3px 7px;font-size:0.55rem;font-weight:600;white-space:nowrap;flex-shrink:0;">Draft →</div>
+                </div>
+                <div style="display:inline-flex;align-items:center;gap:3px;background:#F3F1EE;border:1px solid #E2DED8;border-radius:4px;padding:1px 6px;font-size:0.52rem;font-weight:500;color:#5A5450;max-width:100%;overflow:hidden;margin-bottom:2px;">
+                  <div style="width:3px;height:3px;border-radius:50%;background:#1F4530;flex-shrink:0;"></div>
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{job} ↗</span>
+                </div>
+                <div style="font-size:0.49rem;color:#ADA79F;">Opened: {opened} &nbsp;·&nbsp; {mail}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>"""
 
     _cards_html = "".join(_card_html(i) for i in range(n_cards))
