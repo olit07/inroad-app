@@ -184,64 +184,17 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
     unsub_link       = f"{APP_BASE_URL}/unsubscribe?token={unsub_token}"
     settings_link    = f"{APP_BASE_URL}/settings"
 
-    # Stock photo pool — avatars rotate daily so each send looks different
-    _UB = 'https://images.unsplash.com/photo-'
-    _UQ = '?w=44&h=44&fit=crop&crop=faces&q=80'
-    _POOL = [
-        '1560250097-0b93528c311a', '1573496359142-b8d87734a5a2',
-        '1507003211169-0a1dd7228f2d', '1500648767791-00dcc994a43e',
-        '1566492031773-4f4e44671857', '1580489944761-15a19d654956',
-        '1519085360753-af0119f7cbe7', '1531427186611-ecfd6d936c79',
-        '1472099645785-5658abf4ff4e', '1438761681033-6461ffad8d80',
-        '1552058544-f2b08422138a',   '1570295999919-56ceb5ecca61',
-        '1463453091185-61582044d556', '1594744803329-e58b31de8bf5',
-        '1547425260-76bcadfb4f2c',   '1534528741775-53994a69daeb',
-        '1551836022-d5d88e9218df',   '1567532939604-b6b5b0db2604',
-        '1539571696357-5a69c17a67c6', '1506794778202-cad84cf45f1d',
-    ]
-    _n   = len(_POOL)
-    _day = datetime.utcnow().timetuple().tm_yday
-    _avatars = [_UB + _POOL[(_day + i * 4) % _n] + _UQ for i in range(5)]
-
-    # Placeholder card text — blurred by filter:blur(5px) on wrapper, never readable
-    _placeholder_cards = [
-        ("Michael Lord",      "COO / Finance Risk &amp; Operations Director · Jefferies", "2026 Risk Management (Quant) Summer Associate ↗", "25 Mar 2026", "michael.lord@jefferies.com"),
-        ("Pawel Burzynski",   "Senior Quant Developer · GLG",                             "GLG London Summer Internship ↗",                   "23 Mar 2026", "pawel.burzynski@glginsights.com"),
-        ("Geoffrey Grossman", "Investment Data Scientist · Point72",                      "International Sector Analyst Internship ↗",        "19 Mar 2026", "geoffrey.grossman@point72.com"),
-        ("Sarah Chen",        "Associate Director · BlackRock",                           "2026 Summer Analyst Programme ↗",                  "14 Mar 2026", "sarah.chen@blackrock.com"),
-        ("James Hartley",     "VP Structuring · Goldman Sachs",                           "2026 Off-Cycle Analyst ↗",                         "10 Mar 2026", "james.hartley@gs.com"),
-    ]
-    _opacities = [0.9, 0.7, 0.5, 0.35, 0.2]
+    # Pre-blurred card PNG — entire card is baked into the image so blur works
+    # in every email client (no CSS filter dependency)
+    _card_img_url = f"{APP_BASE_URL}/static/blurred-card.png"
+    _opacities    = [0.9, 0.7, 0.5, 0.35, 0.2]
 
     def _card_html(idx):
-        name, role, job, opened, mail = _placeholder_cards[idx]
-        av  = _avatars[idx]
         opc = _opacities[idx]
         return f"""
       <!-- Card {idx+1} -->
-      <div style="padding:8px 0;">
-        <div style="filter:blur(5px);user-select:none;pointer-events:none;opacity:{opc};">
-          <div style="background:#FFFFFF;border:1px solid #E2DED8;border-radius:10px;overflow:hidden;">
-            <div style="padding:8px 10px;display:flex;align-items:flex-start;gap:14px;">
-              <img src="{av}" alt="" width="22" height="22" style="width:22px;height:22px;border-radius:50%;object-fit:cover;display:block;flex-shrink:0;">
-              <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:3px;">
-                  <div style="min-width:0;overflow:hidden;">
-                    <span style="font-size:0.63rem;font-weight:700;color:#1A1714;">{name}</span>
-                    <span style="font-size:0.63rem;color:#ADA79F;"> – </span>
-                    <span style="font-size:0.6rem;font-weight:500;color:#7A7068;">{role}</span>
-                  </div>
-                  <div style="background:#1A1714;color:#FFFFFF;border-radius:5px;padding:3px 7px;font-size:0.55rem;font-weight:600;white-space:nowrap;flex-shrink:0;">Draft →</div>
-                </div>
-                <div style="display:inline-flex;align-items:center;gap:3px;background:#F3F1EE;border:1px solid #E2DED8;border-radius:4px;padding:1px 6px;font-size:0.52rem;font-weight:500;color:#5A5450;max-width:100%;overflow:hidden;margin-bottom:2px;">
-                  <div style="width:3px;height:3px;border-radius:50%;background:#1F4530;flex-shrink:0;"></div>
-                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{job}</span>
-                </div>
-                <div style="font-size:0.49rem;color:#ADA79F;">Opened: {opened} &nbsp;·&nbsp; {mail}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div style="padding:4px 0;opacity:{opc};">
+        <img src="{_card_img_url}" width="500" alt="" style="display:block;width:100%;max-width:500px;border-radius:10px;">
       </div>"""
 
     _cards_html = "".join(_card_html(i) for i in range(n_cards))
