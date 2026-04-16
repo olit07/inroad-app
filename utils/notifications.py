@@ -261,7 +261,6 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
         <div style="filter:blur(8px);user-select:none;pointer-events:none;opacity:{opc};">
           <div style="background:#FFFFFF;border:1px solid #E2DED8;border-radius:10px;overflow:hidden;">
             <div style="padding:8px 10px;display:flex;align-items:flex-start;gap:14px;">
-              <img src="{av}" alt="" width="22" height="22" style="width:22px;height:22px;border-radius:50%;object-fit:cover;display:block;flex-shrink:0;">
               <div style="flex:1;min-width:0;">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:3px;">
                   <div style="min-width:0;overflow:hidden;">
