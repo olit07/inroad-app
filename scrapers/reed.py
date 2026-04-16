@@ -42,9 +42,8 @@ SEARCH_QUERIES = [
     # Consulting
     ("management consultant graduate",     "London",     "Consulting"),
     ("strategy analyst graduate",          "London",     "Strategy"),
-    # Marketing / Growth
+    # Marketing
     ("graduate marketing executive",       "London",     "Marketing"),
-    ("growth analyst",                     "London",     "Growth"),
     # Law
     ("trainee solicitor",                  "London",     "Law"),
     ("paralegal graduate",                 "London",     "Law"),
@@ -147,7 +146,7 @@ class ReedUKScraper(BaseScraper):
         if salary and salary < 25000:
             seniority = "intern"
 
-        return make_job(
+        job = make_job(
             company_name    = company_name,
             title           = title,
             source_id       = self.source_id,
@@ -159,3 +158,6 @@ class ReedUKScraper(BaseScraper):
             region          = region,
             posted_date     = posted_date,
         )
+        job["opening_date"] = posted_date
+        job["location"]     = location
+        return job

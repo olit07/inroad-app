@@ -296,6 +296,46 @@
     border-color: var(--green-mid);
   }
 
+  /* Collapsed sent card */
+  .match-card.sent.collapsed {
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+  }
+
+  .match-card.sent.collapsed:hover {
+    box-shadow: 0 2px 10px rgba(31,69,48,0.1);
+  }
+
+  .match-card.sent.collapsed .card-bottom-row,
+  .match-card.sent.collapsed .card-action { display: none; }
+
+  .match-card.sent.collapsed .card-main {
+    padding: 10px 14px;
+    align-items: center;
+  }
+
+  .match-card.sent.collapsed .avatar {
+    width: 32px; height: 32px;
+    flex-shrink: 0;
+  }
+
+  .match-card.sent.collapsed .card-name {
+    font-size: 0.83rem;
+  }
+
+  .match-card.sent.collapsed .card-name-title {
+    font-size: 0.78rem;
+  }
+
+  .match-card.sent.collapsed .alumni-badge { display: none; }
+
+  .match-card.sent.collapsed .card-name-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
   /* Card layout */
   .card-main {
     padding: 14px 18px;
@@ -656,7 +696,7 @@
   }
 
   .modal-to-input.editable {
-    background: var(--surface);
+    background: var(--bg);
     border-color: var(--border);
     pointer-events: auto;
     cursor: text;
@@ -793,20 +833,20 @@
   .btn-regenerate:hover { border-color: var(--border-md); color: var(--text); }
 
   .btn-copy {
-    background: var(--green);
-    color: white;
-    border: none;
+    background: var(--white);
+    color: var(--text-mid);
+    border: 1.5px solid var(--border);
     border-radius: 9px;
     padding: 8px 16px;
     font-size: 0.8rem;
-    font-weight: 700;
+    font-weight: 600;
     font-family: 'Lato', sans-serif;
     cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+    transition: border-color 0.15s, color 0.15s;
     white-space: nowrap;
   }
 
-  .btn-copy:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .btn-copy:hover { border-color: var(--green); color: var(--green); }
 
   .btn-open-mail {
     background: var(--white);
@@ -824,21 +864,21 @@
   .btn-open-mail:hover { border-color: var(--green); color: var(--green); }
 
   .btn-mark-sent {
-    background: var(--white);
-    color: var(--text-mid);
-    border: 1.5px solid var(--border);
+    background: var(--green);
+    color: white;
+    border: none;
     border-radius: 9px;
     padding: 8px 16px;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 700;
     font-family: 'Lato', sans-serif;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition: background 0.15s, transform 0.1s;
     white-space: nowrap;
   }
 
-  .btn-mark-sent:hover { border-color: var(--green); color: var(--green); }
-  .btn-mark-sent.done { background: var(--green-lite); border-color: var(--green-mid); color: var(--green); }
+  .btn-mark-sent:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .btn-mark-sent.done { background: var(--green-lite); border: 1.5px solid var(--green-mid); color: var(--green); }
 
   .btn-send-outlook {
     background: var(--green);
@@ -1336,6 +1376,15 @@
   }
 
   // ── OUTLOOK INTEGRATION ──
+  // Strip trailing blank lines and literal "None" from generated email bodies
+  function _cleanBody(body) {
+    if (!body) return '';
+    return body
+      .replace(/\nNone\s*$/g, '')   // trailing "None" line
+      .replace(/(\n\s*){3,}$/g, '\n') // more than two trailing newlines
+      .trimEnd();
+  }
+
   let outlookConnected = false;
 
   function _updateOutlookUI(connected) {
@@ -1381,6 +1430,10 @@
     if (!activeCard) return;
     const card    = matches[activeCard];
     if (!card) return;
+    if (!card.id) {
+      alert('This is a sample card. Your personalised matches will appear once cards have been generated for today.');
+      return;
+    }
 
     const subject = document.getElementById('modal-subject-input').value;
     const body    = document.getElementById('email-body').value;
@@ -1558,11 +1611,12 @@
 
       // Register in matches object for modal
       matches[cardId] = {
+        id:          m.id,
         name:        m.person_name || '',
         to:          m.expected_email || '',
         applyUrl:    jobUrl,
         subject:     m.email_subject || `Student reaching out about the ${m.job_title || 'role'} at ${jobCompany}`,
-        body:        m.email_body || `Hi ${(m.person_name||'').split(' ')[0]},\n\nI came across the ${m.job_title || 'role'} at ${jobCompany} and would love to hear more.\n\nWould you be open to a 20 minute chat?\n\nThanks`,
+        body:        _cleanBody(m.email_body) || `Hi ${(m.person_name||'').split(' ')[0]},\n\nI came across the ${m.job_title || 'role'} at ${jobCompany} and would love to hear more.\n\nWould you be open to a 20 minute chat?\n\nThanks`,
         // Extra context for regenerate
         personTitle: m.person_title || '',
         company:     jobCompany,
@@ -1570,8 +1624,16 @@
         isAlumni:    !!m.is_alumni,
       };
 
+      const isSent = m.status === 'sent';
+      const actionHtml = isSent
+        ? `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+             <div class="sent-label"><div class="sent-check">✓</div>Sent</div>
+             <button class="card-review-link" onclick="reviewDraft('${cardId}')">Review draft</button>
+           </div>`
+        : `<button class="draft-btn" onclick="openModal('${cardId}')">Draft email →</button>`;
+
       container.insertAdjacentHTML('beforeend', `
-        <div class="match-card" id="${cardId}" style="animation-delay:${idx*0.06}s">
+        <div class="match-card${isSent ? ' sent collapsed' : ''}" id="${cardId}" style="animation-delay:${idx*0.06}s">
           <div class="card-main">
             <div class="avatar"><img src="${avatarUrl}" alt="" loading="lazy"></div>
             <div class="card-body">
@@ -1580,7 +1642,7 @@
                   <span class="card-name">${m.person_name || ''}</span>${m.person_title ? `<span class="card-name-sep"> – </span><span class="card-name-title">${m.person_title} · ${jobCompany}</span>` : ''}
                   ${isAlumni ? '<span class="alumni-badge">Alumni</span>' : ''}
                 </div>
-                <div class="card-action"><button class="draft-btn" onclick="openModal('${cardId}')">Draft email →</button></div>
+                <div class="card-action">${actionHtml}</div>
               </div>
               <div class="card-bottom-row">
                 <div class="card-bottom-left">
@@ -1596,7 +1658,14 @@
             </div>
           </div>
         </div>`);
+
+      if (isSent) {
+        const cardEl = document.getElementById(cardId);
+        if (cardEl) cardEl.addEventListener('click', _toggleSentCard);
+        sentCount++;
+      }
     });
+    if (sentCount > 0) updateQuota(sentCount);
   }
 
   // ── MATCH DATA ──
@@ -1697,7 +1766,7 @@ Alex`
     toInput.classList.toggle('editable', outlookConnected);
     document.getElementById('modal-subject-input').value = data.subject;
     const emailBody = document.getElementById('email-body');
-    emailBody.value = data.body;
+    emailBody.value = _cleanBody(data.body);
 
     const roleLink = document.getElementById('modal-role-link');
     if (data.applyUrl) {
@@ -1794,8 +1863,9 @@ Alex`
           card.subject = subject;
         }
         if (body) {
-          document.getElementById('email-body').value = body;
-          card.body = body;
+          const cleanedBody = _cleanBody(body);
+          document.getElementById('email-body').value = cleanedBody;
+          card.body = cleanedBody;
           updateWordCount();
         }
       }
@@ -1872,7 +1942,7 @@ Alex`
           </svg>
         </div>`;
 
-      // Mark card as sent in the UI
+      // Mark card as sent in the UI and collapse immediately
       const card = document.getElementById(cardId);
       if (card) {
         card.classList.add('sent');
@@ -1885,12 +1955,22 @@ Alex`
             </div>
             <button class="card-review-link" onclick="reviewDraft('${cardId}')">Review draft</button>
           </div>`;
+
+        card.classList.add('collapsed');
+        card.addEventListener('click', _toggleSentCard);
       }
 
       // Update quota bar
       sentCount++;
       updateQuota(sentCount);
     }, 1600);
+  }
+
+  function _toggleSentCard(e) {
+    // Don't collapse/expand if user clicked "Review draft"
+    if (e.target.closest('.card-review-link')) return;
+    const card = e.currentTarget;
+    card.classList.toggle('collapsed');
   }
 
   function markAsSent() {

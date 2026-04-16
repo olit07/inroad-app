@@ -33,11 +33,13 @@ def _is_entry_level(title: str) -> bool:
 
 # Curated list of (company_name, board_token) — all known to hire UK/US grads
 DEFAULT_TARGETS = [
-    # Finance / IB / Quant
+    # ── Finance / IB / Quant ──────────────────────────────────────────────────
     ("Jane Street",          "janestreet"),
     ("Point72",              "point72"),
     ("Virtu Financial",      "virtu"),
-    # Technology — US/Global
+    # IB Boutiques — add verified tokens here once confirmed
+
+    # ── Technology — US/Global ────────────────────────────────────────────────
     ("Stripe",               "stripe"),
     ("Anthropic",            "anthropic"),
     ("Cloudflare",           "cloudflare"),
@@ -55,15 +57,18 @@ DEFAULT_TARGETS = [
     ("Attentive",            "attentive"),
     ("Ripple",               "ripple"),
     ("Vercel",               "vercel"),
-    # Technology — AI
+    ("Mercury",              "mercury"),
+    ("Amplitude",            "amplitude"),
+    # ── Technology — AI ───────────────────────────────────────────────────────
     ("DeepMind",             "deepmind"),
-    # Technology — UK
+    ("Stability AI",         "stabilityai"),
+    # ── Technology — UK ───────────────────────────────────────────────────────
     ("Monzo",                "monzo"),
     ("GoCardless",           "gocardless"),
     ("Skyscanner",           "skyscanner"),
-    # VC
+    # ── VC ────────────────────────────────────────────────────────────────────
     ("Andreessen Horowitz",  "a16z"),
-    # Media
+    # ── Media ─────────────────────────────────────────────────────────────────
     ("Vox Media",            "voxmedia"),
     ("BuzzFeed",             "buzzfeed"),
 ]
@@ -142,7 +147,7 @@ class GreenhouseScraper(BaseScraper):
         if dept_obj and isinstance(dept_obj, list):
             dept = dept_obj[0].get("name", "") if isinstance(dept_obj[0], dict) else str(dept_obj[0])
 
-        return make_job(
+        job = make_job(
             company_name    = company_name,
             title           = title,
             source_id       = self.source_id,
@@ -154,6 +159,9 @@ class GreenhouseScraper(BaseScraper):
             region          = region,
             posted_date     = posted_date,
         )
+        job["opening_date"] = posted_date
+        job["location"]     = location
+        return job
 
 
 def _infer_region(location: str) -> str:

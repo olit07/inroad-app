@@ -139,31 +139,43 @@ class EmailInferrer:
             "domain":         domain,
         }
 
+    # ATS / job-portal domains that are never real employee email domains
+    _ATS_SUFFIXES = (
+        "workday.com", "myworkday.com", "myworkdaysite.com",
+        "myworkdayjobs.com",
+        "greenhouse.io", "lever.co", "ashbyhq.com",
+        "tal.net", "taleo.net", "icims.com", "smartrecruiters.com",
+        "jobvite.com", "successfactors.com", "bamboohr.com",
+        "workable.com", "recruitee.com",
+        "linkedin.com", "indeed.com", "glassdoor.com",
+    )
+
+    def _is_ats_domain(self, domain: str) -> bool:
+        d = domain.lower().strip()
+        return any(d == s or d.endswith("." + s) for s in self._ATS_SUFFIXES)
+
     def _discover_domain(self, company_name: str, job_url: str = "") -> str:
         """Try to find the company's email domain."""
-        # 1. Extract from job URL
+        # 1. Extract from job URL (skip ATS/job-portal domains)
         if job_url:
             d = extract_domain_from_url(job_url)
-            if d and "greenhouse.io" not in d and "lever.co" not in d:
+            if d and not self._is_ats_domain(d):
                 return d
 
-        # 2. Hunter.io domain search
-        if self.hunter_key and company_name:
+        # 2. Groq LLM lookup (via company_email_formats cache then Groq)
+        if company_name:
             try:
-                url  = HUNTER_DOMAIN_URL.format(
-                    domain=urllib.parse.quote(company_name), key=self.hunter_key
-                )
-                data = fetch_json(url)
-                domain = data.get("data", {}).get("domain", "")
-                if domain:
-                    return domain
+                from pipeline.lead_builder import _lookup_email_format_via_llm
+                from db.database import get_email_format
+                # Check DB cache first, then ask Groq — never use a naive guess here
+                db_result = get_email_format(company_name)
+                groq_result = db_result or _lookup_email_format_via_llm(company_name)
+                if groq_result:
+                    _, domain = groq_result
+                    if domain and not self._is_ats_domain(domain):
+                        return domain
             except Exception as e:
-                logger.debug(f"Hunter domain search failed: {e}")
-
-        # 3. Naive guess: company_name → domain
-        slug = re.sub(r"[^a-z0-9]", "", company_name.lower().strip())
-        if slug:
-            return f"{slug}.com"
+                logger.debug(f"Groq email format lookup failed for {company_name}: {e}")
 
         return ""
 

@@ -98,7 +98,7 @@ SENIORITY_KEYWORDS = {
 
 INDUSTRIES = [
     "Finance", "Investment Banking", "Technology", "Software Engineering",
-    "Product Management", "Consulting", "Strategy", "Marketing", "Growth",
+    "Product Management", "Consulting", "Strategy", "Marketing",
     "Law", "Healthcare", "Media & Journalism", "Design & UX",
     "Data & Analytics", "Real Estate", "Non-profit & Policy",
     "Venture Capital", "Other",
@@ -475,7 +475,16 @@ TITLE_DEPT_MAP = [
       "ux intern", "user experience"], "design"),
     # Law
     (["training contract", "trainee solicitor", "trainee lawyer",
-      "paralegal", "solicitor intern", "legal intern", "law intern"], "law_corporate"),
+      "paralegal", "solicitor intern", "legal intern", "law intern",
+      "vacation scheme", "legal vacation"], "law_corporate"),
+    # Consulting / strategy
+    (["consultant", "consulting intern", "strategy intern", "management consulting",
+      "strategy analyst", "strategy associate", "business analyst",
+      "graduate scheme consulting", "advisory analyst"], "consulting"),
+    # Marketing
+    (["marketing intern", "marketing analyst", "brand analyst", "brand intern",
+      "marketing graduate", "digital marketing", "growth intern",
+      "marketing associate", "comms intern", "pr intern"], "marketing"),
     # Generic engineer catch-all
     (["engineer", "engineering intern", "engineering placement"], "software_engineering"),
     # Generic "investments" / "finance" catch-all
@@ -553,16 +562,22 @@ UNI_FULL_NAMES = {
 
 DEPT_MAP = {
     "investment_banking": ["investment banking", "M&A", "analyst", "associate", "vice president"],
-    "sales_trading":      ["sales trading", "trading", "trader", "analyst", "associate"],
+    "sales_trading":      ["sales trading", "trader", "markets", "fixed income", "FX", "derivatives",
+                           "analyst", "associate", "vice president"],
     "asset_management":   ["asset management", "portfolio manager", "analyst", "associate"],
     "equity_research":    ["equity research", "research analyst", "analyst", "associate"],
     "risk":               ["risk", "risk analyst", "risk manager", "analyst", "associate"],
     "quant":              ["quantitative analyst", "quant", "quantitative researcher", "structurer"],
     "software_engineering": ["software engineer", "engineer", "developer", "swe"],
     "product":            ["product manager", "product analyst", "PM"],
-    "data_ml":            ["data scientist", "machine learning engineer", "data analyst", "ML engineer"],
-    "infrastructure":     ["infrastructure engineer", "devops", "platform engineer", "SRE"],
-    "design":             ["product designer", "UX designer", "designer"],
+    "data_ml":            ["data scientist", "machine learning engineer", "data analyst", "ML engineer",
+                           "analytics engineer", "AI researcher"],
+    "infrastructure":     ["infrastructure engineer", "devops", "platform engineer", "SRE",
+                           "cloud engineer", "site reliability"],
+    "design":             ["product designer", "UX designer", "designer", "UI designer"],
+    "consulting":         ["consultant", "strategy", "management consulting", "business analyst",
+                           "advisory", "associate consultant"],
+    "marketing":          ["marketing", "brand", "growth", "communications", "PR", "digital marketing"],
     "law_corporate":      ["trainee", "associate", "partner", "solicitor", "M&A"],
     "law_finance":        ["trainee", "associate", "partner", "solicitor", "finance"],
     "law_disputes":       ["trainee", "associate", "partner", "solicitor", "litigation"],
@@ -578,6 +593,12 @@ INDUSTRY_DEPT_MAP = {
     "Software Engineering": ["software_engineering", "product", "data_ml"],
     "Data & Analytics":   ["data_ml", "software_engineering"],
     "Law":                ["law_corporate", "law_finance", "law_disputes", "law_tech"],
+    "Consulting":         ["consulting", "investment_banking", "data_ml"],
+    "Strategy":           ["consulting", "investment_banking"],
+    "Marketing":          ["marketing", "product", "design"],
+    "Design & UX":        ["design", "product"],
+    "Venture Capital":    ["asset_management", "investment_banking"],
+    "Product Management": ["product", "software_engineering", "data_ml"],
 }
 
 # Fallback city per region if job has no location field

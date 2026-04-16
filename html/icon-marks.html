@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>inroad — Icon Mark Concepts</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #F5F5F2;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    padding: 60px 40px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-family: Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1A1714;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .subtitle { font-size: 0.88rem; color: #7A7068; margin-bottom: 52px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+    max-width: 1100px;
+  }
+  .card {
+    background: #fff;
+    border: 1.5px solid #E2DED8;
+    border-radius: 16px;
+    padding: 36px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .card:hover { border-color: #1F4530; box-shadow: 0 0 0 3px rgba(31,69,48,0.10); }
+  .icon-wrap {
+    width: 88px; height: 88px;
+    border-radius: 22px;
+    background: #1F4530;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .name { font-size: 0.88rem; font-weight: 700; color: #1A1714; text-align: center; }
+  .desc { font-size: 0.75rem; color: #7A7068; text-align: center; line-height: 1.55; }
+  .meta { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+</style>
+</head>
+<body>
+
+<h1>inroad — Icon Mark Concepts</h1>
+<p class="subtitle">Road-themed marks. Hover to highlight.</p>
+
+<div class="grid">
+
+  <!-- 1. Perspective road (vanishing point) -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Road edges converging -->
+        <path d="M14 76 L44 20 L74 76" stroke="white" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <!-- Centre dashes -->
+        <line x1="44" y1="68" x2="44" y2="56" stroke="white" stroke-width="4.5" stroke-linecap="round" opacity="0.55"/>
+        <line x1="44" y1="48" x2="44" y2="40" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.35"/>
+        <line x1="44" y1="34" x2="44" y2="28" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.2"/>
+        <!-- Vanishing point dot -->
+        <circle cx="44" cy="20" r="5" fill="white"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Perspective</div>
+      <div class="desc">Road converging to a single point. The destination in the distance.</div>
+    </div>
+  </div>
+
+  <!-- 2. On-ramp / merge lane -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Main highway straight line -->
+        <line x1="14" y1="56" x2="74" y2="56" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <!-- On-ramp curving in from bottom-left -->
+        <path d="M14 80 Q14 56 44 56" stroke="white" stroke-width="7" stroke-linecap="round" fill="none"/>
+        <!-- Arrow on highway -->
+        <path d="M60 44 L74 56 L60 68" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">On-Ramp</div>
+      <div class="desc">Merging onto the main road. The moment you get access.</div>
+    </div>
+  </div>
+
+  <!-- 3. Road with painted direction arrow -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Road edges -->
+        <line x1="22" y1="16" x2="22" y2="72" stroke="white" stroke-width="7.5" stroke-linecap="round"/>
+        <line x1="66" y1="16" x2="66" y2="72" stroke="white" stroke-width="7.5" stroke-linecap="round"/>
+        <!-- Painted centre arrow pointing up -->
+        <line x1="44" y1="68" x2="44" y2="42" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+        <path d="M34 50 L44 34 L54 50" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.9"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Road Arrow</div>
+      <div class="desc">Road markings with a direction arrow. Forward, clearly.</div>
+    </div>
+  </div>
+
+  <!-- 4. Tunnel entrance -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Tunnel arch -->
+        <path d="M16 72 L16 44 A28 28 0 0 1 72 44 L72 72" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <!-- Road inside continuing through -->
+        <line x1="32" y1="72" x2="32" y2="50" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.4"/>
+        <line x1="56" y1="72" x2="56" y2="50" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.4"/>
+        <!-- Light at end of tunnel -->
+        <circle cx="44" cy="46" r="7" fill="white" opacity="0.9"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Tunnel</div>
+      <div class="desc">Light at the end. The moment you break through into the open.</div>
+    </div>
+  </div>
+
+  <!-- 5. Road fork — one path chosen -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Stem -->
+        <line x1="44" y1="76" x2="44" y2="50" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <!-- Right path (chosen, bold) -->
+        <path d="M44 50 Q44 28 66 20" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <!-- Left path (not taken, faint) -->
+        <path d="M44 50 Q44 34 22 26" stroke="white" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.3"/>
+        <!-- Arrow tip on chosen path -->
+        <path d="M56 18 L67 20 L64 30" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Fork</div>
+      <div class="desc">Two paths, one chosen. The deliberate decision that changes everything.</div>
+    </div>
+  </div>
+
+  <!-- 6. Winding road straightening out -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 72 Q20 54 44 50 Q68 46 68 18" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M58 10 L68 18 L60 28" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <!-- Centre dashes along curve -->
+        <circle cx="29" cy="64" r="3" fill="white" opacity="0.45"/>
+        <circle cx="40" cy="53" r="3" fill="white" opacity="0.45"/>
+        <circle cx="56" cy="40" r="3" fill="white" opacity="0.45"/>
+        <circle cx="65" cy="28" r="3" fill="white" opacity="0.45"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Winding</div>
+      <div class="desc">A curved road straightening toward the target. Every route eventually finds its line.</div>
+    </div>
+  </div>
+
+  <!-- 7. Road sign (chevron on post) -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Post -->
+        <line x1="44" y1="54" x2="44" y2="76" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <!-- Sign board -->
+        <rect x="16" y="16" width="56" height="38" rx="7" stroke="white" stroke-width="7" fill="rgba(255,255,255,0.12)"/>
+        <!-- Arrow on sign -->
+        <path d="M28 35 L48 35 M40 25 L52 35 L40 45" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Road Sign</div>
+      <div class="desc">A signpost pointing the way. Clear direction, no ambiguity.</div>
+    </div>
+  </div>
+
+  <!-- 8. Two lanes merging (funnel) -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Left lane merging in -->
+        <path d="M16 20 Q16 44 44 56" stroke="white" stroke-width="7.5" stroke-linecap="round" fill="none"/>
+        <!-- Right lane merging in -->
+        <path d="M72 20 Q72 44 44 56" stroke="white" stroke-width="7.5" stroke-linecap="round" fill="none"/>
+        <!-- Single road out -->
+        <line x1="44" y1="56" x2="44" y2="76" stroke="white" stroke-width="8.5" stroke-linecap="round"/>
+        <!-- Arrowhead at bottom -->
+        <path d="M34 68 L44 78 L54 68" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Merge</div>
+      <div class="desc">Two lanes become one. All roads lead to a single entry point.</div>
+    </div>
+  </div>
+
+  <!-- 9. Roundabout entry -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Roundabout circle -->
+        <circle cx="44" cy="44" r="20" stroke="white" stroke-width="7" fill="none"/>
+        <!-- Entry road from bottom -->
+        <line x1="44" y1="76" x2="44" y2="64" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <!-- Exit road going right -->
+        <line x1="64" y1="44" x2="76" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <!-- Exit arrowhead -->
+        <path d="M70 36 L78 44 L70 52" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <!-- Centre island -->
+        <circle cx="44" cy="44" r="6" fill="white" opacity="0.35"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Roundabout</div>
+      <div class="desc">Enter the network, choose your exit. Navigating the system deliberately.</div>
+    </div>
+  </div>
+
+  <!-- 10. Road with destination pin -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Road -->
+        <line x1="14" y1="68" x2="74" y2="68" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <!-- Centre dashes -->
+        <line x1="22" y1="68" x2="30" y2="68" stroke="#1F4530" stroke-width="4" stroke-linecap="round"/>
+        <line x1="38" y1="68" x2="50" y2="68" stroke="#1F4530" stroke-width="4" stroke-linecap="round"/>
+        <!-- Destination pin above road -->
+        <path d="M56 52 Q56 38 66 34 A14 14 0 0 1 76 48 Q76 58 66 66 Q60 60 56 52Z" stroke="white" stroke-width="6.5" stroke-linejoin="round" fill="rgba(255,255,255,0.15)"/>
+        <circle cx="66" cy="46" r="4" fill="white"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Destination</div>
+      <div class="desc">Road leading to a pinned target. You know where you're going.</div>
+    </div>
+  </div>
+
+  <!-- 11. Road cutting through (horizontal break) -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Left wall / terrain -->
+        <rect x="10" y="24" width="22" height="40" rx="4" fill="rgba(255,255,255,0.22)" stroke="white" stroke-width="6"/>
+        <!-- Right wall / terrain -->
+        <rect x="56" y="24" width="22" height="40" rx="4" fill="rgba(255,255,255,0.22)" stroke="white" stroke-width="6"/>
+        <!-- Road cutting through gap -->
+        <line x1="10" y1="54" x2="78" y2="54" stroke="white" stroke-width="6" stroke-linecap="round"/>
+        <line x1="10" y1="44" x2="78" y2="44" stroke="white" stroke-width="6" stroke-linecap="round"/>
+        <!-- Centre dash -->
+        <line x1="35" y1="49" x2="53" y2="49" stroke="#1F4530" stroke-width="4" stroke-linecap="round"/>
+        <!-- Arrow -->
+        <path d="M64 40 L76 49 L64 58" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Cut Through</div>
+      <div class="desc">Road carved between two obstacles. Making an inroad through resistance.</div>
+    </div>
+  </div>
+
+  <!-- 12. Overhead motorway / flyover lines -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Horizontal road -->
+        <line x1="12" y1="54" x2="76" y2="54" stroke="white" stroke-width="7.5" stroke-linecap="round"/>
+        <!-- Overhead arc road crossing over -->
+        <path d="M12 34 Q44 10 76 34" stroke="white" stroke-width="7.5" stroke-linecap="round" fill="none"/>
+        <!-- Arrow on arc (going right) -->
+        <path d="M64 28 L76 34 L68 44" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <!-- Dot where you enter the overpass -->
+        <circle cx="12" cy="34" r="5.5" fill="white"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Overpass</div>
+      <div class="desc">Taking the elevated route over the crowd. Getting ahead of the traffic.</div>
+    </div>
+  </div>
+
+  <!-- 13. Milestone marker on road -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Road going into distance -->
+        <path d="M14 76 L44 36" stroke="white" stroke-width="7.5" stroke-linecap="round"/>
+        <path d="M74 76 L44 36" stroke="white" stroke-width="7.5" stroke-linecap="round"/>
+        <!-- Centre dashes -->
+        <line x1="44" y1="72" x2="44" y2="62" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+        <line x1="44" y1="56" x2="44" y2="50" stroke="white" stroke-width="3.5" stroke-linecap="round" opacity="0.3"/>
+        <!-- Milestone stone on left side -->
+        <rect x="18" y="42" width="16" height="20" rx="4" stroke="white" stroke-width="5.5" fill="rgba(255,255,255,0.15)"/>
+        <!-- Roman numeral I on stone -->
+        <line x1="26" y1="47" x2="26" y2="57" stroke="white" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Milestone</div>
+      <div class="desc">A marker beside the road. You know exactly how far you've come.</div>
+    </div>
+  </div>
+
+  <!-- 14. Road dashes only (centre line) -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Left edge -->
+        <line x1="20" y1="18" x2="20" y2="70" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <!-- Right edge -->
+        <line x1="68" y1="18" x2="68" y2="70" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <!-- Centre dashes — growing, suggesting momentum -->
+        <line x1="44" y1="62" x2="44" y2="52" stroke="white" stroke-width="5.5" stroke-linecap="round"/>
+        <line x1="44" y1="46" x2="44" y2="40" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.65"/>
+        <line x1="44" y1="34" x2="44" y2="30" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
+        <line x1="44" y1="26" x2="44" y2="23" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.2"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Centre Line</div>
+      <div class="desc">Road edges and fading dashes. Moving forward, picking up speed.</div>
+    </div>
+  </div>
+
+  <!-- 15. Road bending into a building (entry) -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Building outline -->
+        <rect x="46" y="16" width="28" height="44" rx="5" stroke="white" stroke-width="7" fill="rgba(255,255,255,0.12)"/>
+        <!-- Road leading to building door -->
+        <line x1="12" y1="72" x2="60" y2="72" stroke="white" stroke-width="7.5" stroke-linecap="round"/>
+        <!-- Ramp/driveway curving up to entrance -->
+        <path d="M50 72 L50 60" stroke="white" stroke-width="6.5" stroke-linecap="round"/>
+        <!-- Door opening in building -->
+        <rect x="52" y="44" width="14" height="16" rx="3" fill="white" opacity="0.85"/>
+        <!-- Road arrow -->
+        <path d="M28 62 L12 72 L28 82" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">Drive In</div>
+      <div class="desc">Road leads directly to an open door. The company, accessible.</div>
+    </div>
+  </div>
+
+  <!-- 16. Road narrowing — the inroad -->
+  <div class="card">
+    <div class="icon-wrap">
+      <svg width="52" height="52" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Wide road at bottom narrowing to gap at top -->
+        <path d="M12 74 L36 24" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <path d="M76 74 L52 24" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <!-- Narrow gap / entry point at top -->
+        <line x1="36" y1="24" x2="52" y2="24" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <!-- Arrow pointing through the gap -->
+        <path d="M38 14 L44 22 L50 14" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <!-- Centre dashes getting smaller as road narrows -->
+        <line x1="44" y1="66" x2="44" y2="58" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+        <line x1="44" y1="52" x2="44" y2="46" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.35"/>
+        <line x1="44" y1="40" x2="44" y2="36" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.2"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="name">The Inroad</div>
+      <div class="desc">A wide road funnelling to a single point of entry. The inroad itself.</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

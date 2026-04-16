@@ -71,6 +71,7 @@
   }
   .size-card:hover{border-color:var(--border-md)}
   .size-card.selected{border-color:var(--green);background:var(--green-lite)}
+  .size-card.locked{opacity:0.45;cursor:not-allowed;pointer-events:none}
   .size-card-label{font-size:0.8rem;font-weight:700;color:var(--text)}
   .size-card-desc{font-size:0.69rem;color:var(--muted);margin-top:1px}
 
@@ -151,7 +152,7 @@
     <div class="section-label">Preferred company size</div>
     <div class="section-card">
       <div class="size-row">
-        <div class="size-card" data-value="startup" onclick="selectSize(this)">
+        <div class="size-card locked" data-value="startup">
           <div class="size-card-label">🚀 Startup</div>
           <div class="size-card-desc">Under 200 people</div>
         </div>
@@ -204,12 +205,12 @@ const INDUSTRIES = [
   'Finance','Technology','Law',
   // Coming soon in V0
   'Investment Banking','Software Engineering','Product Management','Data & Analytics',
-  'Consulting','Strategy','Marketing','Growth','Healthcare','Media & Journalism',
+  'Consulting','Strategy','Marketing','Healthcare','Media & Journalism',
   'Design & UX','Real Estate','Non-profit & Policy','Venture Capital'
 ];
 const LOCKED_INDUSTRIES = new Set([
   'Investment Banking','Software Engineering','Product Management','Data & Analytics',
-  'Consulting','Strategy','Marketing','Growth','Healthcare','Media & Journalism',
+  'Consulting','Strategy','Marketing','Healthcare','Media & Journalism',
   'Design & UX','Real Estate','Non-profit & Policy','Venture Capital','Other'
 ]);
 

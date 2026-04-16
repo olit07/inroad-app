@@ -26,7 +26,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config.settings import DB_PATH
-from db.database import db_conn
+from db.database import db_conn, execute as db_execute, fetchone as db_fetchone
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,9 @@ CREATE INDEX IF NOT EXISTS idx_token_email ON magic_tokens(email);
 
 
 def init_tokens_table(db_path=DB_PATH):
+    from db.database import USE_POSTGRES
+    if USE_POSTGRES:
+        return  # table already exists via Postgres migrations
     with db_conn(db_path) as conn:
         conn.executescript(TOKENS_SCHEMA)
 
@@ -63,11 +66,10 @@ def create_unsubscribe_token(email: str, db_path=DB_PATH) -> str:
     token   = secrets.token_urlsafe(32)
     now     = datetime.utcnow()
     expires = now + timedelta(days=30)
-    with db_conn(db_path) as conn:
-        conn.execute(
-            "INSERT INTO magic_tokens (token,email,purpose,created_at,expires_at) VALUES (?,?,?,?,?)",
-            (token, email.lower().strip(), "unsubscribe", now.isoformat(), expires.isoformat())
-        )
+    db_execute(
+        "INSERT INTO magic_tokens (token,email,purpose,created_at,expires_at) VALUES (?,?,?,?,?)",
+        (token, email.lower().strip(), "unsubscribe", now.isoformat(), expires.isoformat())
+    )
     return token
 
 
@@ -77,11 +79,10 @@ def create_magic_token(email: str, purpose: str = "login", db_path=DB_PATH) -> s
     token     = secrets.token_urlsafe(32)
     now       = datetime.utcnow()
     expires   = now + timedelta(hours=MAGIC_LINK_TTL_HOURS)
-    with db_conn(db_path) as conn:
-        conn.execute(
-            "INSERT INTO magic_tokens (token,email,purpose,created_at,expires_at) VALUES (?,?,?,?,?)",
-            (token, email.lower().strip(), purpose, now.isoformat(), expires.isoformat())
-        )
+    db_execute(
+        "INSERT INTO magic_tokens (token,email,purpose,created_at,expires_at) VALUES (?,?,?,?,?)",
+        (token, email.lower().strip(), purpose, now.isoformat(), expires.isoformat())
+    )
     return token
 
 
@@ -92,18 +93,17 @@ def verify_magic_token(token: str, db_path=DB_PATH) -> dict | None:
     """
     init_tokens_table(db_path)
     now = datetime.utcnow().isoformat()
-    with db_conn(db_path) as conn:
-        row = conn.execute(
-            "SELECT * FROM magic_tokens WHERE token=? AND used_at IS NULL AND expires_at > ?",
-            (token, now)
-        ).fetchone()
-        if not row:
-            return None
-        conn.execute(
-            "UPDATE magic_tokens SET used_at=? WHERE token=?",
-            (now, token)
-        )
-        return {"email": row["email"], "purpose": row["purpose"]}
+    row = db_fetchone(
+        "SELECT * FROM magic_tokens WHERE token=? AND used_at IS NULL AND expires_at > ?",
+        (token, now)
+    )
+    if not row:
+        return None
+    db_execute(
+        "UPDATE magic_tokens SET used_at=? WHERE token=?",
+        (now, token)
+    )
+    return {"email": row["email"], "purpose": row["purpose"]}
 
 
 def _send(to: str, subject: str, html_body: str, text_body: str = "") -> bool:
@@ -179,10 +179,81 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
 
     # Generate a magic token that lands straight on the dashboard
     token            = create_magic_token(email, purpose="login", db_path=db_path)
-    dash_link        = f"{APP_BASE_URL}/auth/verify?token={token}&next=/dashboard"
+    dash_link        = f"{APP_BASE_URL}/verify?token={token}&next=/dashboard"
     unsub_token      = create_unsubscribe_token(email, db_path=db_path)
     unsub_link       = f"{APP_BASE_URL}/unsubscribe?token={unsub_token}"
     settings_link    = f"{APP_BASE_URL}/settings"
+
+    # Pick 3 avatars from the same pool as the dashboard, rotating daily
+    _UB = 'https://images.unsplash.com/photo-'
+    _UQ = '?w=8&h=8&fit=crop&crop=faces&q=80'
+    _POOL = [
+        '1560250097-0b93528c311a',
+        '1573496359142-b8d87734a5a2',
+        '1507003211169-0a1dd7228f2d',
+        '1500648767791-00dcc994a43e',
+        '1566492031773-4f4e44671857',
+        '1580489944761-15a19d654956',
+        '1519085360753-af0119f7cbe7',
+        '1531427186611-ecfd6d936c79',
+        '1472099645785-5658abf4ff4e',
+        '1438761681033-6461ffad8d80',
+        '1552058544-f2b08422138a',
+        '1570295999919-56ceb5ecca61',
+        '1463453091185-61582044d556',
+        '1594744803329-e58b31de8bf5',
+        '1547425260-76bcadfb4f2c',
+        '1534528741775-53994a69daeb',
+        '1551836022-d5d88e9218df',
+        '1567532939604-b6b5b0db2604',
+        '1539571696357-5a69c17a67c6',
+        '1506794778202-cad84cf45f1d',
+    ]
+    _n    = len(_POOL)
+    _day  = datetime.utcnow().timetuple().tm_yday
+    # Generate up to 5 avatar URLs, each offset so they look distinct
+    _av_offsets = [0, 7, 13, 3, 17]
+    _avatars = [_UB + _POOL[(_day + off) % _n] + _UQ for off in _av_offsets]
+    _img = 'width:22px;height:22px;border-radius:50%;object-fit:cover;display:block;flex-shrink:0;filter:blur(4px);'
+
+    # Placeholder bars — used in place of real text so nothing is legible in any email client
+    def _bar(w, h=8, r=4, c='#D8D4CE'):
+        return f'<span style="display:inline-block;width:{w}px;height:{h}px;border-radius:{r}px;background:{c};vertical-align:middle;"></span>'
+    _name_bar  = _bar(90, 8)
+    _title_bar = _bar(130, 7, c='#E8E4DE')
+    _job_bar   = _bar(160, 7, c='#D8D4CE')
+    _meta_bar  = _bar(140, 6, c='#E8E4DE')
+    _draft_btn = '<span style="display:inline-block;background:#C8C4BE;color:#C8C4BE;border-radius:5px;padding:3px 7px;font-size:0.55rem;font-weight:600;white-space:nowrap;flex-shrink:0;">Draft →</span>'
+
+    # Opacity steps per card position — works for 3 or 5 cards
+    _opacities = {3: [0.9, 0.7, 0.5], 5: [1.0, 0.85, 0.7, 0.55, 0.4]}
+    _opac_list = _opacities.get(n_cards, _opacities[3] if n_cards < 5 else _opacities[5])
+
+    def _card_html(idx):
+        av  = _avatars[idx]
+        opc = _opac_list[idx] if idx < len(_opac_list) else 0.3
+        return f"""
+      <!-- Card {idx+1} -->
+      <div style="padding:8px 0;opacity:{opc};">
+        <div style="background:#FFFFFF;border:1px solid #E2DED8;border-radius:10px;overflow:hidden;">
+          <div style="padding:8px 10px;display:flex;align-items:flex-start;gap:14px;">
+            <img src="{av}" alt="" width="22" height="22" style="{_img}">
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px;">
+                <div style="min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">{_name_bar}&nbsp;{_title_bar}</div>
+                {_draft_btn}
+              </div>
+              <div style="display:inline-flex;align-items:center;gap:4px;background:#F3F1EE;border:1px solid #E2DED8;border-radius:4px;padding:2px 6px;margin-bottom:4px;">
+                <div style="width:3px;height:3px;border-radius:50%;background:#1F4530;flex-shrink:0;"></div>
+                {_job_bar}
+              </div>
+              <div>{_meta_bar}</div>
+            </div>
+          </div>
+        </div>
+      </div>"""
+
+    _cards_html = "".join(_card_html(i) for i in range(n_cards))
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -192,7 +263,7 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
 </head>
 <body style="margin:0;padding:0;background:#F5F5F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
 <div style="background:#F5F5F2;padding:40px 20px;">
-<div style="background:#FFFFFF;border-radius:16px;max-width:520px;margin:0 auto;overflow:hidden;border:1px solid #E2DED8;">
+<div style="background:#FFFFFF;border-radius:16px;max-width:580px;margin:0 auto;overflow:hidden;border:1px solid #E2DED8;">
 
   <!-- Header -->
   <div style="background:#1F4530;padding:32px 40px;">
@@ -212,55 +283,13 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
     </p>
 
     <!-- CTA button -->
-    <a href="{dash_link}" style="display:inline-block;background:#1F4530;color:#FFFFFF;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.88rem;margin-bottom:32px;">
+    <a href="{dash_link}" style="display:inline-block;background:#1F4530;color:#FFFFFF;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.88rem;margin-bottom:28px;">
       See today's matches →
     </a>
 
-    <!-- Blurred card previews -->
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
-
-      <!-- Card 1 -->
-      <div style="border:1px solid #E2DED8;border-radius:12px;padding:16px 18px;filter:blur(4px);user-select:none;pointer-events:none;opacity:0.85;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
-          <div>
-            <div style="width:110px;height:13px;background:#D4CFC9;border-radius:4px;margin-bottom:6px;"></div>
-            <div style="width:80px;height:11px;background:#E2DED8;border-radius:4px;margin-bottom:6px;"></div>
-            <div style="width:140px;height:10px;background:#ECEAE6;border-radius:4px;"></div>
-          </div>
-          <div style="width:40px;height:40px;border-radius:50%;background:#D4CFC9;flex-shrink:0;"></div>
-        </div>
-        <div style="width:100%;height:9px;background:#ECEAE6;border-radius:4px;margin-bottom:5px;"></div>
-        <div style="width:85%;height:9px;background:#ECEAE6;border-radius:4px;"></div>
-      </div>
-
-      <!-- Card 2 -->
-      <div style="border:1px solid #E2DED8;border-radius:12px;padding:16px 18px;filter:blur(4px);user-select:none;pointer-events:none;opacity:0.7;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
-          <div>
-            <div style="width:95px;height:13px;background:#D4CFC9;border-radius:4px;margin-bottom:6px;"></div>
-            <div style="width:120px;height:11px;background:#E2DED8;border-radius:4px;margin-bottom:6px;"></div>
-            <div style="width:100px;height:10px;background:#ECEAE6;border-radius:4px;"></div>
-          </div>
-          <div style="width:40px;height:40px;border-radius:50%;background:#D4CFC9;flex-shrink:0;"></div>
-        </div>
-        <div style="width:100%;height:9px;background:#ECEAE6;border-radius:4px;margin-bottom:5px;"></div>
-        <div style="width:70%;height:9px;background:#ECEAE6;border-radius:4px;"></div>
-      </div>
-
-      <!-- Card 3 -->
-      <div style="border:1px solid #E2DED8;border-radius:12px;padding:16px 18px;filter:blur(4px);user-select:none;pointer-events:none;opacity:0.55;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
-          <div>
-            <div style="width:130px;height:13px;background:#D4CFC9;border-radius:4px;margin-bottom:6px;"></div>
-            <div style="width:90px;height:11px;background:#E2DED8;border-radius:4px;margin-bottom:6px;"></div>
-            <div style="width:115px;height:10px;background:#ECEAE6;border-radius:4px;"></div>
-          </div>
-          <div style="width:40px;height:40px;border-radius:50%;background:#D4CFC9;flex-shrink:0;"></div>
-        </div>
-        <div style="width:100%;height:9px;background:#ECEAE6;border-radius:4px;margin-bottom:5px;"></div>
-        <div style="width:90%;height:9px;background:#ECEAE6;border-radius:4px;"></div>
-      </div>
-
+    <!-- Card previews (blurred placeholders) -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      {_cards_html}
     </div>
   </div>
 

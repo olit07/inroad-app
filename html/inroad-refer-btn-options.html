@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Refer Button Options · inroad</title>
+<title>Refer Button — Pill Options · inroad</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -25,151 +25,42 @@
     font-size: 15px;
     color: var(--text);
     -webkit-font-smoothing: antialiased;
-    padding: 64px 48px 120px;
+    padding: 56px 48px 120px;
   }
   h1 {
     font-family: 'Lora', Georgia, serif;
-    font-size: 2rem;
+    font-size: 1.9rem;
     font-weight: 700;
     letter-spacing: -0.02em;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .subtitle {
     font-size: 0.88rem;
     color: var(--muted);
-    margin-bottom: 56px;
+    margin-bottom: 52px;
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    max-width: 900px;
-  }
-  .option {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 28px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  .option.dark {
-    background: var(--green);
-    border-color: transparent;
-  }
-  .option-num {
+  .section-label {
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--subtle);
+    color: var(--muted);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    max-width: 700px;
+    margin-top: 48px;
   }
-  .option.dark .option-num { color: rgba(255,255,255,0.4); }
-  .btn-preview {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 48px;
-  }
+  .rows { display: flex; flex-direction: column; gap: 12px; max-width: 700px; }
 
-  /* ── Option 1: Primary green (same as Draft email btn) ── */
-  .opt1 {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--green); color: #fff;
-    font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
-    padding: 9px 18px; border-radius: 9px; border: none; cursor: pointer;
-    white-space: nowrap;
-  }
-
-  /* ── Option 2: Secondary outlined green ── */
-  .opt2 {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: transparent; color: var(--green);
-    font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
-    padding: 8px 17px; border-radius: 9px; border: 1.5px solid var(--green); cursor: pointer;
-    white-space: nowrap;
-  }
-
-  /* ── Option 3: Mint fill, black border, black text ── */
-  .opt3 {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--green-mint); color: var(--text);
-    font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
-    padding: 8px 17px; border-radius: 9px; border: 1.5px solid var(--text); cursor: pointer;
-    white-space: nowrap;
-  }
-
-  /* ── Option 4: Mint fill, green border, green text ── */
-  .opt4 {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--green-mint); color: var(--green);
-    font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
-    padding: 8px 17px; border-radius: 9px; border: 1.5px solid var(--green); cursor: pointer;
-    white-space: nowrap;
-  }
-
-  /* ── Option 5: Mint fill, no border ── */
-  .opt5 {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--green-mint); color: var(--green);
-    font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
-    padding: 9px 18px; border-radius: 9px; border: none; cursor: pointer;
-    white-space: nowrap;
-  }
-
-  /* ── Option 6: Pale green fill + green border ── */
-  .opt6 {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--green-lite); color: var(--green);
-    font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
-    padding: 8px 17px; border-radius: 9px; border: 1.5px solid var(--green-mid); cursor: pointer;
-    white-space: nowrap;
-  }
-
-  /* ── Option 7: Ghost / pill badge style ── */
-  .opt7 {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--green-lite); color: var(--green);
-    font-family: 'Lato', sans-serif; font-size: 12px; font-weight: 700;
-    padding: 5px 12px; border-radius: 100px; border: 1px solid var(--green-mid); cursor: pointer;
-    white-space: nowrap;
-  }
-
-  /* ── Option 8: On-dark: white outline ── */
-  .opt8 {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: transparent; color: #fff;
-    font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
-    padding: 8px 17px; border-radius: 9px; border: 1.5px solid rgba(255,255,255,0.6); cursor: pointer;
-    white-space: nowrap;
-  }
-
-  /* ── Option 9: On-dark: mint fill, dark text ── */
-  .opt9 {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--green-mint); color: var(--green-deep);
-    font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
-    padding: 9px 18px; border-radius: 9px; border: none; cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .label {
-    font-size: 11px;
-    color: var(--subtle);
-    line-height: 1.5;
-  }
-  .option.dark .label { color: rgba(255,255,255,0.4); }
-
-  /* nav context strip */
+  /* Nav mock */
   .nav-mock {
     background: var(--green);
     border-radius: 12px;
-    padding: 12px 20px;
+    padding: 10px 18px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
   }
   .nav-mock-logo {
     font-family: 'Lora', Georgia, serif;
@@ -181,137 +72,243 @@
   .nav-mock-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
   }
-  .nav-mock-settings {
+  .nav-settings {
     font-size: 12px;
-    color: rgba(255,255,255,0.6);
     font-weight: 600;
+    color: rgba(255,255,255,0.55);
   }
-
-  .section-label {
+  .opt-label {
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-    max-width: 900px;
-    margin-top: 56px;
+    color: var(--subtle);
+    margin-bottom: 5px;
   }
+
+  /* ── PILL VARIANTS ── */
+
+  /* A — Mint fill, dark green text, no border */
+  .pA {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--green-mint); color: var(--green-deep);
+    font-family: 'Lato', sans-serif; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px; border: none; cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* B — Mint fill, dark green text, dark green border */
+  .pB {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--green-mint); color: var(--green);
+    font-family: 'Lato', sans-serif; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px; border: 1px solid var(--green); cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* C — Mint fill, black text, black border */
+  .pC {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--green-mint); color: var(--text);
+    font-family: 'Lato', sans-serif; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px; border: 1px solid var(--text); cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* D — Translucent mint on dark, mint text + mint border */
+  .pD {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(168,216,184,0.15); color: var(--green-mint);
+    font-family: 'Lato', sans-serif; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px; border: 1px solid rgba(168,216,184,0.45); cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* E — White fill, green text, green border */
+  .pE {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fff; color: var(--green);
+    font-family: 'Lato', sans-serif; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px; border: 1px solid var(--green-mid); cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* F — White fill, dark text, dark border */
+  .pF {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fff; color: var(--text);
+    font-family: 'Lato', sans-serif; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.5); cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* G — White outline only, white text */
+  .pG {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; color: #fff;
+    font-family: 'Lato', sans-serif; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.55); cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* H — Pale green fill, green text, green border (softer) */
+  .pH {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--green-lite); color: var(--green);
+    font-family: 'Lato', sans-serif; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px; border: 1px solid var(--green-mid); cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* I — Mint fill, no border, larger text */
+  .pI {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--green-mint); color: var(--green-deep);
+    font-family: 'Lato', sans-serif; font-size: 12px; font-weight: 700;
+    padding: 5px 14px; border-radius: 100px; border: none; cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* J — Translucent white on dark, white text */
+  .pJ {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.12); color: #fff;
+    font-family: 'Lato', sans-serif; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.01em;
+  }
+
+  /* dot */
+  .dot {
+    width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+  }
+  .dot-mint   { background: var(--green-mint); }
+  .dot-green  { background: var(--green); }
+  .dot-dark   { background: var(--green-deep); }
+  .dot-white  { background: rgba(255,255,255,0.7); }
+  .dot-black  { background: var(--text); }
 </style>
 </head>
 <body>
 
-<h1>Refer button options</h1>
-<p class="subtitle">Pick one — each shown in context on the nav bar below.</p>
+<h1>Refer button — pill options</h1>
+<p class="subtitle">All pill/badge style. Pick a letter.</p>
 
-<!-- Context previews -->
-<div class="section-label">In-nav context</div>
-<div style="display:flex;flex-direction:column;gap:12px;max-width:680px;margin-bottom:56px;">
+<div class="section-label">Options</div>
+<div class="rows">
 
   <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">A &nbsp;·&nbsp; Primary green</div>
+    <div class="opt-label">A &nbsp;·&nbsp; Mint fill · dark green text · no border</div>
     <div class="nav-mock">
       <div class="nav-mock-logo">inroad</div>
       <div class="nav-mock-right">
-        <button class="opt1">Refer a friend, get 5 matches daily</button>
-        <span class="nav-mock-settings">Settings</span>
+        <button class="pA"><span class="dot dot-dark"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
       </div>
     </div>
   </div>
 
   <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">B &nbsp;·&nbsp; Outlined green</div>
+    <div class="opt-label">B &nbsp;·&nbsp; Mint fill · green text · green border</div>
     <div class="nav-mock">
       <div class="nav-mock-logo">inroad</div>
       <div class="nav-mock-right">
-        <button class="opt2" style="color:#fff;border-color:rgba(255,255,255,0.6);">Refer a friend, get 5 matches daily</button>
-        <span class="nav-mock-settings">Settings</span>
+        <button class="pB"><span class="dot dot-green"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
       </div>
     </div>
   </div>
 
   <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">C &nbsp;·&nbsp; Mint fill, black border + text</div>
+    <div class="opt-label">C &nbsp;·&nbsp; Mint fill · black text · black border</div>
     <div class="nav-mock">
       <div class="nav-mock-logo">inroad</div>
       <div class="nav-mock-right">
-        <button class="opt3">Refer a friend, get 5 matches daily</button>
-        <span class="nav-mock-settings">Settings</span>
+        <button class="pC"><span class="dot dot-black"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
       </div>
     </div>
   </div>
 
   <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">D &nbsp;·&nbsp; Mint fill, green border + text</div>
+    <div class="opt-label">D &nbsp;·&nbsp; Translucent mint · mint text · mint border</div>
     <div class="nav-mock">
       <div class="nav-mock-logo">inroad</div>
       <div class="nav-mock-right">
-        <button class="opt4">Refer a friend, get 5 matches daily</button>
-        <span class="nav-mock-settings">Settings</span>
+        <button class="pD"><span class="dot dot-mint"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
       </div>
     </div>
   </div>
 
   <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">E &nbsp;·&nbsp; Mint fill, no border</div>
+    <div class="opt-label">E &nbsp;·&nbsp; White fill · green text · soft green border</div>
     <div class="nav-mock">
       <div class="nav-mock-logo">inroad</div>
       <div class="nav-mock-right">
-        <button class="opt5">Refer a friend, get 5 matches daily</button>
-        <span class="nav-mock-settings">Settings</span>
+        <button class="pE"><span class="dot dot-green"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
       </div>
     </div>
   </div>
 
   <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">F &nbsp;·&nbsp; Pale green fill + green border</div>
+    <div class="opt-label">F &nbsp;·&nbsp; White fill · dark text · white border</div>
     <div class="nav-mock">
       <div class="nav-mock-logo">inroad</div>
       <div class="nav-mock-right">
-        <button class="opt6">Refer a friend, get 5 matches daily</button>
-        <span class="nav-mock-settings">Settings</span>
+        <button class="pF"><span class="dot dot-black"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
       </div>
     </div>
   </div>
 
   <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">G &nbsp;·&nbsp; Pill / badge style</div>
+    <div class="opt-label">G &nbsp;·&nbsp; Transparent · white text · white border</div>
     <div class="nav-mock">
       <div class="nav-mock-logo">inroad</div>
       <div class="nav-mock-right">
-        <button class="opt7" style="background:rgba(168,216,184,0.15);border-color:rgba(168,216,184,0.4);color:var(--green-mint);">Refer a friend, get 5 matches daily</button>
-        <span class="nav-mock-settings">Settings</span>
+        <button class="pG"><span class="dot dot-white"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
       </div>
     </div>
   </div>
 
   <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">H &nbsp;·&nbsp; White outline (on-dark)</div>
+    <div class="opt-label">H &nbsp;·&nbsp; Pale green fill · green text · green border (softest)</div>
     <div class="nav-mock">
       <div class="nav-mock-logo">inroad</div>
       <div class="nav-mock-right">
-        <button class="opt8">Refer a friend, get 5 matches daily</button>
-        <span class="nav-mock-settings">Settings</span>
+        <button class="pH"><span class="dot dot-green"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
       </div>
     </div>
   </div>
 
   <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">I &nbsp;·&nbsp; Mint fill, dark green text (on-dark)</div>
+    <div class="opt-label">I &nbsp;·&nbsp; Mint fill · dark green text · no border · slightly larger</div>
     <div class="nav-mock">
       <div class="nav-mock-logo">inroad</div>
       <div class="nav-mock-right">
-        <button class="opt9">Refer a friend, get 5 matches daily</button>
-        <span class="nav-mock-settings">Settings</span>
+        <button class="pI"><span class="dot dot-dark"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="opt-label">J &nbsp;·&nbsp; Translucent white · white text · white border</div>
+    <div class="nav-mock">
+      <div class="nav-mock-logo">inroad</div>
+      <div class="nav-mock-right">
+        <button class="pJ"><span class="dot dot-white"></span>Refer a friend, get 5 matches daily</button>
+        <span class="nav-settings">Settings</span>
       </div>
     </div>
   </div>
 
 </div>
-
 </body>
 </html>

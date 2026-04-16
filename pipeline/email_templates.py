@@ -5,39 +5,28 @@ Single cold outreach template used as fallback when Claude API is unavailable.
 """
 
 
-def _bio_line(ctx: dict) -> str:
-    """Return the student's bio if set, otherwise a generic fallback."""
-    bio = (ctx.get("student_bio") or "").strip()
-    if bio:
-        return bio
-    # Example of a well-written intro:
-    # I'm a 25-year-old MSc Economics student at LSE, where my master's thesis
-    # focused on an econometric analysis of geopolitical risk. I hold two bachelor's
-    # degrees and have prior experience launching my own business, but I'm now hoping
-    # to build a career in geopolitical risk analysis.
-    return (
-        f"I'm a student at {ctx['student_university']} with a strong interest in "
-        f"{ctx.get('industry_hint', 'this field')}."
-    )
-
-
 def template_standard(ctx: dict) -> tuple[str, str]:
-    subject = f"Student with a query on {ctx.get('job_department') or ctx.get('industry_hint', 'your team')}"
+    subject = f"Student with a query on {ctx.get('job_department') or 'your team'}"
+
+    bio = (ctx.get("student_bio") or "").strip()
+    bio_line = f"{bio}\n\n" if bio else ""
+
+    student_name = (ctx.get("student_name") or "").strip()
+    university   = (ctx.get("student_university") or "").strip()
+    sign_off_parts = [p for p in [student_name, university] if p]
+    sign_off = "\n".join(sign_off_parts)
+
     body = f"""Hi {ctx['recipient_first_name']},
 
 I know you are incredibly busy and get a lot of emails, so this will only take 30 seconds to read.
 
-{_bio_line(ctx)}
-
-What do you think are the most critical skills or qualities that an aspiring analyst on your team should possess?
+{bio_line}What do you think are the most critical skills or qualities that an aspiring analyst on your team should possess?
 
 I totally understand if you are too busy to reply.
 Even a 1 or 2 line response will completely make my day.
 
 All the best,
-{ctx['student_name']}
-
-{ctx['student_university']}"""
+{sign_off}"""
     return subject, body.strip()
 
 
@@ -77,8 +66,8 @@ def build_ctx(student: dict, lead: dict, job: dict) -> dict:
             job_inds = []
     industry_hint = job_inds[0] if job_inds else "this field"
     return {
-        "student_name":         student.get("name", student.get("first_name", "there")),
-        "student_university":   student.get("university", "my university"),
+        "student_name":         student.get("name", student.get("first_name", "")),
+        "student_university":   student.get("university", ""),
         "student_bio":          student.get("bio", ""),
         "recipient_name":       lead.get("name", ""),
         "recipient_first_name": first,

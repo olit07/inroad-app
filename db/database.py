@@ -524,6 +524,19 @@ def _run_migrations_postgres():
         "ALTER TABLE students ADD COLUMN IF NOT EXISTS outlook_access_token TEXT",
         "ALTER TABLE students ADD COLUMN IF NOT EXISTS outlook_refresh_token TEXT",
         "ALTER TABLE students ADD COLUMN IF NOT EXISTS outlook_token_expiry INTEGER",
+        # magic_tokens: add purpose column if missing
+        "ALTER TABLE magic_tokens ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT 'login'",
+        # Feature: daily match snapshot (overwritten each day)
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS match1_job_url TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS match1_name_title TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS match1_linkedin TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS match2_job_url TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS match2_name_title TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS match2_linkedin TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS match3_job_url TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS match3_name_title TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS match3_linkedin TEXT",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS matches_updated_date DATE",
         # Referral code: backfill for existing students
         """UPDATE students SET referral_code = substring(md5(random()::text || id::text), 1, 8)
            WHERE referral_code IS NULL""",
@@ -599,13 +612,20 @@ def _run_migrations_sqlite():
             except Exception as e:
                 print(f"[db] Migration warning (card_queue.score_breakdown): {e}")
 
-        # Feature: Outlook OAuth (one-click email send)
+        # Feature: Outlook OAuth + daily match snapshot
         cur.execute("PRAGMA table_info(students)")
         existing_student_cols = {row[1] for row in cur.fetchall()}
         for col, col_type in [
             ("outlook_access_token",  "TEXT"),
             ("outlook_refresh_token", "TEXT"),
             ("outlook_token_expiry",  "INTEGER"),
+            ("match1_name_title",     "TEXT"),
+            ("match1_linkedin",       "TEXT"),
+            ("match2_name_title",     "TEXT"),
+            ("match2_linkedin",       "TEXT"),
+            ("match3_name_title",     "TEXT"),
+            ("match3_linkedin",       "TEXT"),
+            ("matches_updated_date",  "TEXT"),
         ]:
             if col not in existing_student_cols:
                 try:
@@ -764,17 +784,21 @@ def revoke_all_tokens_for_student(student_id):
 
 
 def deactivate_student(student_id):
-    """Set deactivated_at = now on the student row."""
-    if USE_POSTGRES:
+    """Hard-delete the student and all related data so the email can be reused."""
+    for tbl in ("matches", "refresh_tokens", "signals", "card_queue", "magic_tokens"):
+        try:
+            execute(f"DELETE FROM {tbl} WHERE student_id = ?", (student_id,))
+        except Exception:
+            pass
+    # magic_tokens uses email not student_id — clean up via sub-select
+    try:
         execute(
-            "UPDATE students SET deactivated_at = NOW() WHERE id = ?",
+            "DELETE FROM magic_tokens WHERE email = (SELECT email FROM students WHERE id = ?)",
             (student_id,)
         )
-    else:
-        execute(
-            "UPDATE students SET deactivated_at = datetime('now') WHERE id = ?",
-            (student_id,)
-        )
+    except Exception:
+        pass
+    execute("DELETE FROM students WHERE id = ?", (student_id,))
 
 
 # ── Pipeline helpers ─────────────────────────────────────────────────────────
@@ -814,12 +838,20 @@ def get_active_jobs(conn, industries=None, region=None, seniority=None,
 
     if days_fresh:
         if USE_POSTGRES:
+            # Filter on opening_date (when job was posted); fall back to created_at for jobs
+            # where opening_date is unknown. Also guard against very old scraped jobs.
             clauses.append(
-                f"(created_at IS NULL OR created_at > NOW() - INTERVAL '{days_fresh} days')"
+                f"(opening_date IS NULL OR opening_date > to_char(NOW() - INTERVAL '{days_fresh} days', 'YYYY-MM-DD'))"
+            )
+            clauses.append(
+                f"(created_at IS NULL OR created_at > NOW() - INTERVAL '60 days')"
             )
         else:
             clauses.append(
-                f"(created_at IS NULL OR created_at > datetime('now', '-{days_fresh} days'))"
+                f"(opening_date IS NULL OR opening_date > date('now', '-{days_fresh} days'))"
+            )
+            clauses.append(
+                f"(created_at IS NULL OR created_at > datetime('now', '-60 days'))"
             )
 
     if industries:

@@ -356,6 +356,16 @@
     box-shadow: 0 0 0 3px rgba(45,90,61,0.08);
   }
 
+  .size-card.locked {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .size-card.locked:hover {
+    border-color: var(--border);
+    box-shadow: none;
+  }
+
   .size-icon { font-size: 1.4rem; }
 
   .size-label {
@@ -739,7 +749,6 @@
         <span class="industry-pill locked" title="Coming soon">Consulting</span>
         <span class="industry-pill locked" title="Coming soon">Strategy</span>
         <span class="industry-pill locked" title="Coming soon">Marketing</span>
-        <span class="industry-pill locked" title="Coming soon">Growth</span>
         <span class="industry-pill locked" title="Coming soon">Healthcare</span>
         <span class="industry-pill locked" title="Coming soon">Media &amp; Journalism</span>
         <span class="industry-pill locked" title="Coming soon">Design &amp; UX</span>
@@ -765,7 +774,7 @@
       <div class="error-msg" id="err-5"><span>⚠</span><span>Please select a company size.</span></div>
 
       <div class="size-grid">
-        <div class="size-card" data-group="size" data-value="startup" onclick="selectChoice(this)">
+        <div class="size-card locked" data-group="size" data-value="startup">
           <div class="recommended-tag">Recommended</div>
           <span class="size-icon">🚀</span>
           <span class="size-label">Startup</span>
@@ -803,7 +812,7 @@
         <textarea
           id="bio-input"
           class="textarea-input"
-          placeholder="e.g. I'm a final-year Economics student at UCL with a passion for early-stage startups and sustainable finance. I'm looking to break into VC or fintech after graduating this summer."
+          placeholder="e.g. I'm a final year Economics student at LSE with a passion for early stage startups and sustainable finance. I'm looking to break into VC or fintech after graduating this summer."
           maxlength="300"
           oninput="updateCharCount()"
           rows="4"

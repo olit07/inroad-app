@@ -67,19 +67,24 @@ class WorkdayScraper(BaseScraper):
                     break
 
     def _fetch_jobs(self, url: str, company_name: str, term: str) -> Iterator[dict]:
-        body = json.dumps({
+        import gzip, urllib.request, urllib.error
+        raw_body = json.dumps({
             "limit": 20, "offset": 0,
             "searchText": term,
             "appliedFacets": {}
         }).encode()
+        body = gzip.compress(raw_body)
         self._throttle(url)
-        import urllib.request
         req = urllib.request.Request(
             url, data=body,
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Content-Encoding": "gzip",
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            },
             method="POST"
         )
-        import urllib.error
         try:
             with urllib.request.urlopen(req, timeout=20) as r:
                 data = json.loads(r.read().decode("utf-8", errors="replace"))

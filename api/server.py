@@ -38,6 +38,7 @@ from db.database import (
     deactivate_student, revoke_all_tokens_for_student,
     create_magic_token, get_and_consume_token,
     log_email, count_recent_tokens, fetchall, fetchone,
+    execute as db_execute,
     create_refresh_token, get_refresh_token, revoke_refresh_token,
     get_queued_cards, mark_card_consumed
 )
@@ -60,8 +61,63 @@ logging.basicConfig(
 # Initialise DB tables on startup — must be at module level so Gunicorn picks it up
 init_db()
 
+# Start the daily pipeline scheduler as a background daemon thread.
+# Only runs in production (where the cron would otherwise be absent) and only
+# in the first gunicorn worker (gunicorn forks workers — guard with an env flag
+# to avoid N parallel schedulers).
+if os.environ.get("SCHEDULER_STARTED") != "1":
+    os.environ["SCHEDULER_STARTED"] = "1"
+    import threading
+    def _start_scheduler():
+        try:
+            from scheduler.run import run_daemon
+            run_daemon()
+        except Exception as exc:
+            logging.getLogger("scheduler").error(f"Scheduler thread crashed: {exc}", exc_info=True)
+    _t = threading.Thread(target=_start_scheduler, name="scheduler", daemon=True)
+    _t.start()
+
 # Determine if we're on a secure host (Railway / any https origin)
 IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
+
+
+# ── Embedded background scheduler ────────────────────────────────────────────
+
+def _start_background_scheduler():
+    """
+    Start the daily pipeline (cards + notify) in a background thread.
+    Enabled by setting SCHEDULER_ENABLED=true in the environment.
+    Uses a non-blocking file lock so only one gunicorn worker runs the loop.
+    """
+    if os.environ.get("SCHEDULER_ENABLED", "false").lower() != "true":
+        return
+
+    import threading, time, fcntl, logging as _log
+
+    try:
+        _lock_fh = open("/tmp/inroad_scheduler.lock", "w")
+        fcntl.flock(_lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (IOError, OSError):
+        return  # another worker already holds the lock
+
+    def _loop():
+        from scheduler.run import run_full_pipeline, seconds_until, PIPELINE_HOUR
+        _log.getLogger("scheduler").info("Background scheduler started (embedded in web process)")
+        while True:
+            wait = seconds_until(PIPELINE_HOUR)
+            _log.getLogger("scheduler").info(
+                f"Next pipeline run in {wait/3600:.1f}h (at {PIPELINE_HOUR:02d}:00 UTC)"
+            )
+            time.sleep(wait)
+            try:
+                run_full_pipeline()
+            except Exception as exc:
+                _log.getLogger("scheduler").error(f"Pipeline crashed: {exc}", exc_info=True)
+
+    threading.Thread(target=_loop, daemon=True, name="scheduler").start()
+
+
+_start_background_scheduler()
 
 # ── Admin auth ───────────────────────────────────────────────────────────────
 
@@ -194,15 +250,15 @@ def send_magic_link(email: str, token: str, next_url: str = None, ref: str = Non
       Magic link
     </div>
 
-    <h1 style="font-size:26px;font-weight:900;color:#111110;letter-spacing:-0.02em;line-height:1.15;margin:0 0 14px;">Your sign-in link<br>is <em style="font-style:italic;font-weight:300;color:#1F4530;">ready.</em></h1>
+    <h1 style="font-size:26px;font-weight:900;color:#111110;letter-spacing:-0.02em;line-height:1.15;margin:0 0 14px;">Your sign-up link<br>is <em style="font-style:italic;font-weight:300;color:#1F4530;">ready.</em></h1>
 
     <p style="font-size:15px;color:#6E6860;line-height:1.7;margin:0 0 36px;font-weight:400;">
       Click below to verify your email and start getting matched to real people
-      at companies you want to work at &mdash; alumni first.
+      at companies you want to work at, alumni first.
     </p>
 
     <div style="margin-bottom:40px;">
-      <a href="{verify_url}" style="display:inline-block;background:#1F4530;color:#FFFFFF;font-size:15px;font-weight:700;padding:15px 32px;border-radius:10px;text-decoration:none;letter-spacing:0.01em;">Sign in to inroad &rarr;</a>
+      <a href="{verify_url}" style="display:inline-block;background:#1F4530;color:#FFFFFF;font-size:15px;font-weight:700;padding:15px 32px;border-radius:10px;text-decoration:none;letter-spacing:0.01em;">Sign up to inroad &rarr;</a>
     </div>
 
     <!-- What happens next -->
@@ -622,6 +678,50 @@ def me():
     return jsonify(_sanitise_student(student))
 
 
+def _regenerate_todays_drafts(student_id: int) -> int:
+    """
+    Regenerate email subject + body for today's unsent matches for a student.
+    Called after the student updates bio, name, or university in settings.
+    Returns the number of drafts updated.
+    """
+    from pipeline.daily_cards import generate_email_draft
+    from datetime import date
+    today = date.today().isoformat()
+
+    rows = fetchall("""
+        SELECT m.id,
+               m.person_name, m.person_company,
+               s.name         AS student_name,
+               s.university   AS student_university,
+               s.bio          AS student_bio,
+               j.title        AS job_title,
+               j.industry
+        FROM matches m
+        JOIN students s ON s.id = m.student_id
+        JOIN jobs     j ON j.id = m.job_id
+        WHERE m.student_id = %s
+          AND m.match_date  = %s
+          AND m.status     != 'sent'
+    """, (student_id, today))
+
+    updated = 0
+    for r in rows:
+        student_ctx = {
+            "name":       r.get("student_name") or "",
+            "university": r.get("student_university") or "",
+            "bio":        r.get("student_bio") or "",
+        }
+        lead_ctx = {"name": r.get("person_name") or "", "company": r.get("person_company") or ""}
+        job_ctx  = {"title": r.get("job_title") or "", "industry": r.get("industry") or ""}
+        subject, body = generate_email_draft(student_ctx, lead_ctx, job_ctx)
+        db_execute(
+            "UPDATE matches SET email_subject = %s, email_body = %s WHERE id = %s",
+            (subject, body, r["id"])
+        )
+        updated += 1
+    return updated
+
+
 @app.route("/api/me", methods=["PATCH"])
 @require_jwt
 def update_me():
@@ -646,6 +746,14 @@ def update_me():
 
     if fields:
         update_student_fields(g.student_id, fields)
+
+    # Regenerate today's draft emails if any email-content fields changed
+    if any(k in data for k in ("bio", "name", "university")):
+        try:
+            n = _regenerate_todays_drafts(g.student_id)
+            app.logger.info(f"Regenerated {n} draft(s) for student {g.student_id} after settings save")
+        except Exception as e:
+            app.logger.warning(f"Draft regen failed for student {g.student_id}: {e}")
 
     student = get_student_by_id(g.student_id)
     if not student:
@@ -737,6 +845,11 @@ def matches_today(student_id):
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     queued = get_queued_cards(student_id, today_str)
 
+    # Respect per-student card quota (referral bonus may raise it above default 3)
+    from config.settings import DAILY_MATCH_QUOTA
+    student_row = fetchone("SELECT daily_cards_override FROM students WHERE id = ?", (student_id,))
+    card_limit = int((student_row or {}).get("daily_cards_override") or DAILY_MATCH_QUOTA)
+
     _matches_select = """
             SELECT m.id, m.student_id, m.job_id, m.match_date,
                    m.person_name, m.person_title, m.person_company,
@@ -761,7 +874,7 @@ def matches_today(student_id):
             WHERE m.student_id = ?
               AND m.job_id IN ({placeholders})
             ORDER BY m.is_alumni DESC, m.created_at ASC
-            LIMIT 3
+            LIMIT {card_limit}
         """, [student_id] + job_ids)
         # Mark each returned queued card as consumed
         returned_job_ids = {r["job_id"] for r in rows}
@@ -771,11 +884,11 @@ def matches_today(student_id):
     else:
         # Fallback: fetch today's matches by creation date
         rows = fetchall(
-            _matches_select + """
+            _matches_select + f"""
             WHERE m.student_id = ?
               AND DATE(m.created_at) = CURRENT_DATE
             ORDER BY m.is_alumni DESC, m.created_at ASC
-            LIMIT 3
+            LIMIT {card_limit}
         """, (student_id,))
 
         # No cards yet — generate on-demand now (covers first dashboard load)
@@ -784,11 +897,11 @@ def matches_today(student_id):
                 from pipeline.daily_cards import generate_daily_cards
                 generate_daily_cards(student_id)
                 rows = fetchall(
-                    _matches_select + """
+                    _matches_select + f"""
                     WHERE m.student_id = ?
                       AND DATE(m.created_at) = CURRENT_DATE
                     ORDER BY m.is_alumni DESC, m.created_at ASC
-                    LIMIT 3
+                    LIMIT {card_limit}
                 """, (student_id,))
             except Exception as exc:
                 print(f"[cards] on-demand generation failed for student {student_id}: {exc}")
@@ -997,6 +1110,8 @@ def send_match_email(match_id):
         else:
             db_execute("UPDATE matches SET status = 'sent', sent_at = datetime('now') WHERE id = ?", (match_id,))
 
+    app.logger.info(f"[outlook/send] match_id={match_id} student_id={g.student_id} manual={manual}")
+
     if manual:
         _mark_sent()
         return jsonify({"status": "sent"})
@@ -1006,11 +1121,15 @@ def send_match_email(match_id):
     body    = data.get("body")    or match.get("email_body")    or ""
     to_addr = data.get("to")      or match.get("expected_email") or ""
 
+    app.logger.info(f"[outlook/send] to={to_addr!r} subject={subject[:60]!r}")
+
     if not to_addr:
+        app.logger.error(f"[outlook/send] No recipient address. match keys: {list(match.keys())}")
         return jsonify({"error": "No recipient email address for this match"}), 400
 
     token = _get_valid_outlook_token(g.student_id)
     if not token:
+        app.logger.error(f"[outlook/send] No valid Outlook token for student {g.student_id}")
         return jsonify({"error": "Outlook not connected"}), 403
 
     payload = {
@@ -1021,6 +1140,7 @@ def send_match_email(match_id):
         },
         "saveToSentItems": True,
     }
+    app.logger.info(f"[outlook/send] Calling Graph API…")
     r = req.post(
         _MS_GRAPH_SEND,
         json=payload,
@@ -1028,8 +1148,9 @@ def send_match_email(match_id):
         timeout=15,
     )
 
+    app.logger.info(f"[outlook/send] Graph API response {r.status_code}")
     if r.status_code not in (200, 202):
-        app.logger.error(f"[outlook/send] Graph API error {r.status_code}: {r.text[:200]}")
+        app.logger.error(f"[outlook/send] Graph API error {r.status_code}: {r.text[:400]}")
         return jsonify({"error": "Failed to send email"}), 502
 
     _mark_sent()
@@ -1326,6 +1447,47 @@ def admin_runs():
     return jsonify({"data": {"runs": rows}})
 
 
+@app.route("/api/admin/export/students")
+@require_admin
+def admin_export_students_csv():
+    """Export all active students with today's match snapshot as a CSV download."""
+    import csv, io
+    rows = fetchall("""
+        SELECT s.id, s.email, s.name, s.age, s.status,
+               s.industries, s.company_size, s.bio, s.university,
+               s.created_at, s.last_seen, s.deactivated_at,
+               s.match1_name_title, s.match1_linkedin, s.match1_job_url,
+               s.match2_name_title, s.match2_linkedin, s.match2_job_url,
+               s.match3_name_title, s.match3_linkedin, s.match3_job_url,
+               s.matches_updated_date,
+               s.outlook_access_token, s.outlook_refresh_token, s.outlook_token_expiry
+        FROM students s
+        ORDER BY s.id ASC
+    """)
+    output = io.StringIO()
+    fieldnames = [
+        "id", "email", "name", "age", "status",
+        "industries", "company_size", "bio", "university",
+        "created_at", "last_seen", "deactivated_at",
+        "match1_name_title", "match1_linkedin", "match1_job_url",
+        "match2_name_title", "match2_linkedin", "match2_job_url",
+        "match3_name_title", "match3_linkedin", "match3_job_url",
+        "matches_updated_date",
+        "outlook_access_token", "outlook_refresh_token", "outlook_token_expiry",
+    ]
+    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(dict(row))
+    csv_bytes = output.getvalue().encode("utf-8")
+    from flask import Response
+    return Response(
+        csv_bytes,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=students.csv"},
+    )
+
+
 @app.route("/api/admin/students")
 @require_admin
 def admin_students():
@@ -1340,6 +1502,30 @@ def admin_students():
         ORDER BY s.created_at DESC
     """)
     return jsonify({"data": {"students": rows}})
+
+
+@app.route("/api/admin/delete-students", methods=["POST"])
+@require_admin
+def admin_delete_students():
+    """Delete students by email list. Cascades to matches, refresh_tokens, signals, card_queue."""
+    from db.database import execute as db_execute
+    data = request.get_json(silent=True) or {}
+    emails = data.get("emails", [])
+    if not emails:
+        return jsonify({"error": "emails list required"}), 400
+    rows = fetchall(
+        "SELECT id, email FROM students WHERE email = ANY(%s)", (emails,)
+    )
+    ids = [r["id"] for r in rows]
+    if not ids:
+        return jsonify({"deleted": 0, "not_found": emails})
+    for tbl in ("matches", "refresh_tokens", "signals", "card_queue"):
+        try:
+            db_execute(f"DELETE FROM {tbl} WHERE student_id = ANY(%s)", (ids,))
+        except Exception:
+            pass
+    db_execute("DELETE FROM students WHERE id = ANY(%s)", (ids,))
+    return jsonify({"deleted": len(ids), "emails": [r["email"] for r in rows]})
 
 
 @app.route("/api/admin/regenerate-all-drafts", methods=["POST"])
@@ -1367,9 +1553,9 @@ def admin_regenerate_all_drafts():
     updated = 0
     for r in rows:
         name_parts = (r.get("person_name") or "").split()
-        first = name_parts[0] if name_parts else "there"
+        first = name_parts[0] if name_parts else ""
         ctx = {
-            "student_name":         r.get("student_name") or "there",
+            "student_name":         r.get("student_name") or "",
             "student_university":   r.get("student_university") or "",
             "student_bio":          r.get("student_bio") or "",
             "recipient_first_name": first,

@@ -37,6 +37,14 @@ def run_single_scraper(scraper, db_path=DB_PATH) -> dict:
 
     try:
         raw_jobs = scraper.run()
+
+        # Filter to jobs posted within the last 2 days to limit load
+        cutoff = (datetime.utcnow() - timedelta(days=2)).date().isoformat()
+        fresh_jobs = [j for j in raw_jobs if (j.get("posted_date") or j.get("opening_date") or "9999") >= cutoff]
+        stale      = len(raw_jobs) - len(fresh_jobs)
+        if stale:
+            logger.info(f"[{source_id}] Skipped {stale} jobs older than 2 days")
+        raw_jobs   = fresh_jobs
         jobs_found = len(raw_jobs)
 
         with db_conn(db_path) as conn:

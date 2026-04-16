@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy Policy — inroad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -67,6 +67,7 @@
     <li><strong>Profile preferences</strong> — target industries, company size preference, and a short bio you provide.</li>
     <li><strong>Usage data</strong> — which cards you view, whether you send outreach emails, and whether you receive replies.</li>
     <li><strong>Technical data</strong> — browser type, device, IP address, and session cookies.</li>
+    <li><strong>Microsoft account connection</strong> — if you choose to connect your Outlook or Microsoft 365 account, we store OAuth tokens (access token, refresh token, and expiry time) to enable one-click email sending on your behalf. We do not store the contents of your inbox or any emails beyond those you explicitly send through inroad. You can disconnect your Microsoft account at any time from the dashboard, which immediately removes all stored tokens.</li>
   </ul>
 
   <h2>2. How we use your data</h2>
@@ -75,20 +76,26 @@
     <li>To find and rank relevant professionals at target companies for cold outreach.</li>
     <li>To generate personalised email drafts.</li>
     <li>To send you transactional emails (magic links, match notifications).</li>
+    <li>To send outreach emails on your behalf when you use the one-click send feature via your connected Microsoft account.</li>
     <li>To improve our matching algorithms and product quality.</li>
   </ul>
 
-  <h2>3. Third-party services</h2>
+  <h2>3. Microsoft OAuth and email sending</h2>
+  <p>If you connect your Microsoft account, inroad uses the Microsoft Graph API to send emails directly from your address when you click Send on a match card. We request only the minimum permissions required: <code>Mail.Send</code> and <code>offline_access</code>. We do not read, store, or process any emails in your inbox.</p>
+  <p>Your OAuth tokens are stored securely and used solely to send emails you have explicitly approved. You may disconnect your Microsoft account at any time from the dashboard, which revokes our access and deletes all stored tokens. Revoking access through your Microsoft account settings will also prevent further sending.</p>
+
+  <h2>4. Third-party services</h2>
   <p>We use the following services to operate inroad:</p>
   <ul>
-    <li><strong>People Data Labs / Serper</strong> — to find relevant professionals at companies. We process publicly available professional information.</li>
+    <li><strong>People Data Labs and Serper</strong> — to find relevant professionals at companies. We process publicly available professional information.</li>
     <li><strong>Resend</strong> — to send transactional emails.</li>
+    <li><strong>Microsoft Graph API</strong> — to send outreach emails from your connected Outlook or Microsoft 365 account when you use the one-click send feature.</li>
   </ul>
 
-  <h2>4. Data retention</h2>
-  <p>We retain your account data for as long as your account is active. Match history is anonymised after 90 days. You can delete your account at any time from the Settings page, which permanently removes all your data.</p>
+  <h2>5. Data retention</h2>
+  <p>We retain your account data for as long as your account is active. Match history is anonymised after 90 days. You can delete your account at any time from the Settings page, which permanently removes all your data including any stored Microsoft OAuth tokens.</p>
 
-  <h2>5. Your rights</h2>
+  <h2>6. Your rights</h2>
   <p>Under applicable data protection law (including UK GDPR) you have the right to:</p>
   <ul>
     <li>Access the personal data we hold about you.</li>
@@ -98,13 +105,13 @@
   </ul>
   <p>To exercise any of these rights, contact us at the address below.</p>
 
-  <h2>6. Cookies</h2>
+  <h2>7. Cookies</h2>
   <p>We use a single HTTP-only session cookie (<code>ccc_refresh</code>) to keep you signed in. We do not use advertising or tracking cookies.</p>
 
-  <h2>7. Changes to this policy</h2>
+  <h2>8. Changes to this policy</h2>
   <p>We may update this policy from time to time. We will notify you of material changes by email. Continued use of inroad after changes constitutes acceptance of the updated policy.</p>
 
-  <h2>8. Contact</h2>
+  <h2>9. Contact</h2>
   <p>For privacy-related enquiries, please contact us at <a href="/contact">our contact page</a>.</p>
 </div>
 

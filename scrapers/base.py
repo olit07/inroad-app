@@ -131,7 +131,6 @@ INDUSTRY_KEYWORD_MAP: dict[str, list[str]] = {
     "Consulting":           ["consulting", "consultant", "advisory", "management consulting", "strategy consulting"],
     "Strategy":             ["strategy", "strategic", "corporate development", "business development", "biz dev"],
     "Marketing":            ["marketing", "brand", "communications", "pr ", "public relations", "content", "seo", "sem"],
-    "Growth":               ["growth", "acquisition", "retention", "crm", "lifecycle", "performance marketing"],
     "Law":                  ["law", "legal", "solicitor", "barrister", "paralegal", "compliance", "regulatory"],
     "Healthcare":           ["healthcare", "health", "medical", "clinical", "pharma", "biotech", "life sciences", "nhs"],
     "Media & Journalism":   ["media", "journalism", "journalist", "editorial", "publishing", "broadcast", "news"],

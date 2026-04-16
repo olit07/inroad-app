@@ -59,7 +59,7 @@ def run_leads_job():
     from pipeline.lead_builder import build_leads
     logger.info("─" * 60)
     logger.info("LEADS JOB starting")
-    n = build_leads()
+    n = build_leads(days_back=3)
     logger.info(f"LEADS JOB done — {n} leads upserted")
 
 
@@ -73,7 +73,7 @@ def run_cards_job():
 def run_notify_job():
     logger.info("─" * 60)
     logger.info("NOTIFY JOB starting")
-    from db.database import fetchall
+    from db.database import fetchall, get_card_count_today
     from utils.notifications import send_daily_matches_ready
     today_is_monday = datetime.utcnow().weekday() == 0
     students = fetchall(
@@ -84,8 +84,12 @@ def run_notify_job():
     for s in students:
         if s["notify_frequency"] == "weekly" and not today_is_monday:
             continue
+        n_cards = get_card_count_today(s["id"])
+        if n_cards == 0:
+            logger.info(f"Skipping email for {s['email']} — 0 cards generated today")
+            continue
         try:
-            send_daily_matches_ready(dict(s))
+            send_daily_matches_ready(dict(s), n_cards=n_cards)
             sent += 1
         except Exception as e:
             logger.warning(f"Notify failed for {s['email']}: {e}")

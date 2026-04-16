@@ -1,28 +1,60 @@
 """
-CCC Backend — Lever ATS Scraper
+inroad — Lever ATS Scraper
 
 Lever exposes a free public JSON feed per company:
-  GET https://api.lever.co/v0/postings/{board_token}?mode=json
+  GET https://api.lever.co/v0/postings/{slug}?mode=json
 
-No auth required.
+No auth required. Response is a root-level JSON array of posting objects.
+We maintain a curated list of verified company slugs below.
 """
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from scrapers.base import BaseScraper, make_job, infer_seniority, infer_industries, clean_date, today_iso, RequestError
+from scrapers.base import BaseScraper, make_job, infer_seniority, infer_industries, today_iso, RequestError
 from scrapers.greenhouse import _infer_region, _infer_employment_type
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.lever.co/v0/postings/{token}?mode=json"
 
+# V0 scope: only internships, grad programmes, and entry-level roles
+ENTRY_LEVEL_KEYWORDS = {
+    "intern", "internship", "placement", "summer analyst", "spring week",
+    "graduate", "grad", "entry level", "entry-level", "new grad", "trainee",
+    "analyst", "associate", "junior", "apprentice", "scheme", "programme",
+    "program", "training contract",
+}
+
+def _is_entry_level(title: str) -> bool:
+    t = title.lower()
+    return any(k in t for k in ENTRY_LEVEL_KEYWORDS)
+
+
+def _ts_to_iso(ts_ms) -> str:
+    """Convert Lever's Unix timestamp (milliseconds) to ISO date string."""
+    if not ts_ms:
+        return today_iso()
+    try:
+        return datetime.fromtimestamp(int(ts_ms) / 1000, tz=timezone.utc).date().isoformat()
+    except Exception:
+        return today_iso()
+
+
+# Curated list of (company_name, lever_slug) — all verified live boards
 DEFAULT_TARGETS = [
-    # Finance / Quant
-    ("Palantir",             "palantir"),
-    ("Plaid",                "plaid"),
+    # ── Finance / Fintech ─────────────────────────────────────────────────────
+    ("Zopa",             "zopa"),           # UK digital bank / lender
+    ("ION Group",        "ion"),            # Financial software, London/NY
+    ("Binance",          "binance"),        # Crypto exchange
+    ("Compass Lexecon",  "compasslexecon"), # Economic consulting, London/NY
+    # ── Technology ────────────────────────────────────────────────────────────
+    ("Palantir",         "palantir"),       # Data analytics, NY/London
+    ("Spotify",          "spotify"),        # Music tech, London/NY
+    ("Plaid",            "plaid"),          # Fintech infrastructure, US/UK
 ]
 
 
@@ -62,41 +94,46 @@ class LeverScraper(BaseScraper):
                     continue
 
     def _parse_posting(self, raw: dict, company_name: str) -> dict | None:
-        title = raw.get("text", "").strip()
+        title = (raw.get("text") or "").strip()
         if not title:
             return None
+        # V0 scope: skip anything that isn't intern / grad / entry-level
+        if not _is_entry_level(title):
+            return None
 
-        url = raw.get("hostedUrl", raw.get("applyUrl", ""))
+        url = raw.get("hostedUrl") or raw.get("applyUrl") or ""
 
-        # Location
-        location_obj = raw.get("categories", {})
-        location     = location_obj.get("location", "") if isinstance(location_obj, dict) else ""
+        # Location from categories
+        cats     = raw.get("categories") or {}
+        location = cats.get("location") or ""
         if not location:
-            locs = raw.get("workplaceType", "")
-            location = str(locs)
+            all_locs = cats.get("allLocations") or []
+            location = all_locs[0] if all_locs else ""
 
         region = _infer_region(location)
 
-        # Posted at (millisecond epoch)
-        created_ms = raw.get("createdAt", 0)
-        if created_ms:
-            from datetime import datetime
-            posted_date = datetime.utcfromtimestamp(created_ms / 1000).strftime("%Y-%m-%d")
+        # Posted date — createdAt is ms epoch
+        posted_date = _ts_to_iso(raw.get("createdAt"))
+
+        # Employment type: check categories.commitment first, fall back to title
+        commitment = (cats.get("commitment") or "").lower()
+        if any(k in commitment for k in ["intern", "placement", "summer"]):
+            emp_type = "internship"
+        elif "contract" in commitment:
+            emp_type = "contract"
         else:
-            posted_date = today_iso()
+            emp_type = _infer_employment_type(title)
 
-        # Description
-        desc_obj = raw.get("description", "")
-        description = desc_obj if isinstance(desc_obj, str) else ""
-        lists = raw.get("lists", [])
-        for lst in lists:
+        # Description for industry inference
+        description = raw.get("descriptionPlain") or raw.get("description") or ""
+        for lst in raw.get("lists") or []:
             if isinstance(lst, dict):
-                description += " " + lst.get("content", "")
+                description += " " + (lst.get("content") or "")
 
-        industries = infer_industries(title, description)
+        industries = infer_industries(title, str(description))
         seniority  = infer_seniority(title)
 
-        return make_job(
+        job = make_job(
             company_name    = company_name,
             title           = title,
             source_id       = self.source_id,
@@ -104,7 +141,10 @@ class LeverScraper(BaseScraper):
             url             = url,
             industries      = industries,
             seniority       = seniority,
-            employment_type = _infer_employment_type(title),
+            employment_type = emp_type,
             region          = region,
             posted_date     = posted_date,
         )
+        job["opening_date"] = posted_date
+        job["location"]     = location
+        return job

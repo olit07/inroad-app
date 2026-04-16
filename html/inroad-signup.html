@@ -2,9 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign up — inroad</title>
+<meta property="og:title" content="inroad">
+<meta property="og:description" content="Three targeted, personalised outreach emails a day, matched to real openings and the people who can get you in.">
+<meta property="og:image" content="https://www.the-inroad.com/static/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://www.the-inroad.com/static/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
@@ -595,10 +604,11 @@
     } catch (_) { /* proceed if check fails */ }
 
     try {
+      const _refCode = new URLSearchParams(window.location.search).get('ref') || '';
       const res = await fetch(`${API_BASE}/auth/magic-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, ref: _refCode }),
       });
 
       if (res.status === 429) {

@@ -26,7 +26,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from config.settings    import DAILY_MATCH_QUOTA, DB_PATH
 from db.database        import db_conn, get_active_jobs, get_card_count_today, USE_POSTGRES, \
                                fetchone as db_fetchone, fetchall as db_fetchall, \
-                               execute as db_execute, get_leads_for_company, get_seen_linkedin_urls
+                               execute as db_execute, get_leads_for_company, get_seen_linkedin_urls, \
+                               update_student_fields
 from pipeline.matcher   import LinkedInMatcher, score_lead, score_lead_v2
 from pipeline.email_infer import EmailInferrer
 
@@ -47,7 +48,7 @@ def _preference_score(job: dict, student: dict) -> float:
     student_industries = json.loads(student.get("industries") or "[]")
     if job.get("industry") in student_industries:
         score += 50.0
-    elif any(ind.lower() in (job.get("industry") or "").lower() for ind in student_industries):
+    elif any(ind and ind.lower() in (job.get("industry") or "").lower() for ind in student_industries):
         score += 25.0
 
     # Company size match
@@ -71,32 +72,38 @@ def _preference_score(job: dict, student: dict) -> float:
 def _recency_score(job: dict) -> float:
     """
     Recency component (0–100).
-    Newer postings score higher.
-      0–3 days:   100
-      4–7 days:    80
-      8–14 days:   60
-      15–21 days:  40
-      >21 days:    20
+    Jobs posted in the current calendar month are always prioritised (100).
+    Older postings decay by age.
+      current month:  100
+      1 month old:     70
+      2 months old:    50
+      3 months old:    30
+      >3 months:       10
     """
-    posted_at = job.get("posted_at")
-    if not posted_at:
-        return 40.0  # neutral if unknown
+    # get_active_jobs returns opening_date; fall back to posted_date (created_at alias)
+    raw_date = job.get("opening_date") or job.get("posted_at") or job.get("posted_date")
+    if not raw_date:
+        return 30.0  # unknown — deprioritise relative to dated postings
     try:
-        posted_date = date.fromisoformat(str(posted_at)[:10])
-        days_old = (date.today() - posted_date).days
+        posted_date = date.fromisoformat(str(raw_date)[:10])
     except Exception:
-        return 40.0
+        return 30.0
 
-    if days_old <= 3:
+    today = date.today()
+    # Same calendar month → always top priority
+    if posted_date.year == today.year and posted_date.month == today.month:
         return 100.0
-    elif days_old <= 7:
-        return 80.0
-    elif days_old <= 14:
-        return 60.0
-    elif days_old <= 21:
-        return 40.0
+
+    # Months elapsed (approximate)
+    months_old = (today.year - posted_date.year) * 12 + (today.month - posted_date.month)
+    if months_old <= 1:
+        return 70.0
+    elif months_old <= 2:
+        return 50.0
+    elif months_old <= 3:
+        return 30.0
     else:
-        return 20.0
+        return 10.0
 
 
 def _diversity_score(job: dict, already_selected: list) -> float:
@@ -127,7 +134,7 @@ def _diversity_score(job: dict, already_selected: list) -> float:
 def score_job(job: dict, student: dict, already_selected: list | None = None) -> float:
     """
     Score a job for a student using the roadmap formula:
-      Score = (Preference Match × 0.40) + (Recency × 0.30) + (Diversity × 0.30)
+      Score = (Preference Match × 0.30) + (Recency × 0.50) + (Diversity × 0.20)
 
     Returns a float 0–100.
     """
@@ -135,7 +142,7 @@ def score_job(job: dict, student: dict, already_selected: list | None = None) ->
     pref = _preference_score(job, student)
     rec  = _recency_score(job)
     div  = _diversity_score(job, already_selected)
-    return round(pref * 0.40 + rec * 0.30 + div * 0.30, 1)
+    return round(pref * 0.30 + rec * 0.50 + div * 0.20, 1)
 
 
 def _lead_company_matches(lead_company: str, job_company: str) -> bool:
@@ -200,11 +207,70 @@ _SENIORITY_WORDS = {
     "program", "placement", "spring", "winter", "year", "graduate",
 }
 
+# Maps extracted department strings (lowercase) to natural phrases for the
+# subject line "Student with a query on X"
+_DEPARTMENT_PHRASES = {
+    "risk management": "Risk Management",
+    "quantitative risk": "Quantitative Risk",
+    "quantitative research": "Quantitative Research",
+    "quantitative finance": "Quantitative Finance",
+    "quantitative trading": "Quantitative Trading",
+    "investment banking": "Investment Banking",
+    "investment management": "Investment Management",
+    "private equity": "Private Equity",
+    "venture capital": "Venture Capital",
+    "asset management": "Asset Management",
+    "portfolio management": "Portfolio Management",
+    "capital markets": "Capital Markets",
+    "equity research": "Equity Research",
+    "fixed income": "Fixed Income",
+    "corporate finance": "Corporate Finance",
+    "corporate development": "Corporate Development",
+    "mergers and acquisitions": "M&A",
+    "m&a": "M&A",
+    "trading": "Trading",
+    "sales and trading": "Sales & Trading",
+    "software engineering": "Software Engineering",
+    "data science": "Data Science",
+    "data analytics": "Data Analytics",
+    "data engineering": "Data Engineering",
+    "machine learning": "Machine Learning",
+    "artificial intelligence": "AI",
+    "product management": "Product Management",
+    "product": "Product",
+    "technology": "Technology",
+    "consulting": "Consulting",
+    "strategy": "Strategy",
+    "strategy and operations": "Strategy & Operations",
+    "business development": "Business Development",
+    "operations": "Operations",
+    "marketing": "Marketing",
+    "research": "Research",
+    "policy": "Policy",
+    "economics": "Economics",
+    "finance": "Finance",
+    "accounting": "Accounting",
+    "compliance": "Compliance",
+    "legal": "Legal",
+    "human resources": "Human Resources",
+    "actuarial": "Actuarial",
+    "insurance": "Insurance",
+    "real estate": "Real Estate",
+    "infrastructure": "Infrastructure",
+    "energy": "Energy",
+    "sustainability": "Sustainability",
+    "healthcare": "Healthcare",
+    "public policy": "Public Policy",
+    "impact investing": "Impact Investing",
+}
+
+
 def _job_department(job_title: str) -> str:
     """
-    Extract a clean department label from a job title.
+    Extract a clean, natural-sounding department phrase from a job title.
     e.g. '2026 Risk Management (Quant) Summer Associate' → 'Risk Management'
          'Software Engineering Intern' → 'Software Engineering'
+    Looks up the extracted phrase in _DEPARTMENT_PHRASES for a canonical form.
     """
     import re
     title = job_title or ""
@@ -216,7 +282,9 @@ def _job_department(job_title: str) -> str:
     words = title.split()
     cleaned = [w for w in words if w.lower() not in _SENIORITY_WORDS]
     result = " ".join(cleaned).strip(" –-,")
-    return result or title.strip()
+    extracted = result or title.strip()
+    # Look up canonical phrase (case-insensitive)
+    return _DEPARTMENT_PHRASES.get(extracted.lower(), extracted)
 
 
 def _get_industry_tone(job: dict) -> str:
@@ -238,167 +306,20 @@ def generate_email_draft(
     lead:    dict,
     job:     dict,
 ) -> tuple[str, str]:
-    """
-    Generate subject + body using Claude API (claude-sonnet-4-6).
-    Falls back to email_templates.py if API key not set or quality check fails.
-    Returns (subject, body).
-    """
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-
-    tenure_months = lead.get("tenure_months") or 0
-    tenure_hint = ""
-    if tenure_months > 0:
-        tenure_years = round(tenure_months / 12, 1)
-        tenure_hint = f"They have been at {lead.get('company', job.get('company_name', ''))} for approximately {tenure_years} year(s)."
-
-    context = {
-        "student_name":       student.get("name") or student.get("first_name", "there"),
-        "student_university": student.get("university", "my university"),
-        "student_bio":        student.get("bio", ""),
-        "recipient_name":     lead.get("name", "").split()[0] if lead.get("name") else "there",
-        "recipient_title":    lead.get("title", ""),
-        "recipient_company":  lead.get("company", job.get("company_name", "")),
-        "is_alumni":          lead.get("is_alumni", False),
-        "job_title":          job.get("title", ""),
-        "job_department":     _job_department(job.get("title", "")),
-        "job_url":            job.get("url", ""),
-        "industry_tone":      _get_industry_tone(job),
-        "tenure_hint":        tenure_hint,
-    }
-
-    if api_key:
-        subject, body = _claude_draft(context, api_key)
-        # Quality check — retry once if poor
-        from pipeline.email_templates import check_quality
-        q = check_quality(subject, body, {
-            "recipient_first_name": context["recipient_name"],
-            "job_title": context["job_title"],
-        })
-        if q["score"] < 6:
-            logger.info(f"Email quality {q['score']}/10 — retrying with tighten prompt")
-            subject, body = _claude_draft(context, api_key, tighten=True)
-            q2 = check_quality(subject, body, {
-                "recipient_first_name": context["recipient_name"],
-                "job_title": context["job_title"],
-            })
-            if q2["score"] < 6:
-                logger.info("Second attempt still low quality — falling back to template")
-                return _template_draft(context)
-        return subject, body
-    else:
-        logger.warning("ANTHROPIC_API_KEY not set — using template email")
-        return _template_draft(context)
-
-
-def _claude_draft(ctx: dict, api_key: str, tighten: bool = False) -> tuple[str, str]:
-    """Call Claude claude-sonnet-4-6 to generate the email."""
-    import urllib.request
-    import json
-
-    alumni_note = (
-        f"They are an alumni of {ctx['student_university']} — mention this connection naturally in one sentence."
-        if ctx["is_alumni"]
-        else "They are NOT an alumni — do NOT mention any shared university connection."
-    )
-    tenure_note = f"\n- {ctx['tenure_hint']}" if ctx.get("tenure_hint") else ""
-
-    tighten_note = "\n\nIMPORTANT: The bio paragraph must be used EXACTLY as provided — do not paraphrase or shorten it." if tighten else ""
-
-    bio = (ctx.get("student_bio") or "").strip() or f"I'm a student at {ctx['student_university']} interested in {ctx.get('industry_tone', 'this field')}."
-
-    prompt = f"""You are writing a cold outreach email on behalf of a university student. Follow the structure EXACTLY — do not deviate.{tighten_note}
-
-STUDENT:
-- Name: {ctx['student_name']}
-- University: {ctx['student_university']}
-- Bio (use verbatim as the intro paragraph): {bio}
-
-RECIPIENT:
-- First name: {ctx['recipient_first_name']}
-- Title: {ctx['recipient_title']} at {ctx['recipient_company']}{tenure_note}
-
-REQUIRED STRUCTURE (copy this exactly, filling in the placeholders):
-
-Hi [recipient first name],
-I know you are incredibly busy and get a lot of emails, so this will only take 30 seconds to read.
-
-[Student bio — paste it verbatim, no changes]
-
-What do you think are the most critical skills or qualities that an aspiring analyst on your team should possess?
-
-I totally understand if you are too busy to reply.
-Even a 1 or 2 line response will completely make my day.
-
-All the best,
-[Student name]
-
-[Student university]
-
-RULES:
-- Plain text only — no markdown, bullets, asterisks, or HTML
-- Do NOT change or paraphrase the bio — use it word for word
-- Do NOT add any extra sentences, questions, or paragraphs
-- Do NOT mention the specific job title or company name in the body
-- Do NOT ask for a meeting, coffee chat, or call
-- Do NOT include any URLs or links
-
-OUTPUT FORMAT:
-SUBJECT: Student with a query on {ctx['job_department']}
-BODY:
-<email body>"""
-
-    payload = json.dumps({
-        "model":      "claude-sonnet-4-6",
-        "max_tokens": 400,
-        "messages":   [{"role": "user", "content": prompt}],
-    }).encode()
-
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=payload,
-        headers={
-            "x-api-key":         api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type":      "application/json",
-        },
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data  = json.loads(resp.read().decode())
-            text  = data["content"][0]["text"].strip()
-            subject, body = "", text
-
-            lines = text.split("\n")
-            for i, line in enumerate(lines):
-                if line.upper().startswith("SUBJECT:"):
-                    subject = line.split(":", 1)[1].strip()
-                elif line.strip().upper() == "BODY:":
-                    body = "\n".join(lines[i+1:]).strip()
-                    break
-
-            return subject, body
-
-    except Exception as e:
-        logger.error(f"Claude API call failed: {e}")
-        return _template_draft(ctx)
-
-
-def _template_draft(ctx: dict) -> tuple[str, str]:
-    """Fallback template email when Claude API is unavailable."""
+    """Generate subject + body using the standard template. Returns (subject, body)."""
     from pipeline.email_templates import template_standard
 
-    name_parts = (ctx.get("recipient_name") or "").split()
-    template_ctx = {
-        "student_name":          ctx["student_name"],
-        "student_university":    ctx["student_university"],
-        "student_bio":           ctx.get("student_bio", ""),
-        "recipient_first_name":  name_parts[0] if name_parts else "there",
-        "recipient_company":     ctx["recipient_company"] or "your company",
-        "job_department":        ctx.get("job_department", ""),
-        "industry_hint":         "this field",
+    name_parts = (lead.get("name") or "").split()
+    ctx = {
+        "student_name":         student.get("name") or student.get("first_name") or "",
+        "student_university":   student.get("university") or "",
+        "student_bio":          student.get("bio") or "",
+        "recipient_first_name": name_parts[0] if name_parts else "there",
+        "recipient_company":    lead.get("company") or job.get("company_name") or "your company",
+        "job_department":       _job_department(job.get("title", "")),
+        "industry_hint":        _get_industry_tone(job),
     }
-    return template_standard(template_ctx)
+    return template_standard(ctx)
 
 
 # ── Main daily card generation ────────────────────────────────────────────────
@@ -429,15 +350,27 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
     suppressed    = get_suppressed_linkedin_urls()
 
     # Get matching jobs
-    student_industries = json.loads(student.get("industries") or "[]")
+    raw_inds = student.get("industries") or "[]"
+    if isinstance(raw_inds, list):
+        student_industries = raw_inds          # Postgres JSONB already parsed
+    else:
+        try:
+            student_industries = json.loads(raw_inds)
+        except Exception:
+            student_industries = []
+
     with db_conn(db_path) as conn:
         jobs = get_active_jobs(
             conn,
             industries  = student_industries,
             region      = student.get("region", "UK"),
-            days_fresh  = 30,
-            limit       = 100,
+            days_fresh  = 60,
+            limit       = 300,
         )
+
+    # Post-query safety filter: enforce industry match even if DB filter was loose
+    if student_industries:
+        jobs = [j for j in jobs if j.get("industry") in student_industries]
 
     # Filter already seen
     jobs = [j for j in jobs if j["id"] not in seen_job_ids]
@@ -517,13 +450,7 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         scored_leads.sort(key=lambda x: -x[0][0])
         (best_score, best_breakdown), best_lead = scored_leads[0]
 
-        # Skip card if best lead score is too low
-        MIN_LEAD_SCORE = 50
-        if best_score < MIN_LEAD_SCORE:
-            logger.info(
-                f"Skipping {company} ({job['title']}) — best lead score {best_score} < {MIN_LEAD_SCORE}"
-            )
-            continue
+        # (score threshold removed — all leads accepted regardless of score)
 
         # Infer email — use Apollo-provided email if available, otherwise fall back
         apollo_email = best_lead.get("email", "")
@@ -551,6 +478,7 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         card = {
             "student_id":          student_id,
             "job_id":              job["id"],
+            "job_url":             job.get("url", ""),
             "match_date":          today_str,
             "person_name":         best_lead.get("name", ""),
             "person_title":        best_lead.get("title", ""),
@@ -605,13 +533,33 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
     # Anonymise matches older than 90 days
     _anonymise_old_matches(student_id, db_path)
 
+    # Write daily match snapshot back onto the student row (overwrite each run)
+    if cards_written:
+        def _fmt(card):
+            name  = card.get("person_name", "").strip()
+            title = card.get("person_title", "").strip()
+            return f"{name}, {title}" if title else name
+
+        snap = {}
+        for i, card in enumerate(cards_written[:3], start=1):
+            snap[f"match{i}_job_url"]    = card.get("job_url", "") or ""
+            snap[f"match{i}_name_title"] = _fmt(card)
+            snap[f"match{i}_linkedin"]   = card.get("person_linkedin_url", "") or ""
+        # Clear slots not filled this run
+        for i in range(len(cards_written) + 1, 4):
+            snap[f"match{i}_job_url"]    = None
+            snap[f"match{i}_name_title"] = None
+            snap[f"match{i}_linkedin"]   = None
+        snap["matches_updated_date"] = today_str
+        update_student_fields(student_id, snap)
+
     logger.info(f"Student {student_id}: {len(cards_written)} cards written for {today_str}")
     return cards_written
 
 
 def generate_all_students_cards(db_path=DB_PATH):
     """Run daily card generation for every student."""
-    students = db_fetchall("SELECT id, first_name FROM students")
+    students = db_fetchall("SELECT id, name FROM students")
 
     logger.info(f"Generating daily cards for {len(students)} students")
     for s in students:

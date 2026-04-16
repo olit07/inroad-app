@@ -1163,7 +1163,7 @@ def score_lead_v2(
     student: dict,
 ) -> tuple[float, dict]:
     """
-    Lead scorer (total 100 pts). Priority order:
+    Lead scorer (total 92 pts). Priority order:
 
       location        25 pts  — MUST be hub city of job region (known wrong city = 0)
       alumni          15 pts  — shared university
@@ -1171,7 +1171,6 @@ def score_lead_v2(
       department      12 pts  — same functional area as the role
       title_relevance 10 pts  — job title keywords found in lead title
       seniority_fit   10 pts  — exec level OR 1-3 levels above intern
-      tenure_fit       8 pts  — 1-4 years at company (12-48 months)
       company_size     8 pts  — student size preference vs job company size
     """
     breakdown: dict[str, float] = {
@@ -1181,7 +1180,6 @@ def score_lead_v2(
         "department":      0.0,
         "title_relevance": 0.0,
         "seniority_fit":   0.0,
-        "tenure_fit":      0.0,
         "company_size":    0.0,
     }
 
@@ -1236,7 +1234,7 @@ def score_lead_v2(
     ind_pts = 0.0
     if job_industry and student_industries:
         jil = job_industry.lower()
-        sil = [s.lower() for s in student_industries]
+        sil = [s.lower() for s in student_industries if s]
         if jil in sil:
             ind_pts = 12.0
         elif any(jil in s or s in jil for s in sil):
@@ -1247,7 +1245,7 @@ def score_lead_v2(
     lead_title      = (lead.get("title") or "").lower()
     job_title_lower = (job.get("title") or "").lower()
     job_industry_l  = job_industry.lower()
-    job_industries  = [i.lower() for i in (job.get("industries") or [])]
+    job_industries  = [i.lower() for i in (job.get("industries") or []) if i]
     combined_job    = " ".join([job_title_lower, job_industry_l] + job_industries)
 
     DEPT_GROUPS: list[tuple[str, list[str]]] = [
@@ -1296,26 +1294,14 @@ def score_lead_v2(
         sen_pts = 10.0 if 1 <= diff <= 3 else (4.0 if diff == 4 else 0.0)
     breakdown["seniority_fit"] = sen_pts
 
-    # ── 7. Tenure fit (8 pts) — 12-48 months sweet spot ─────────────
-    tenure = lead.get("tenure_months") or 0
-    if 12 <= tenure <= 48:
-        ten_pts = 8.0
-    elif 6 <= tenure < 12 or 48 < tenure <= 72:
-        ten_pts = 4.0
-    elif tenure > 0:
-        ten_pts = 2.0
-    else:
-        ten_pts = 0.0
-    breakdown["tenure_fit"] = ten_pts
-
-    # ── 8. Company size (8 pts) ──────────────────────────────────────
+    # ── 7. Company size (8 pts) ──────────────────────────────────────
     student_size = _normalise_company_size(student.get("company_size"))
     job_size     = _normalise_company_size(job.get("company_size"))
     size_pts = 8.0 if (student_size and job_size and student_size == job_size) else 0.0
     breakdown["company_size"] = size_pts
 
     total = round(min(
-        loc_pts + ind_pts + alumni_pts + dept_pts + trel_pts + sen_pts + ten_pts + size_pts,
+        loc_pts + ind_pts + alumni_pts + dept_pts + trel_pts + sen_pts + size_pts,
         100
     ), 1)
     return total, breakdown
