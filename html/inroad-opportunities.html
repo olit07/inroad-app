@@ -192,15 +192,34 @@
     white-space: nowrap;
   }
 
+  /* ── NEW SECTION PANEL ── */
+  .new-section {
+    background: var(--green-lite);
+    border: 1.5px solid var(--green-mid);
+    border-radius: 10px;
+    padding: 14px 16px 10px;
+    margin-bottom: 32px;
+  }
+  .new-section .col-header { color: var(--green-deep); opacity: 0.6; }
+  .new-section .job-card { border-color: rgba(31,69,48,0.15); }
+  .new-section .job-card:hover { border-color: var(--green-mid); }
+  .new-section .job-card.open { border-color: var(--green); }
+
   /* ── SECTION LABEL ── */
   .section-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-top: 32px;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-top: 28px;
+    margin-bottom: 6px;
   }
-  .section-row:first-child { margin-top: 0; }
+  .new-section .section-row { margin-top: 0; margin-bottom: 10px; }
+
+  .section-row.collapsible { cursor: pointer; user-select: none; }
+  .section-row.collapsible:hover .section-pill.all-pill {
+    border-color: var(--border-md);
+    color: var(--text-mid);
+  }
 
   .section-pill {
     font-size: 0.68rem;
@@ -210,21 +229,67 @@
     padding: 3px 10px;
     border-radius: 100px;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .section-pill.new-pill {
     background: var(--green);
     color: #fff;
+    font-size: 0.72rem;
+    padding: 4px 12px;
   }
+  .pill-dot {
+    width: 6px; height: 6px;
+    background: #6ee29a;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: blink 2s ease infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
   .section-pill.all-pill {
     background: var(--surface);
     color: var(--muted);
     border: 1px solid var(--border);
+    transition: border-color 0.15s, color 0.15s;
   }
+
+  .pill-count {
+    font-size: 0.6rem;
+    font-weight: 700;
+    background: rgba(0,0,0,0.08);
+    padding: 1px 5px;
+    border-radius: 100px;
+  }
+  .new-pill .pill-count { background: rgba(255,255,255,0.25); }
+
+  .section-chevron {
+    font-size: 11px;
+    color: var(--subtle);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .section-row.collapsed .section-chevron { transform: rotate(-90deg); }
 
   .section-line {
     flex: 1;
     height: 1px;
     background: var(--border);
+  }
+  .new-section .section-line { background: var(--green-mid); opacity: 0.4; }
+
+  /* ── COLLAPSIBLE BODY ── */
+  .section-body {
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 9999px;
+    opacity: 1;
+  }
+  .section-body.collapsed {
+    max-height: 0 !important;
+    opacity: 0;
   }
 
   /* ── COLUMN HEADER ── */
@@ -628,6 +693,7 @@
 
   const DIVISION_ORDER = ['IB', 'AM', 'S&T'];
   const DIVISION_LABEL = { 'IB': 'Investment Banking', 'AM': 'Asset Management', 'S&T': 'Sales & Trading' };
+  const collapsedSections = new Set();
 
   function render() {
     const jobs    = filtered();
@@ -638,7 +704,6 @@
     shownCountEl.style.display = filtering ? '' : 'none';
     if (filtering) shownCountEl.textContent = jobs.length + ' shown';
 
-    // Group old jobs by division
     const byDivision = {};
     const noDivision = [];
     for (const j of oldJobs) {
@@ -649,26 +714,39 @@
       }
     }
 
-    const parts = [
-      sectionHtml('new-pill', 'New — last 72 hours', newJobs,
-        newJobs.length === 0 ? '<p class="card-empty">No new listings in the last 72 hours.</p>' : null),
-    ];
+    const colHeader = `<div class="col-header"><span>Company</span><span>Programme</span><span>Opened</span><span></span></div>`;
 
+    // "New" section — distinct panel, not collapsible
+    const newBody = newJobs.length === 0
+      ? '<p class="card-empty">No new listings in the last 72 hours.</p>'
+      : colHeader + '<div class="card-list">' + newJobs.map(cardHtml).join('') + '</div>';
+    const newSection = `
+      <div class="new-section">
+        <div class="section-row">
+          <span class="section-pill new-pill"><span class="pill-dot"></span>New — last 72 hours<span class="pill-count">${newJobs.length}</span></span>
+          <span class="section-line"></span>
+        </div>
+        ${newBody}
+      </div>`;
+
+    // Collapsible division sections
+    const divParts = [];
     if (oldJobs.length === 0) {
-      parts.push(sectionHtml('all-pill', 'All listings', [], '<p class="card-empty">No listings match your filters.</p>'));
+      divParts.push(collapsibleSection('all', 'All listings', [], '<p class="card-empty">No listings match your filters.</p>'));
     } else {
       for (const div of DIVISION_ORDER) {
         const group = byDivision[div];
         if (!group || group.length === 0) continue;
-        parts.push(sectionHtml('all-pill', `${div} — ${DIVISION_LABEL[div]}`, group, null));
+        divParts.push(collapsibleSection(div, `${div} — ${DIVISION_LABEL[div]}`, group, null));
       }
       if (noDivision.length > 0) {
-        parts.push(sectionHtml('all-pill', 'Other', noDivision, null));
+        divParts.push(collapsibleSection('other', 'Other', noDivision, null));
       }
     }
 
-    listingsEl.innerHTML = parts.join('');
+    listingsEl.innerHTML = newSection + divParts.join('');
 
+    // Card click handlers
     listingsEl.querySelectorAll('.job-card').forEach(card => {
       const id = card.dataset.id;
       card.querySelector('.card-row').addEventListener('click', () => toggleCard(id));
@@ -680,24 +758,41 @@
       const el = listingsEl.querySelector(`.job-card[data-id="${openCardId}"]`);
       if (el) el.classList.add('open');
     }
+
+    // Section toggle handlers
+    listingsEl.querySelectorAll('.section-row.collapsible').forEach(row => {
+      const key = row.dataset.key;
+      row.addEventListener('click', () => {
+        if (collapsedSections.has(key)) collapsedSections.delete(key);
+        else collapsedSections.add(key);
+        row.classList.toggle('collapsed', collapsedSections.has(key));
+        const body = row.nextElementSibling;
+        if (body && body.classList.contains('section-body')) {
+          body.classList.toggle('collapsed', collapsedSections.has(key));
+        }
+      });
+    });
+  }
+
+  function collapsibleSection(key, label, jobs, emptyHtml) {
+    const isCollapsed = collapsedSections.has(key);
+    const colHeader = `<div class="col-header"><span>Company</span><span>Programme</span><span>Opened</span><span></span></div>`;
+    const bodyContent = emptyHtml || colHeader + '<div class="card-list">' + jobs.map(cardHtml).join('') + '</div>';
+    return `
+      <div class="section-row collapsible${isCollapsed ? ' collapsed' : ''}" data-key="${key}">
+        <span class="section-pill all-pill">${label}<span class="pill-count">${jobs.length}</span></span>
+        <span class="section-line"></span>
+        <span class="section-chevron">▾</span>
+      </div>
+      <div class="section-body${isCollapsed ? ' collapsed' : ''}">
+        ${bodyContent}
+      </div>`;
   }
 
   function toggleCard(id) {
     openCardId = openCardId === id ? null : id;
     listingsEl.querySelectorAll('.job-card').forEach(c =>
       c.classList.toggle('open', c.dataset.id === openCardId));
-  }
-
-  function sectionHtml(pillClass, label, jobs, emptyHtml) {
-    return `
-      <div class="section-row">
-        <span class="section-pill ${pillClass}">${label}</span>
-        <span class="section-line"></span>
-      </div>
-      <div class="col-header">
-        <span>Company</span><span>Programme</span><span>Opened</span><span></span>
-      </div>
-      ${emptyHtml || '<div class="card-list">' + jobs.map(cardHtml).join('') + '</div>'}`;
   }
 
   function cardHtml(job) {
