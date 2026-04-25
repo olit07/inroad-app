@@ -29,7 +29,7 @@ from config.settings import (
     APP_BASE_URL, SESSION_SECRET, FROM_EMAIL, FROM_NAME,
     MAGIC_LINK_EXPIRY_MINUTES, MAGIC_LINK_RATE_LIMIT,
     MAGIC_LINK_RATE_WINDOW, SESSION_DAYS, ALLOWED_ORIGINS, DEV_MODE,
-    JWT_REFRESH_TTL_DAYS, ADMIN_SECRET,
+    JWT_REFRESH_TTL_DAYS, ADMIN_SECRET, SEARCH_ROLES_ENABLED,
     AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
 )
 from db.database import (
@@ -40,7 +40,8 @@ from db.database import (
     log_email, count_recent_tokens, fetchall, fetchone,
     execute as db_execute,
     create_refresh_token, get_refresh_token, revoke_refresh_token,
-    get_queued_cards, mark_card_consumed
+    get_queued_cards, mark_card_consumed,
+    get_leads_for_company
 )
 from api.auth import make_access_token, make_refresh_token_str, require_jwt
 from utils.university_lookup import detect_university
@@ -61,22 +62,6 @@ logging.basicConfig(
 # Initialise DB tables on startup — must be at module level so Gunicorn picks it up
 init_db()
 
-# Start the daily pipeline scheduler as a background daemon thread.
-# Only runs in production (where the cron would otherwise be absent) and only
-# in the first gunicorn worker (gunicorn forks workers — guard with an env flag
-# to avoid N parallel schedulers).
-if os.environ.get("SCHEDULER_STARTED") != "1":
-    os.environ["SCHEDULER_STARTED"] = "1"
-    import threading
-    def _start_scheduler():
-        try:
-            from scheduler.run import run_daemon
-            run_daemon()
-        except Exception as exc:
-            logging.getLogger("scheduler").error(f"Scheduler thread crashed: {exc}", exc_info=True)
-    _t = threading.Thread(target=_start_scheduler, name="scheduler", daemon=True)
-    _t.start()
-
 # Determine if we're on a secure host (Railway / any https origin)
 IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
 
@@ -86,12 +71,9 @@ IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
 def _start_background_scheduler():
     """
     Start the daily pipeline (cards + notify) in a background thread.
-    Enabled by setting SCHEDULER_ENABLED=true in the environment.
     Uses a non-blocking file lock so only one gunicorn worker runs the loop.
+    The lock is process-safe: whichever worker acquires it becomes the sole scheduler.
     """
-    if os.environ.get("SCHEDULER_ENABLED", "false").lower() != "true":
-        return
-
     import threading, time, fcntl, logging as _log
 
     try:
@@ -144,7 +126,7 @@ def require_admin(f):
 
 # ── Session helpers ──────────────────────────────────────────────────────────
 
-COOKIE_NAME = "ccc_session"
+COOKIE_NAME = "inroad_session"
 
 
 def _sign(payload: str) -> str:
@@ -528,11 +510,15 @@ def verify():
 
     student_id = student["id"]
 
-    # Auto-detect university from email domain and store it (once, for new users)
+    # Auto-detect university from email domain; set university name and region
     if is_new_user or not student.get("university"):
         uni_info = detect_university(email)
         if uni_info:
-            update_student_fields(student_id, {"university": uni_info["name"]})
+            region = "US" if uni_info.get("country", "").upper() == "US" else "UK"
+            update_student_fields(student_id, {"university": uni_info["name"], "region": region})
+        else:
+            # No university email — default to UK so leads/jobs are UK-based
+            update_student_fields(student_id, {"region": "UK"})
 
     # Credit referrer if this is a new signup with a valid referral code
     if is_new_user:
@@ -584,7 +570,7 @@ def verify():
 
     resp = make_response(jsonify({"access_token": access_token, "redirect": destination}))
     resp.set_cookie(
-        "ccc_refresh",
+        "inroad_refresh",
         refresh_token_str,
         max_age=JWT_REFRESH_TTL_DAYS * 86400,
         httponly=True,
@@ -597,7 +583,7 @@ def verify():
 
 @app.route("/auth/refresh", methods=["POST"])
 def refresh():
-    token_str = request.cookies.get("ccc_refresh", "")
+    token_str = request.cookies.get("inroad_refresh", "")
     if not token_str:
         return jsonify({"error": "missing refresh token"}), 401
 
@@ -635,7 +621,7 @@ def refresh():
 
     resp = make_response(jsonify({"access_token": access_token}))
     resp.set_cookie(
-        "ccc_refresh",
+        "inroad_refresh",
         new_refresh_str,
         max_age=JWT_REFRESH_TTL_DAYS * 86400,
         httponly=True,
@@ -648,11 +634,11 @@ def refresh():
 
 @app.route("/auth/logout", methods=["POST"])
 def logout():
-    token_str = request.cookies.get("ccc_refresh", "")
+    token_str = request.cookies.get("inroad_refresh", "")
     if token_str:
         revoke_refresh_token(token_str)
     resp = make_response(jsonify({"status": "ok"}))
-    resp.delete_cookie("ccc_refresh", path="/")
+    resp.delete_cookie("inroad_refresh", path="/")
     return resp
 
 
@@ -665,7 +651,8 @@ def _sanitise_student(student: dict) -> dict:
     s.pop("outlook_access_token", None)
     s.pop("outlook_refresh_token", None)
     s.pop("outlook_token_expiry", None)
-    s["outlook_connected"] = connected
+    s["outlook_connected"]    = connected
+    s["search_roles_enabled"] = SEARCH_ROLES_ENABLED
     return s
 
 
@@ -767,7 +754,7 @@ def delete_me():
     revoke_all_tokens_for_student(g.student_id)
     deactivate_student(g.student_id)
     resp = make_response(jsonify({"status": "deactivated"}))
-    resp.delete_cookie("ccc_refresh", path="/")
+    resp.delete_cookie("inroad_refresh", path="/")
     return resp
 
 
@@ -843,6 +830,17 @@ def regenerate_draft():
 
     from pipeline.daily_cards import generate_email_draft
     subject, body = generate_email_draft(student, lead, job)
+
+    # Persist the regenerated draft so it survives page refresh
+    match_id = data.get("match_id")
+    if match_id:
+        from db.database import execute as _exec, USE_POSTGRES
+        ph = "%s" if USE_POSTGRES else "?"
+        _exec(
+            f"UPDATE matches SET email_subject = {ph}, email_body = {ph} WHERE id = {ph} AND student_id = {ph}",
+            (subject, body, match_id, g.student_id),
+        )
+
     return jsonify({"subject": subject, "body": body})
 
 
@@ -1222,6 +1220,52 @@ def list_jobs():
 
     jobs = [_parse_row(r) for r in rows]
     return jsonify({"data": {"jobs": jobs}})
+
+
+@app.route("/api/jobs/search")
+@require_jwt
+def search_jobs():
+    q     = (request.args.get("q") or "").strip()
+    limit = min(int(request.args.get("limit", 20)), 100)
+
+    if not q:
+        return jsonify({"results": []})
+
+    student = fetchone("SELECT id FROM students WHERE id = ?", (g.student_id,))
+    if not student:
+        return jsonify({"error": "student not found"}), 404
+
+    from db.database import USE_POSTGRES
+    ilike = "ILIKE" if USE_POSTGRES else "LIKE"
+    term  = f"%{q}%"
+
+    jobs = fetchall(
+        f"SELECT id, title, company, url, location, industry, role_type, opening_date "
+        f"FROM jobs "
+        f"WHERE (title {ilike} ? OR company {ilike} ?) "
+        f"  AND (url IS NOT NULL AND url != '') "
+        f"ORDER BY opening_date DESC NULLS LAST "
+        f"LIMIT ?",
+        (term, term, limit),
+    )
+
+    results = []
+    seen_companies: set = set()
+    for job in jobs:
+        company = job["company"]
+        if company in seen_companies:
+            continue
+        seen_companies.add(company)
+
+        leads     = get_leads_for_company(company)
+        best_lead = leads[0] if leads else None
+
+        results.append({
+            "job":  dict(job),
+            "lead": dict(best_lead) if best_lead else None,
+        })
+
+    return jsonify({"results": results})
 
 
 @app.route("/api/admin/jobs/cleanup", methods=["POST"])
@@ -1648,6 +1692,93 @@ def settings_page():
     return _send_html("inroad-settings.html")
 
 
+@app.route("/opportunities")
+def opportunities_page():
+    return _send_html("inroad-opportunities.html")
+
+
+@app.route("/api/opportunities")
+def api_opportunities():
+    """Return all jobs with their insider leads, formatted for the opportunities page."""
+    import json as _json
+
+    DIVISION_RULES = [
+        ("IB",  ["investment bank", "m&a", "mergers", "acquisitions", "capital markets",
+                  "corporate finance", "ecm", "dcm", "leveraged finance", "ib"]),
+        ("AM",  ["asset management", "asset manager", "portfolio", "fund manager",
+                 "wealth management", "private wealth", "investment management", "am "]),
+        ("S&T", ["sales", "trading", "structuring", "market making", "equities",
+                 "fixed income", "fx ", "derivatives", "commodities", "s&t"]),
+    ]
+
+    def infer_division(title: str, industry: str) -> str:
+        text = (title + " " + (industry or "")).lower()
+        for tag, keywords in DIVISION_RULES:
+            if any(k in text for k in keywords):
+                return tag
+        return ""
+
+    rows = fetchall(
+        "SELECT id, title, company, url, opening_date, closing_date, industry, created_at "
+        "FROM jobs WHERE company IS NOT NULL AND company != '' "
+        "AND title IS NOT NULL AND title != '' "
+        "ORDER BY opening_date DESC NULLS LAST, created_at DESC NULLS LAST LIMIT 500"
+    )
+
+    jobs = []
+    updated_at = None
+    for r in rows:
+        company  = r.get("company") or ""
+        title    = r.get("title") or ""
+        division = infer_division(title, r.get("industry") or "")
+
+        raw_leads = get_leads_for_company(company)
+        leads = []
+        for l in raw_leads[:5]:
+            name = l.get("name") or ""
+            badges = []
+            if l.get("university"):
+                badges.append("uni")
+            if l.get("is_alumni") or l.get("is_alumni") == 1:
+                badges.append("exp")
+            initials = ""
+            parts = name.strip().split()
+            if parts:
+                initials = (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()
+            leads.append({
+                "id":          l.get("id"),
+                "name":        name,
+                "title":       l.get("title") or l.get("job_title") or "",
+                "initials":    initials,
+                "linkedin_url": l.get("linkedin_url") or "",
+                "badges":      badges,
+                "university":  l.get("university") or "",
+                "verified":    False,
+            })
+
+        opening_date = r.get("opening_date") or ""
+        if opening_date and not updated_at:
+            updated_at = opening_date
+
+        jobs.append({
+            "id":           r.get("id"),
+            "company":      company,
+            "programme":    title,
+            "division":     division,
+            "opening_date": opening_date,
+            "closing_date": r.get("closing_date") or "",
+            "apply_url":    r.get("url") or "",
+            "leads":        leads,
+        })
+
+    from datetime import datetime, timezone
+    return jsonify({
+        "jobs":       jobs,
+        "count":      len(jobs),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
 @app.route("/admin")
 @require_admin
 def admin_page():
@@ -1762,5 +1893,5 @@ if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5001))
     debug = DEV_MODE
-    print(f"[CCC] Starting on port {port} | production={IS_PRODUCTION} | debug={debug}")
+    print(f"[inroad] Starting on port {port} | production={IS_PRODUCTION} | debug={debug}")
     app.run(host="0.0.0.0", port=port, debug=debug)

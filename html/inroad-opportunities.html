@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opportunities — inroad</title>
+<meta name="description" content="Browse open UK finance internships with insider contacts at every firm.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:          #0b0c0f;
+  --surface:     #13141a;
+  --surface2:    #1b1d26;
+  --border:      #252733;
+  --border-hover:#3a3e52;
+  --accent:      #c8f04c;
+  --accent-dim:  rgba(200,240,76,0.12);
+  --accent-glow: rgba(200,240,76,0.25);
+  --text:        #e8eaf0;
+  --text-muted:  #7a7e94;
+  --text-dim:    #4a4e62;
+  --badge-uni:        rgba(100,130,255,0.15);
+  --badge-uni-text:   #8096ff;
+  --badge-uni-border: rgba(100,130,255,0.25);
+  --badge-div:        rgba(255,180,60,0.12);
+  --badge-div-text:   #ffb43c;
+  --badge-div-border: rgba(255,180,60,0.2);
+  --badge-exp:        var(--accent-dim);
+  --badge-exp-text:   var(--accent);
+  --badge-exp-border: rgba(200,240,76,0.2);
+  --mono: 'DM Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+header {
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(11,12,15,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--text);
+}
+.logo span { color: var(--accent); }
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+nav a {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+nav a:hover { color: var(--text); background: var(--surface2); }
+nav a.active { color: var(--accent); background: var(--accent-dim); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-solid {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--accent);
+  color: #0b0c0f;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: all 0.15s;
+}
+.btn-solid:hover { opacity: 0.88; }
+
+.btn-outline {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-hover);
+  border-radius: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: all 0.15s;
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── PAGE ── */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.page-title {
+  font-family: var(--sans);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.page-meta {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+}
+.page-meta span { color: var(--text-dim); }
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 14px;
+  pointer-events: none;
+  font-family: var(--mono);
+}
+
+.search-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px 8px 36px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.search-input::placeholder { color: var(--text-dim); }
+.search-input:focus { border-color: var(--border-hover); }
+
+.filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: all 0.15s;
+}
+.filter-btn:hover { border-color: var(--border-hover); color: var(--text); }
+.filter-btn.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+.shown-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 8px 4px;
+  white-space: nowrap;
+}
+
+/* ── SECTION LABEL ── */
+.section-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+  margin-bottom: 8px;
+}
+.section-row:first-child { margin-top: 0; }
+
+.section-pill {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.section-pill.new-pill {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid rgba(200,240,76,0.3);
+}
+.section-pill.all-pill {
+  background: var(--surface2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.section-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── COLUMN HEADER ── */
+.col-header {
+  display: grid;
+  grid-template-columns: 220px 1fr 130px 30px;
+  padding: 5px 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* ── CARD LIST ── */
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-empty {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+/* ── JOB CARD ── */
+.job-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  overflow: hidden;
+}
+.job-card:hover { border-color: var(--border-hover); }
+.job-card.open { border-color: var(--accent); }
+
+.card-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 130px 30px;
+  align-items: center;
+  padding: 8px 14px;
+  min-height: 36px;
+  user-select: none;
+}
+
+.card-company {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+
+.card-programme {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+
+.card-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.card-date.fresh { color: var(--accent); }
+
+.card-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--text-dim);
+  transition: transform 0.2s, color 0.15s;
+  font-family: var(--mono);
+}
+.job-card.open .card-chevron { transform: rotate(180deg); color: var(--accent); }
+
+/* ── DROPDOWN ── */
+.card-dropdown {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  border-top: 0px solid var(--border);
+}
+.job-card.open .card-dropdown {
+  max-height: 600px;
+  border-top-width: 1px;
+}
+
+.dropdown-inner {
+  padding: 16px;
+}
+
+.leads-heading {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.leads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.lead-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 8px 12px;
+}
+
+.lead-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lead-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.lead-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lead-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lead-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-top: 3px;
+}
+
+.badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.badge.uni { background: var(--badge-uni); color: var(--badge-uni-text); border: 1px solid var(--badge-uni-border); }
+.badge.div { background: var(--badge-div); color: var(--badge-div-text); border: 1px solid var(--badge-div-border); }
+.badge.exp { background: var(--badge-exp); color: var(--badge-exp-text); border: 1px solid var(--badge-exp-border); }
+
+.connect-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-hover);
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.connect-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+
+.card-footer-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 14px;
+}
+
+.card-footer-meta span { color: var(--text-dim); }
+
+.apply-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--accent);
+  color: #0b0c0f;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.apply-btn:hover { opacity: 0.88; }
+
+/* ── LOADING / ERROR ── */
+.state-msg {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 48px 0;
+  text-align: center;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .page { padding: 24px 16px 60px; }
+  header { padding: 0 16px; }
+  .col-header { grid-template-columns: 140px 1fr 100px 30px; }
+  .card-row { grid-template-columns: 140px 1fr 100px 30px; }
+  nav a:not(.active) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo">in<span>road</span></a>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/opportunities" class="active">Opportunities</a>
+  </nav>
+  <div class="header-right">
+    <a href="/login" class="btn-outline">Log in</a>
+    <a href="/signup" class="btn-solid">Get started →</a>
+  </div>
+</header>
+
+<div class="page">
+  <h1 class="page-title">Opportunities</h1>
+  <p class="page-meta" id="page-meta"><span>Loading…</span></p>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" class="search-input" id="search" placeholder="Search company or programme…" autocomplete="off">
+    </div>
+    <div class="filter-wrap" id="filter-wrap">
+      <button class="filter-btn" data-div="IB">IB</button>
+      <button class="filter-btn" data-div="AM">AM</button>
+      <button class="filter-btn" data-div="S&T">S&T</button>
+    </div>
+    <span class="shown-count" id="shown-count" style="display:none"></span>
+  </div>
+
+  <div id="listings">
+    <p class="state-msg">Loading listings…</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  let allJobs = [];
+  let activeFilters = new Set();
+  let searchQuery = '';
+  let openCardId = null;
+
+  const listingsEl = document.getElementById('listings');
+  const pageMetaEl = document.getElementById('page-meta');
+  const searchEl   = document.getElementById('search');
+  const shownCountEl = document.getElementById('shown-count');
+
+  // ── Division filter buttons ──
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const div = btn.dataset.div;
+      if (activeFilters.has(div)) {
+        activeFilters.delete(div);
+        btn.classList.remove('on');
+      } else {
+        activeFilters.add(div);
+        btn.classList.add('on');
+      }
+      render();
+    });
+  });
+
+  // ── Search ──
+  searchEl.addEventListener('input', () => {
+    searchQuery = searchEl.value.trim().toLowerCase();
+    render();
+  });
+
+  // ── Load data ──
+  fetch('/api/opportunities')
+    .then(r => r.json())
+    .then(data => {
+      allJobs = data.jobs || [];
+      const ts = data.updated_at ? new Date(data.updated_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : '';
+      pageMetaEl.innerHTML =
+        `<b>${allJobs.length}</b> listings` +
+        (ts ? ` &nbsp;·&nbsp; <span>updated ${ts}</span>` : '');
+      render();
+    })
+    .catch(() => {
+      listingsEl.innerHTML = '<p class="state-msg">Failed to load listings. Please refresh.</p>';
+    });
+
+  function isNew(opening_date) {
+    if (!opening_date) return false;
+    const d = new Date(opening_date);
+    if (isNaN(d)) return false;
+    return (Date.now() - d.getTime()) <= 72 * 3600 * 1000;
+  }
+
+  function filterJobs(jobs) {
+    return jobs.filter(j => {
+      if (activeFilters.size > 0 && !activeFilters.has(j.division)) return false;
+      if (searchQuery) {
+        const hay = (j.company + ' ' + j.programme).toLowerCase();
+        if (!hay.includes(searchQuery)) return false;
+      }
+      return true;
+    });
+  }
+
+  function render() {
+    const filtered = filterJobs(allJobs);
+    const newJobs  = filtered.filter(j => isNew(j.opening_date));
+    const oldJobs  = filtered.filter(j => !isNew(j.opening_date));
+
+    const isFiltering = activeFilters.size > 0 || searchQuery;
+    if (isFiltering) {
+      shownCountEl.textContent = filtered.length + ' shown';
+      shownCountEl.style.display = '';
+    } else {
+      shownCountEl.style.display = 'none';
+    }
+
+    const html = [
+      sectionHtml('new-pill', 'New — last 72 hours', newJobs, newJobs.length === 0
+        ? '<p class="card-empty">No new listings in the last 72 hours.</p>' : null),
+      sectionHtml('all-pill', 'All listings', oldJobs, oldJobs.length === 0
+        ? '<p class="card-empty">No listings match your filters.</p>' : null),
+    ].join('');
+
+    listingsEl.innerHTML = html;
+
+    // Re-attach click handlers
+    listingsEl.querySelectorAll('.job-card').forEach(card => {
+      const id = card.dataset.id;
+      card.querySelector('.card-row').addEventListener('click', () => toggleCard(id));
+      const applyBtn = card.querySelector('.apply-btn');
+      if (applyBtn) {
+        applyBtn.addEventListener('click', e => e.stopPropagation());
+      }
+    });
+
+    // Restore open card
+    if (openCardId) {
+      const el = listingsEl.querySelector(`.job-card[data-id="${openCardId}"]`);
+      if (el) el.classList.add('open');
+    }
+  }
+
+  function toggleCard(id) {
+    if (openCardId === id) {
+      openCardId = null;
+    } else {
+      openCardId = id;
+    }
+    listingsEl.querySelectorAll('.job-card').forEach(card => {
+      card.classList.toggle('open', card.dataset.id === openCardId);
+    });
+  }
+
+  function sectionHtml(pillClass, label, jobs, emptyHtml) {
+    const colHeader = `
+      <div class="col-header">
+        <span>Company</span><span>Programme</span><span>Opened</span><span></span>
+      </div>`;
+
+    let cardsHtml = '';
+    if (emptyHtml) {
+      cardsHtml = emptyHtml;
+    } else {
+      cardsHtml = '<div class="card-list">' + jobs.map(cardHtml).join('') + '</div>';
+    }
+
+    return `
+      <div class="section-row">
+        <span class="section-pill ${pillClass}">${label}</span>
+        <span class="section-line"></span>
+      </div>
+      ${colHeader}
+      ${cardsHtml}`;
+  }
+
+  function cardHtml(job) {
+    const fresh = isNew(job.opening_date);
+    const dateStr = job.opening_date
+      ? new Date(job.opening_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
+      : '—';
+
+    const leadsSection = job.leads && job.leads.length > 0
+      ? `<div class="leads-heading">Insider leads for ${esc(job.company)} — ${job.leads.length} contact${job.leads.length !== 1 ? 's' : ''}</div>
+         <div class="leads-list">${job.leads.map(leadHtml).join('')}</div>`
+      : `<div class="leads-heading" style="color:var(--text-dim);margin-bottom:14px;">No insider leads on file for this company yet.</div>`;
+
+    const divisionStr = job.division || '—';
+    const applyHref   = job.apply_url || '#';
+
+    return `
+      <div class="job-card" data-id="${job.id}">
+        <div class="card-row">
+          <span class="card-company">${esc(job.company)}</span>
+          <span class="card-programme">${esc(job.programme)}</span>
+          <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
+          <span class="card-chevron">▾</span>
+        </div>
+        <div class="card-dropdown">
+          <div class="dropdown-inner">
+            ${leadsSection}
+            <div class="card-footer">
+              <div class="card-footer-meta">
+                <span>Opened:</span> ${dateStr}
+                &nbsp;·&nbsp;
+                <span>Division:</span> ${esc(divisionStr)}
+              </div>
+              <a href="${esc(applyHref)}" target="_blank" rel="noopener" class="apply-btn">Apply →</a>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function leadHtml(lead) {
+    const initials = lead.initials || initFromName(lead.name);
+    const badges   = (lead.badges || []).map(b => `<span class="badge ${b}">${badgeLabel(b, lead)}</span>`).join('');
+    const connectHref = lead.linkedin_url || '#';
+    const connectTarget = lead.linkedin_url ? 'target="_blank" rel="noopener"' : '';
+    return `
+      <div class="lead-row">
+        <div class="lead-avatar">${esc(initials)}</div>
+        <div class="lead-info">
+          <div class="lead-name">${esc(lead.name)}</div>
+          <div class="lead-title">${esc(lead.title || '')}</div>
+          ${badges ? `<div class="lead-badges">${badges}</div>` : ''}
+        </div>
+        <a href="${esc(connectHref)}" ${connectTarget} class="connect-btn">Connect →</a>
+      </div>`;
+  }
+
+  function badgeLabel(b, lead) {
+    if (b === 'uni') return lead.university || 'Target uni';
+    if (b === 'div') return 'Diversity';
+    if (b === 'exp') return 'Has offer';
+    return b;
+  }
+
+  function initFromName(name) {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  function esc(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+})();
+</script>
+
+</body>
+</html>

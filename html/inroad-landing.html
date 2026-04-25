@@ -200,6 +200,30 @@
 
   .free-star { color: #7FD9A0; }
 
+  .hero-opps-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.75);
+    padding: 7px 16px;
+    border-radius: 100px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    width: fit-content;
+    opacity: 0;
+    animation: rise 0.5s ease 0.36s forwards;
+  }
+  .hero-opps-cta:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.4);
+    color: #fff;
+  }
+
   .hero-right {
     background: var(--bg);
     display: flex; align-items: center; justify-content: center;
@@ -560,6 +584,7 @@
     <span class="wm-text">inroad</span>
   </a>
   <ul class="nav-center">
+    <li><a href="/opportunities">Opportunities</a></li>
     <li><a href="#how">How it works</a></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#stories">Stories</a></li>
@@ -589,6 +614,9 @@
       <span class="free-star">✦</span>
       Free forever for students · No credit card needed
     </p>
+    <a href="/opportunities" class="hero-opps-cta" id="opps-cta">
+      Browse <span id="live-count">—</span> live internships →
+    </a>
   </div>
 
   <div class="hero-right">
@@ -834,4 +862,13 @@
   setTimeout(() => {
     document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('visible'));
   }, 1500);
+
+  // Populate live internship count in hero CTA
+  fetch('/api/opportunities')
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById('live-count');
+      if (el && d.count != null) el.textContent = d.count;
+    })
+    .catch(() => {});
 </script>
