@@ -1699,16 +1699,17 @@ def opportunities_page():
 
 @app.route("/api/opportunities")
 def api_opportunities():
-    """Return all jobs with their insider leads, formatted for the opportunities page."""
-    import json as _json
+    """Return all jobs with insider leads, formatted for the opportunities page."""
+    from datetime import datetime, timezone
+    from db.database import USE_POSTGRES
 
     DIVISION_RULES = [
         ("IB",  ["investment bank", "m&a", "mergers", "acquisitions", "capital markets",
-                  "corporate finance", "ecm", "dcm", "leveraged finance", "ib"]),
+                  "corporate finance", "ecm", "dcm", "leveraged finance"]),
         ("AM",  ["asset management", "asset manager", "portfolio", "fund manager",
-                 "wealth management", "private wealth", "investment management", "am "]),
-        ("S&T", ["sales", "trading", "structuring", "market making", "equities",
-                 "fixed income", "fx ", "derivatives", "commodities", "s&t"]),
+                 "wealth management", "private wealth", "investment management"]),
+        ("S&T", ["sales & trading", "sales and trading", "s&t", "structuring",
+                 "market making", "fixed income", "derivatives", "commodities"]),
     ]
 
     def infer_division(title: str, industry: str) -> str:
@@ -1718,60 +1719,86 @@ def api_opportunities():
                 return tag
         return ""
 
+    def make_initials(name: str) -> str:
+        parts = (name or "").strip().split()
+        if not parts:
+            return "?"
+        return (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()
+
+    # Fetch jobs — compatible SQL for both Postgres and SQLite
+    if USE_POSTGRES:
+        order_clause = "ORDER BY opening_date DESC NULLS LAST, created_at DESC NULLS LAST"
+    else:
+        order_clause = "ORDER BY CASE WHEN opening_date IS NULL OR opening_date = '' THEN 1 ELSE 0 END, opening_date DESC, created_at DESC"
+
     rows = fetchall(
         "SELECT id, title, company, url, opening_date, closing_date, industry, created_at "
         "FROM jobs WHERE company IS NOT NULL AND company != '' "
-        "AND title IS NOT NULL AND title != '' "
-        "ORDER BY opening_date DESC NULLS LAST, created_at DESC NULLS LAST LIMIT 500"
+        f"AND title IS NOT NULL AND title != '' {order_clause} LIMIT 2000"
     )
 
-    jobs = []
-    updated_at = None
-    for r in rows:
-        company  = r.get("company") or ""
-        title    = r.get("title") or ""
-        division = infer_division(title, r.get("industry") or "")
+    if not rows:
+        return jsonify({"jobs": [], "count": 0, "updated_at": datetime.now(timezone.utc).isoformat()})
 
-        raw_leads = get_leads_for_company(company)
+    # Batch-fetch leads for all companies in a single query to avoid N+1
+    companies = list({(r.get("company") or "").lower() for r in rows if r.get("company")})
+
+    leads_by_company: dict = {}
+    if companies:
+        if USE_POSTGRES:
+            placeholders = ",".join(["%s"] * len(companies))
+        else:
+            placeholders = ",".join(["?"] * len(companies))
+
+        now_expr = "NOW()" if USE_POSTGRES else "datetime('now')"
+        all_leads = fetchall(
+            f"SELECT * FROM leads "
+            f"WHERE lower(company) IN ({placeholders}) "
+            f"AND (stale_after IS NULL OR stale_after > {now_expr}) "
+            f"ORDER BY is_alumni DESC, tenure_months DESC",
+            tuple(companies),
+        )
+        for l in all_leads:
+            key = (l.get("company") or "").lower()
+            leads_by_company.setdefault(key, []).append(l)
+
+    jobs = []
+    for r in rows:
+        company = r.get("company") or ""
+        title   = r.get("title") or ""
+
+        raw_leads = leads_by_company.get(company.lower(), [])[:5]
         leads = []
-        for l in raw_leads[:5]:
-            name = l.get("name") or ""
+        for l in raw_leads:
+            name   = l.get("name") or ""
             badges = []
             if l.get("university"):
                 badges.append("uni")
-            if l.get("is_alumni") or l.get("is_alumni") == 1:
+            is_alumni = l.get("is_alumni")
+            if is_alumni and is_alumni not in (0, False, "0", "false"):
                 badges.append("exp")
-            initials = ""
-            parts = name.strip().split()
-            if parts:
-                initials = (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()
             leads.append({
-                "id":          l.get("id"),
-                "name":        name,
-                "title":       l.get("title") or l.get("job_title") or "",
-                "initials":    initials,
+                "id":           l.get("id"),
+                "name":         name,
+                "title":        l.get("title") or l.get("job_title") or "",
+                "initials":     make_initials(name),
                 "linkedin_url": l.get("linkedin_url") or "",
-                "badges":      badges,
-                "university":  l.get("university") or "",
-                "verified":    False,
+                "badges":       badges,
+                "university":   l.get("university") or "",
+                "verified":     False,
             })
-
-        opening_date = r.get("opening_date") or ""
-        if opening_date and not updated_at:
-            updated_at = opening_date
 
         jobs.append({
             "id":           r.get("id"),
             "company":      company,
             "programme":    title,
-            "division":     division,
-            "opening_date": opening_date,
+            "division":     infer_division(title, r.get("industry") or ""),
+            "opening_date": r.get("opening_date") or "",
             "closing_date": r.get("closing_date") or "",
             "apply_url":    r.get("url") or "",
             "leads":        leads,
         })
 
-    from datetime import datetime, timezone
     return jsonify({
         "jobs":       jobs,
         "count":      len(jobs),

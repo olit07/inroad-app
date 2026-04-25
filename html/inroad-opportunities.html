@@ -8,549 +8,574 @@
 <meta name="description" content="Browse open UK finance internships with insider contacts at every firm.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:          #0b0c0f;
-  --surface:     #13141a;
-  --surface2:    #1b1d26;
-  --border:      #252733;
-  --border-hover:#3a3e52;
-  --accent:      #c8f04c;
-  --accent-dim:  rgba(200,240,76,0.12);
-  --accent-glow: rgba(200,240,76,0.25);
-  --text:        #e8eaf0;
-  --text-muted:  #7a7e94;
-  --text-dim:    #4a4e62;
-  --badge-uni:        rgba(100,130,255,0.15);
-  --badge-uni-text:   #8096ff;
-  --badge-uni-border: rgba(100,130,255,0.25);
-  --badge-div:        rgba(255,180,60,0.12);
-  --badge-div-text:   #ffb43c;
-  --badge-div-border: rgba(255,180,60,0.2);
-  --badge-exp:        var(--accent-dim);
-  --badge-exp-text:   var(--accent);
-  --badge-exp-border: rgba(200,240,76,0.2);
-  --mono: 'DM Mono', monospace;
-  --sans: 'Syne', sans-serif;
-}
+  :root {
+    --bg:         #FFFFFF;
+    --surface:    #F3F1EE;
+    --surface-2:  #EEECEA;
+    --border:     #E6E2DB;
+    --border-md:  #CEC8BF;
+    --green:      #1F4530;
+    --green-lite: #EAF2EC;
+    --green-mid:  #A8C9B0;
+    --green-deep: #122B1E;
+    --text:       #1A1714;
+    --text-mid:   #3D3831;
+    --muted:      #7A7068;
+    --subtle:     #ADA79F;
+    --serif: 'Lora', Georgia, serif;
+    --sans:  'Lato', system-ui, sans-serif;
+  }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-}
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
 
-/* ── HEADER ── */
-header {
-  height: 56px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  background: rgba(11,12,15,0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-}
+  /* ── NAV ── */
+  nav {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
 
-.logo {
-  font-family: var(--sans);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--text);
-}
-.logo span { color: var(--accent); }
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
 
-nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+  .wm-icon {
+    width: 28px; height: 28px;
+    background: var(--green);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
 
-nav a {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text-muted);
-  text-decoration: none;
-  padding: 6px 14px;
-  border-radius: 4px;
-  transition: all 0.15s;
-}
-nav a:hover { color: var(--text); background: var(--surface2); }
-nav a.active { color: var(--accent); background: var(--accent-dim); }
+  .wm-text {
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    list-style: none;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 
-.btn-solid {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--accent);
-  color: #0b0c0f;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 16px;
-  cursor: pointer;
-  text-decoration: none;
-  letter-spacing: 0.04em;
-  transition: all 0.15s;
-}
-.btn-solid:hover { opacity: 0.88; }
+  .nav-links a {
+    font-size: 0.83rem;
+    font-weight: 400;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .nav-links a:hover { color: var(--text); background: var(--surface); }
+  .nav-links a.active { color: var(--green); font-weight: 700; background: var(--green-lite); }
 
-.btn-outline {
-  font-family: var(--mono);
-  font-size: 11px;
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border-hover);
-  border-radius: 4px;
-  padding: 6px 16px;
-  cursor: pointer;
-  text-decoration: none;
-  letter-spacing: 0.04em;
-  transition: all 0.15s;
-}
-.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 8px; }
 
-/* ── PAGE ── */
-.page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 40px 24px 80px;
-}
+  .btn-login {
+    font-size: 0.83rem; font-weight: 700;
+    color: var(--text); background: transparent;
+    border: 1.5px solid var(--border-md);
+    padding: 6px 16px; border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-login:hover { border-color: var(--green); color: var(--green); }
 
-.page-title {
-  font-family: var(--sans);
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  margin-bottom: 6px;
-}
+  .btn-cta {
+    font-size: 0.83rem; font-weight: 700;
+    color: #fff; background: var(--green);
+    border: none; padding: 7px 16px;
+    border-radius: 8px; text-decoration: none;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-cta:hover { background: var(--green-deep); transform: translateY(-1px); }
 
-.page-meta {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 28px;
-}
-.page-meta span { color: var(--text-dim); }
+  /* ── PAGE ── */
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 48px 80px;
+  }
 
-/* ── TOOLBAR ── */
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 28px;
-  flex-wrap: wrap;
-}
+  .page-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
 
-.search-wrap {
-  position: relative;
-  flex: 1;
-  min-width: 180px;
-}
+  .page-title {
+    font-family: var(--serif);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
 
-.search-icon {
-  position: absolute;
-  left: 11px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-dim);
-  font-size: 14px;
-  pointer-events: none;
-  font-family: var(--mono);
-}
+  .page-meta {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
 
-.search-input {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 12px 8px 36px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text);
-  outline: none;
-  transition: border-color 0.15s;
-}
-.search-input::placeholder { color: var(--text-dim); }
-.search-input:focus { border-color: var(--border-hover); }
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
 
-.filter-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+  }
 
-.filter-btn {
-  font-family: var(--mono);
-  font-size: 11px;
-  background: var(--surface);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 8px 14px;
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  transition: all 0.15s;
-}
-.filter-btn:hover { border-color: var(--border-hover); color: var(--text); }
-.filter-btn.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--subtle);
+    font-size: 15px;
+    pointer-events: none;
+    line-height: 1;
+  }
 
-.shown-count {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-dim);
-  padding: 8px 4px;
-  white-space: nowrap;
-}
+  .search-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 12px 8px 36px;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .search-input::placeholder { color: var(--subtle); }
+  .search-input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(31,69,48,0.07);
+  }
 
-/* ── SECTION LABEL ── */
-.section-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 32px;
-  margin-bottom: 8px;
-}
-.section-row:first-child { margin-top: 0; }
+  .filter-wrap { display: flex; align-items: center; gap: 6px; }
 
-.section-pill {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 100px;
-  white-space: nowrap;
-}
-.section-pill.new-pill {
-  background: var(--accent-dim);
-  color: var(--accent);
-  border: 1px solid rgba(200,240,76,0.3);
-}
-.section-pill.all-pill {
-  background: var(--surface2);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
+  .filter-btn {
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: var(--bg);
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    border-radius: 100px;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .filter-btn:hover { border-color: var(--border-md); color: var(--text-mid); }
+  .filter-btn.on {
+    background: var(--green-lite);
+    border-color: var(--green);
+    color: var(--green-deep);
+  }
 
-.section-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
+  .shown-count {
+    font-size: 0.78rem;
+    color: var(--subtle);
+    white-space: nowrap;
+  }
 
-/* ── COLUMN HEADER ── */
-.col-header {
-  display: grid;
-  grid-template-columns: 220px 1fr 130px 30px;
-  padding: 5px 14px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
+  /* ── SECTION LABEL ── */
+  .section-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+    margin-bottom: 8px;
+  }
+  .section-row:first-child { margin-top: 0; }
 
-/* ── CARD LIST ── */
-.card-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+  .section-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .section-pill.new-pill {
+    background: var(--green);
+    color: #fff;
+  }
+  .section-pill.all-pill {
+    background: var(--surface);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
 
-.card-empty {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text-dim);
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-}
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
 
-/* ── JOB CARD ── */
-.job-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: border-color 0.15s;
-  overflow: hidden;
-}
-.job-card:hover { border-color: var(--border-hover); }
-.job-card.open { border-color: var(--accent); }
+  /* ── COLUMN HEADER ── */
+  .col-header {
+    display: grid;
+    grid-template-columns: 220px 1fr 130px 28px;
+    padding: 5px 14px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--subtle);
+  }
 
-.card-row {
-  display: grid;
-  grid-template-columns: 220px 1fr 130px 30px;
-  align-items: center;
-  padding: 8px 14px;
-  min-height: 36px;
-  user-select: none;
-}
+  /* ── CARD LIST ── */
+  .card-list { display: flex; flex-direction: column; gap: 2px; }
 
-.card-company {
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding-right: 12px;
-}
+  .card-empty {
+    font-size: 0.82rem;
+    color: var(--subtle);
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
 
-.card-programme {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding-right: 12px;
-}
+  /* ── JOB CARD ── */
+  .job-card {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    overflow: hidden;
+  }
+  .job-card:hover { border-color: var(--border-md); box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .job-card.open { border-color: var(--green); box-shadow: 0 2px 8px rgba(31,69,48,0.08); }
 
-.card-date {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-.card-date.fresh { color: var(--accent); }
+  .card-row {
+    display: grid;
+    grid-template-columns: 220px 1fr 130px 28px;
+    align-items: center;
+    padding: 8px 14px;
+    min-height: 40px;
+    user-select: none;
+  }
 
-.card-chevron {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  color: var(--text-dim);
-  transition: transform 0.2s, color 0.15s;
-  font-family: var(--mono);
-}
-.job-card.open .card-chevron { transform: rotate(180deg); color: var(--accent); }
+  .card-company {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 12px;
+  }
 
-/* ── DROPDOWN ── */
-.card-dropdown {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease;
-  border-top: 0px solid var(--border);
-}
-.job-card.open .card-dropdown {
-  max-height: 600px;
-  border-top-width: 1px;
-}
+  .card-programme {
+    font-size: 0.8rem;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 12px;
+  }
 
-.dropdown-inner {
-  padding: 16px;
-}
+  .card-date {
+    font-size: 0.78rem;
+    color: var(--subtle);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .card-date.fresh { color: var(--green); font-weight: 700; }
 
-.leads-heading {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 8px;
-}
+  .card-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--subtle);
+    font-size: 13px;
+    transition: transform 0.2s, color 0.15s;
+  }
+  .job-card.open .card-chevron { transform: rotate(180deg); color: var(--green); }
 
-.leads-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
-}
+  /* ── DROPDOWN ── */
+  .card-dropdown {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    border-top-width: 0;
+    border-top-style: solid;
+    border-top-color: var(--border);
+  }
+  .job-card.open .card-dropdown {
+    max-height: 700px;
+    border-top-width: 1px;
+  }
 
-.lead-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 8px 12px;
-}
+  .dropdown-inner { padding: 16px; }
 
-.lead-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--border);
-  color: var(--text-muted);
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
+  .leads-heading {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    margin-bottom: 8px;
+  }
 
-.lead-info {
-  flex: 1;
-  min-width: 0;
-}
+  .leads-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 
-.lead-name {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+  .lead-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+  }
 
-.lead-title {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+  .lead-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--green-lite);
+    color: var(--green-deep);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    border: 1.5px solid var(--green-mid);
+  }
 
-.lead-badges {
-  display: flex;
-  gap: 4px;
-  flex-wrap: nowrap;
-  align-items: center;
-  margin-top: 3px;
-}
+  .lead-info { flex: 1; min-width: 0; }
 
-.badge {
-  font-family: var(--mono);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  padding: 2px 7px;
-  border-radius: 3px;
-  white-space: nowrap;
-}
-.badge.uni { background: var(--badge-uni); color: var(--badge-uni-text); border: 1px solid var(--badge-uni-border); }
-.badge.div { background: var(--badge-div); color: var(--badge-div-text); border: 1px solid var(--badge-div-border); }
-.badge.exp { background: var(--badge-exp); color: var(--badge-exp-text); border: 1px solid var(--badge-exp-border); }
+  .lead-name {
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-.connect-btn {
-  font-family: var(--mono);
-  font-size: 10px;
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border-hover);
-  border-radius: 3px;
-  padding: 4px 10px;
-  cursor: pointer;
-  text-decoration: none;
-  letter-spacing: 0.04em;
-  transition: all 0.15s;
-  flex-shrink: 0;
-}
-.connect-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .lead-title {
+    font-size: 0.76rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
 
-.card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  margin-top: 2px;
-}
+  .lead-badges {
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+    align-items: center;
+    margin-top: 4px;
+  }
 
-.card-footer-meta {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-muted);
-  display: flex;
-  gap: 14px;
-}
+  .badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 100px;
+  }
+  .badge.uni {
+    background: rgba(79,70,229,0.08);
+    color: #3730a3;
+    border: 1px solid rgba(79,70,229,0.18);
+  }
+  .badge.div {
+    background: rgba(217,119,6,0.08);
+    color: #92400e;
+    border: 1px solid rgba(217,119,6,0.18);
+  }
+  .badge.exp {
+    background: var(--green-lite);
+    color: var(--green-deep);
+    border: 1px solid var(--green-mid);
+  }
 
-.card-footer-meta span { color: var(--text-dim); }
+  .connect-btn {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: transparent;
+    color: var(--muted);
+    border: 1.5px solid var(--border-md);
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .connect-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-lite); }
 
-.apply-btn {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--accent);
-  color: #0b0c0f;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 16px;
-  cursor: pointer;
-  text-decoration: none;
-  letter-spacing: 0.04em;
-  transition: opacity 0.15s;
-  flex-shrink: 0;
-}
-.apply-btn:hover { opacity: 0.88; }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    gap: 12px;
+  }
 
-/* ── LOADING / ERROR ── */
-.state-msg {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text-dim);
-  padding: 48px 0;
-  text-align: center;
-}
+  .card-footer-meta {
+    font-size: 0.78rem;
+    color: var(--muted);
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .card-footer-meta .sep { color: var(--subtle); }
+  .card-footer-meta strong { color: var(--text-mid); font-weight: 700; }
 
-/* ── RESPONSIVE ── */
-@media (max-width: 640px) {
-  .page { padding: 24px 16px 60px; }
-  header { padding: 0 16px; }
-  .col-header { grid-template-columns: 140px 1fr 100px 30px; }
-  .card-row { grid-template-columns: 140px 1fr 100px 30px; }
-  nav a:not(.active) { display: none; }
-}
+  .apply-btn {
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 18px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .apply-btn:hover { background: var(--green-deep); transform: translateY(-1px); }
+
+  /* ── LOADING / ERROR ── */
+  .state-msg {
+    font-size: 0.85rem;
+    color: var(--subtle);
+    padding: 48px 0;
+    text-align: center;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .footer-copy {
+    font-size: 0.78rem;
+    color: var(--subtle);
+  }
+  .footer-links {
+    display: flex;
+    gap: 20px;
+    list-style: none;
+  }
+  .footer-links a {
+    font-size: 0.78rem;
+    color: var(--subtle);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .footer-links a:hover { color: var(--text); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    .page { padding: 28px 20px 60px; }
+    nav { padding: 0 20px; }
+    footer { padding: 24px 20px; flex-direction: column; align-items: flex-start; }
+    .nav-links { display: none; }
+    .col-header { grid-template-columns: 140px 1fr 90px 28px; }
+    .card-row { grid-template-columns: 140px 1fr 90px 28px; }
+    .card-footer { flex-direction: column; align-items: flex-start; }
+    .apply-btn { width: 100%; text-align: center; }
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <a href="/" class="logo">in<span>road</span></a>
-  <nav>
-    <a href="/">Home</a>
-    <a href="/opportunities" class="active">Opportunities</a>
-  </nav>
-  <div class="header-right">
-    <a href="/login" class="btn-outline">Log in</a>
-    <a href="/signup" class="btn-solid">Get started →</a>
+<nav>
+  <a href="/" class="wordmark">
+    <div class="wm-icon">
+      <svg width="16" height="16" viewBox="0 0 88 88" fill="none"><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="9" stroke-linecap="round"/></svg>
+    </div>
+    <span class="wm-text">inroad</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/opportunities" class="active">Opportunities</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="/login" class="btn-login">Log in</a>
+    <a href="/signup" class="btn-cta">Get started free →</a>
   </div>
-</header>
+</nav>
 
 <div class="page">
+  <p class="page-eyebrow">UK Finance · Summer 2026</p>
   <h1 class="page-title">Opportunities</h1>
-  <p class="page-meta" id="page-meta"><span>Loading…</span></p>
+  <p class="page-meta" id="page-meta">Loading listings…</p>
 
   <div class="toolbar">
     <div class="search-wrap">
       <span class="search-icon">⌕</span>
       <input type="text" class="search-input" id="search" placeholder="Search company or programme…" autocomplete="off">
     </div>
-    <div class="filter-wrap" id="filter-wrap">
+    <div class="filter-wrap">
       <button class="filter-btn" data-div="IB">IB</button>
       <button class="filter-btn" data-div="AM">AM</button>
-      <button class="filter-btn" data-div="S&T">S&T</button>
+      <button class="filter-btn" data-div="S&T">S&amp;T</button>
     </div>
     <span class="shown-count" id="shown-count" style="display:none"></span>
   </div>
@@ -560,63 +585,62 @@ nav a.active { color: var(--accent); background: var(--accent-dim); }
   </div>
 </div>
 
+<footer>
+  <span class="footer-copy">© 2026 inroad</span>
+  <ul class="footer-links">
+    <li><a href="/privacy">Privacy</a></li>
+    <li><a href="/terms">Terms</a></li>
+    <li><a href="/contact">Contact</a></li>
+  </ul>
+</footer>
+
 <script>
 (function () {
   let allJobs = [];
   let activeFilters = new Set();
-  let searchQuery = '';
-  let openCardId = null;
+  let searchQuery   = '';
+  let openCardId    = null;
 
-  const listingsEl = document.getElementById('listings');
-  const pageMetaEl = document.getElementById('page-meta');
-  const searchEl   = document.getElementById('search');
+  const listingsEl  = document.getElementById('listings');
+  const pageMetaEl  = document.getElementById('page-meta');
+  const searchEl    = document.getElementById('search');
   const shownCountEl = document.getElementById('shown-count');
 
-  // ── Division filter buttons ──
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const div = btn.dataset.div;
-      if (activeFilters.has(div)) {
-        activeFilters.delete(div);
-        btn.classList.remove('on');
-      } else {
-        activeFilters.add(div);
-        btn.classList.add('on');
-      }
+      if (activeFilters.has(div)) { activeFilters.delete(div); btn.classList.remove('on'); }
+      else                        { activeFilters.add(div);    btn.classList.add('on'); }
       render();
     });
   });
 
-  // ── Search ──
   searchEl.addEventListener('input', () => {
     searchQuery = searchEl.value.trim().toLowerCase();
     render();
   });
 
-  // ── Load data ──
   fetch('/api/opportunities')
     .then(r => r.json())
     .then(data => {
       allJobs = data.jobs || [];
-      const ts = data.updated_at ? new Date(data.updated_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : '';
       pageMetaEl.innerHTML =
-        `<b>${allJobs.length}</b> listings` +
-        (ts ? ` &nbsp;·&nbsp; <span>updated ${ts}</span>` : '');
+        `<b>${allJobs.length}</b> listing${allJobs.length !== 1 ? 's' : ''} &nbsp;·&nbsp; insider contacts at every firm`;
       render();
     })
     .catch(() => {
-      listingsEl.innerHTML = '<p class="state-msg">Failed to load listings. Please refresh.</p>';
+      listingsEl.innerHTML = '<p class="state-msg">Failed to load listings — please refresh.</p>';
+      pageMetaEl.textContent = '';
     });
 
   function isNew(opening_date) {
     if (!opening_date) return false;
     const d = new Date(opening_date);
-    if (isNaN(d)) return false;
-    return (Date.now() - d.getTime()) <= 72 * 3600 * 1000;
+    return !isNaN(d) && (Date.now() - d.getTime()) <= 72 * 3600 * 1000;
   }
 
-  function filterJobs(jobs) {
-    return jobs.filter(j => {
+  function filtered() {
+    return allJobs.filter(j => {
       if (activeFilters.size > 0 && !activeFilters.has(j.division)) return false;
       if (searchQuery) {
         const hay = (j.company + ' ' + j.programme).toLowerCase();
@@ -627,38 +651,28 @@ nav a.active { color: var(--accent); background: var(--accent-dim); }
   }
 
   function render() {
-    const filtered = filterJobs(allJobs);
-    const newJobs  = filtered.filter(j => isNew(j.opening_date));
-    const oldJobs  = filtered.filter(j => !isNew(j.opening_date));
+    const jobs    = filtered();
+    const newJobs = jobs.filter(j =>  isNew(j.opening_date));
+    const oldJobs = jobs.filter(j => !isNew(j.opening_date));
 
-    const isFiltering = activeFilters.size > 0 || searchQuery;
-    if (isFiltering) {
-      shownCountEl.textContent = filtered.length + ' shown';
-      shownCountEl.style.display = '';
-    } else {
-      shownCountEl.style.display = 'none';
-    }
+    const filtering = activeFilters.size > 0 || searchQuery;
+    shownCountEl.style.display = filtering ? '' : 'none';
+    if (filtering) shownCountEl.textContent = jobs.length + ' shown';
 
-    const html = [
-      sectionHtml('new-pill', 'New — last 72 hours', newJobs, newJobs.length === 0
-        ? '<p class="card-empty">No new listings in the last 72 hours.</p>' : null),
-      sectionHtml('all-pill', 'All listings', oldJobs, oldJobs.length === 0
-        ? '<p class="card-empty">No listings match your filters.</p>' : null),
+    listingsEl.innerHTML = [
+      sectionHtml('new-pill', 'New — last 72 hours', newJobs,
+        newJobs.length === 0 ? '<p class="card-empty">No new listings in the last 72 hours.</p>' : null),
+      sectionHtml('all-pill', 'All listings', oldJobs,
+        oldJobs.length === 0 ? '<p class="card-empty">No listings match your filters.</p>' : null),
     ].join('');
 
-    listingsEl.innerHTML = html;
-
-    // Re-attach click handlers
     listingsEl.querySelectorAll('.job-card').forEach(card => {
       const id = card.dataset.id;
       card.querySelector('.card-row').addEventListener('click', () => toggleCard(id));
       const applyBtn = card.querySelector('.apply-btn');
-      if (applyBtn) {
-        applyBtn.addEventListener('click', e => e.stopPropagation());
-      }
+      if (applyBtn) applyBtn.addEventListener('click', e => e.stopPropagation());
     });
 
-    // Restore open card
     if (openCardId) {
       const el = listingsEl.querySelector(`.job-card[data-id="${openCardId}"]`);
       if (el) el.classList.add('open');
@@ -666,51 +680,32 @@ nav a.active { color: var(--accent); background: var(--accent-dim); }
   }
 
   function toggleCard(id) {
-    if (openCardId === id) {
-      openCardId = null;
-    } else {
-      openCardId = id;
-    }
-    listingsEl.querySelectorAll('.job-card').forEach(card => {
-      card.classList.toggle('open', card.dataset.id === openCardId);
-    });
+    openCardId = openCardId === id ? null : id;
+    listingsEl.querySelectorAll('.job-card').forEach(c =>
+      c.classList.toggle('open', c.dataset.id === openCardId));
   }
 
   function sectionHtml(pillClass, label, jobs, emptyHtml) {
-    const colHeader = `
-      <div class="col-header">
-        <span>Company</span><span>Programme</span><span>Opened</span><span></span>
-      </div>`;
-
-    let cardsHtml = '';
-    if (emptyHtml) {
-      cardsHtml = emptyHtml;
-    } else {
-      cardsHtml = '<div class="card-list">' + jobs.map(cardHtml).join('') + '</div>';
-    }
-
     return `
       <div class="section-row">
         <span class="section-pill ${pillClass}">${label}</span>
         <span class="section-line"></span>
       </div>
-      ${colHeader}
-      ${cardsHtml}`;
+      <div class="col-header">
+        <span>Company</span><span>Programme</span><span>Opened</span><span></span>
+      </div>
+      ${emptyHtml || '<div class="card-list">' + jobs.map(cardHtml).join('') + '</div>'}`;
   }
 
   function cardHtml(job) {
-    const fresh = isNew(job.opening_date);
-    const dateStr = job.opening_date
-      ? new Date(job.opening_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
-      : '—';
+    const fresh   = isNew(job.opening_date);
+    const dateStr = fmtDate(job.opening_date);
+    const leads   = job.leads && job.leads.length > 0;
 
-    const leadsSection = job.leads && job.leads.length > 0
-      ? `<div class="leads-heading">Insider leads for ${esc(job.company)} — ${job.leads.length} contact${job.leads.length !== 1 ? 's' : ''}</div>
+    const leadsSection = leads
+      ? `<p class="leads-heading">Insider leads for ${esc(job.company)} — ${job.leads.length} contact${job.leads.length !== 1 ? 's' : ''}</p>
          <div class="leads-list">${job.leads.map(leadHtml).join('')}</div>`
-      : `<div class="leads-heading" style="color:var(--text-dim);margin-bottom:14px;">No insider leads on file for this company yet.</div>`;
-
-    const divisionStr = job.division || '—';
-    const applyHref   = job.apply_url || '#';
+      : `<p class="leads-heading" style="margin-bottom:16px;color:var(--subtle)">No insider leads on file for this company yet.</p>`;
 
     return `
       <div class="job-card" data-id="${job.id}">
@@ -725,11 +720,11 @@ nav a.active { color: var(--accent); background: var(--accent-dim); }
             ${leadsSection}
             <div class="card-footer">
               <div class="card-footer-meta">
-                <span>Opened:</span> ${dateStr}
-                &nbsp;·&nbsp;
-                <span>Division:</span> ${esc(divisionStr)}
+                <span>Opened:</span> <strong>${dateStr}</strong>
+                <span class="sep">&nbsp;·&nbsp;</span>
+                <span>Division:</span> <strong>${esc(job.division || '—')}</strong>
               </div>
-              <a href="${esc(applyHref)}" target="_blank" rel="noopener" class="apply-btn">Apply →</a>
+              <a href="${esc(job.apply_url || '#')}" target="_blank" rel="noopener" class="apply-btn">Apply →</a>
             </div>
           </div>
         </div>
@@ -738,9 +733,10 @@ nav a.active { color: var(--accent); background: var(--accent-dim); }
 
   function leadHtml(lead) {
     const initials = lead.initials || initFromName(lead.name);
-    const badges   = (lead.badges || []).map(b => `<span class="badge ${b}">${badgeLabel(b, lead)}</span>`).join('');
-    const connectHref = lead.linkedin_url || '#';
-    const connectTarget = lead.linkedin_url ? 'target="_blank" rel="noopener"' : '';
+    const badges   = (lead.badges || []).map(b =>
+      `<span class="badge ${b}">${badgeLabel(b, lead)}</span>`).join('');
+    const href    = lead.linkedin_url || '#';
+    const target  = lead.linkedin_url ? 'target="_blank" rel="noopener"' : '';
     return `
       <div class="lead-row">
         <div class="lead-avatar">${esc(initials)}</div>
@@ -749,7 +745,7 @@ nav a.active { color: var(--accent); background: var(--accent-dim); }
           <div class="lead-title">${esc(lead.title || '')}</div>
           ${badges ? `<div class="lead-badges">${badges}</div>` : ''}
         </div>
-        <a href="${esc(connectHref)}" ${connectTarget} class="connect-btn">Connect →</a>
+        <a href="${esc(href)}" ${target} class="connect-btn">Connect →</a>
       </div>`;
   }
 
@@ -762,17 +758,21 @@ nav a.active { color: var(--accent); background: var(--accent-dim); }
 
   function initFromName(name) {
     if (!name) return '?';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    const p = name.trim().split(/\s+/);
+    return p.length === 1 ? p[0][0].toUpperCase() : (p[0][0] + p[p.length-1][0]).toUpperCase();
   }
 
-  function esc(str) {
-    return String(str ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+  function fmtDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    if (isNaN(dt)) return '—';
+    return dt.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  }
+
+  function esc(s) {
+    return String(s ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 })();
 </script>

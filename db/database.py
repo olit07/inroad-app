@@ -2,7 +2,7 @@
 db/database.py
 Supports both Postgres (Railway production) and SQLite (local dev).
 Set DATABASE_URL env var to a postgres:// connection string for Postgres.
-Falls back to SQLite at ccc.db if DATABASE_URL is not set.
+Falls back to SQLite at inroad.db if DATABASE_URL is not set.
 """
 
 import os
@@ -23,7 +23,9 @@ if USE_POSTGRES:
     import psycopg2.extras
     print("[db] Using Postgres:", DATABASE_URL[:40] + "...")
 else:
-    SQLITE_PATH = os.path.join(os.path.dirname(__file__), "..", "ccc.db")
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _ccc  = os.path.join(_root, "ccc.db")
+    SQLITE_PATH = _ccc if os.path.exists(_ccc) else os.path.join(_root, "inroad.db")
     print("[db] Using SQLite:", SQLITE_PATH)
 
 
@@ -114,7 +116,8 @@ CREATE TABLE IF NOT EXISTS students (
     notify_frequency    TEXT    NOT NULL DEFAULT 'daily',
     referral_code       TEXT UNIQUE,
     referred_by         TEXT,
-    daily_cards_override INTEGER DEFAULT NULL
+    daily_cards_override INTEGER DEFAULT NULL,
+    region              TEXT NOT NULL DEFAULT 'UK'
 );
 
 CREATE TABLE IF NOT EXISTS magic_tokens (
@@ -139,6 +142,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     closing_date TEXT,
     source       TEXT,
     raw          TEXT,
+    role_type    TEXT,
     created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -274,7 +278,8 @@ CREATE TABLE IF NOT EXISTS students (
     notify_frequency     TEXT    NOT NULL DEFAULT 'daily',
     referral_code        TEXT UNIQUE,
     referred_by          TEXT,
-    daily_cards_override INTEGER DEFAULT NULL
+    daily_cards_override INTEGER DEFAULT NULL,
+    region               TEXT NOT NULL DEFAULT 'UK'
 );
 
 CREATE TABLE IF NOT EXISTS magic_tokens (
@@ -299,6 +304,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     closing_date TEXT,
     source       TEXT,
     raw          TEXT,
+    role_type    TEXT,
     created_at   TEXT DEFAULT (datetime('now'))
 );
 
@@ -540,6 +546,14 @@ def _run_migrations_postgres():
         # Referral code: backfill for existing students
         """UPDATE students SET referral_code = substring(md5(random()::text || id::text), 1, 8)
            WHERE referral_code IS NULL""",
+        # Feature: notify deduplication — track last email send date per student
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS notify_sent_date DATE",
+        # Feature: role type screening (internship_grad vs entry_level)
+        "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS role_type TEXT",
+        # Backfill role_type from raw JSON for existing rows
+        """UPDATE jobs SET role_type = COALESCE(raw::json->>'role_type', 'entry_level')
+           WHERE role_type IS NULL AND raw IS NOT NULL AND raw != '' AND raw != '{}'""",
+        "UPDATE jobs SET role_type = 'entry_level' WHERE role_type IS NULL",
     ]
     with get_conn() as conn:
         cur = conn.cursor()
@@ -612,6 +626,16 @@ def _run_migrations_sqlite():
             except Exception as e:
                 print(f"[db] Migration warning (card_queue.score_breakdown): {e}")
 
+        # Feature: role type screening (internship_grad vs entry_level)
+        cur.execute("PRAGMA table_info(jobs)")
+        existing_jobs_cols = {row[1] for row in cur.fetchall()}
+        if "role_type" not in existing_jobs_cols:
+            try:
+                cur.execute("ALTER TABLE jobs ADD COLUMN role_type TEXT")
+                cur.execute("UPDATE jobs SET role_type = 'entry_level' WHERE role_type IS NULL")
+            except Exception as e:
+                print(f"[db] Migration warning (jobs.role_type): {e}")
+
         # Feature: Outlook OAuth + daily match snapshot
         cur.execute("PRAGMA table_info(students)")
         existing_student_cols = {row[1] for row in cur.fetchall()}
@@ -626,6 +650,7 @@ def _run_migrations_sqlite():
             ("match3_name_title",     "TEXT"),
             ("match3_linkedin",       "TEXT"),
             ("matches_updated_date",  "TEXT"),
+            ("notify_sent_date",      "TEXT"),
         ]:
             if col not in existing_student_cols:
                 try:
@@ -839,19 +864,26 @@ def get_active_jobs(conn, industries=None, region=None, seniority=None,
     if days_fresh:
         if USE_POSTGRES:
             # Filter on opening_date (when job was posted); fall back to created_at for jobs
-            # where opening_date is unknown. Also guard against very old scraped jobs.
+            # where opening_date is unknown.
             clauses.append(
                 f"(opening_date IS NULL OR opening_date > to_char(NOW() - INTERVAL '{days_fresh} days', 'YYYY-MM-DD'))"
             )
             clauses.append(
-                f"(created_at IS NULL OR created_at > NOW() - INTERVAL '60 days')"
+                f"(created_at IS NULL OR created_at > NOW() - INTERVAL '{days_fresh} days')"
+            )
+            # Exclude jobs whose closing date has already passed
+            clauses.append(
+                "(closing_date IS NULL OR closing_date = '' OR closing_date >= to_char(NOW(), 'YYYY-MM-DD'))"
             )
         else:
             clauses.append(
                 f"(opening_date IS NULL OR opening_date > date('now', '-{days_fresh} days'))"
             )
             clauses.append(
-                f"(created_at IS NULL OR created_at > datetime('now', '-60 days'))"
+                f"(created_at IS NULL OR created_at > datetime('now', '-{days_fresh} days'))"
+            )
+            clauses.append(
+                "(closing_date IS NULL OR closing_date = '' OR closing_date >= date('now'))"
             )
 
     if industries:
@@ -867,10 +899,22 @@ def get_active_jobs(conn, industries=None, region=None, seniority=None,
         clauses.append(f"raw LIKE {ph}")
         params.append(f"%{seniority}%")
 
+    # Always exclude roles too senior for entry-level targeting
+    senior_filter = (
+        r"title !~* '\y(Senior|Director|President|Vice\s+President|VP|"
+        r"Head\s+of|Managing\s+Director|Chief|Partner|Principal|Manager|Lead)\y'"
+        if USE_POSTGRES else
+        "title NOT LIKE '%Senior%' AND title NOT LIKE '%Director%' "
+        "AND title NOT LIKE '%President%' AND title NOT LIKE '%Managing%' "
+        "AND title NOT LIKE '%Principal%' AND title NOT LIKE '% Lead%' "
+        "AND title NOT LIKE 'Lead %'"
+    )
+    clauses.append(senior_filter)
+
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     sql   = f"""
         SELECT id, title, company AS company_name, url, location, industry,
-               company_size, opening_date, created_at AS posted_date, source, raw
+               company_size, opening_date, created_at AS posted_date, source, raw, role_type
         FROM   jobs
         {where}
         ORDER  BY opening_date DESC NULLS LAST, created_at DESC
@@ -910,6 +954,7 @@ def upsert_job(conn, job: dict) -> tuple:
     closing_date = (job.get("closing_date") or "").strip() or None
     source       = job.get("source_id") or job.get("source_name") or ""
     company_sz   = job.get("company_size") or ""
+    role_type    = job.get("role_type") or "entry_level"
     raw          = _json.dumps(job)
 
     # Check if already exists by url (primary) or company+title
@@ -928,10 +973,10 @@ def upsert_job(conn, job: dict) -> tuple:
         _exec(
             conn,
             "UPDATE jobs SET title=?, company=?, url=?, location=?, "
-            "industry=?, company_size=?, opening_date=?, closing_date=?, source=?, raw=? "
+            "industry=?, company_size=?, opening_date=?, closing_date=?, source=?, raw=?, role_type=? "
             "WHERE id=?",
             (title, company, url, location, industry, company_sz,
-             opening_date, closing_date, source, raw, job_id)
+             opening_date, closing_date, source, raw, role_type, job_id)
         )
         return job_id, False
     else:
@@ -939,10 +984,10 @@ def upsert_job(conn, job: dict) -> tuple:
             cur = _exec(
                 conn,
                 "INSERT INTO jobs (title, company, url, location, industry, company_size, "
-                "opening_date, closing_date, source, raw) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id",
+                "opening_date, closing_date, source, raw, role_type) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
                 (title, company, url, location, industry, company_sz,
-                 opening_date, closing_date, source, raw)
+                 opening_date, closing_date, source, raw, role_type)
             )
             row = cur.fetchone()
             job_id = row["id"] if isinstance(row, dict) else row[0]
@@ -950,10 +995,10 @@ def upsert_job(conn, job: dict) -> tuple:
             cur = _exec(
                 conn,
                 "INSERT INTO jobs (title, company, url, location, industry, company_size, "
-                "opening_date, closing_date, source, raw) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "opening_date, closing_date, source, raw, role_type) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (title, company, url, location, industry, company_sz,
-                 opening_date, closing_date, source, raw)
+                 opening_date, closing_date, source, raw, role_type)
             )
             job_id = cur.lastrowid
         return job_id, True
@@ -1200,6 +1245,20 @@ def get_seen_linkedin_urls(student_id: int) -> set:
     rows = fetchall(
         "SELECT person_linkedin_url FROM matches WHERE student_id = ? AND person_linkedin_url IS NOT NULL",
         (student_id,),
+    )
+    return {r["person_linkedin_url"] for r in rows}
+
+
+def get_recently_matched_linkedin_urls(days: int = 3) -> set:
+    """Return all LinkedIn URLs matched to ANY student in the last N days.
+    Prevents the same person being surfaced to multiple students within a short window."""
+    from datetime import date, timedelta
+    cutoff = (date.today() - timedelta(days=days)).isoformat()
+    ph = "%s" if USE_POSTGRES else "?"
+    rows = fetchall(
+        f"SELECT DISTINCT person_linkedin_url FROM matches "
+        f"WHERE match_date >= {ph} AND person_linkedin_url IS NOT NULL",
+        (cutoff,),
     )
     return {r["person_linkedin_url"] for r in rows}
 
