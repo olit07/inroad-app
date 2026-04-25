@@ -295,8 +295,8 @@
   /* ── COLUMN HEADER ── */
   .col-header {
     display: grid;
-    grid-template-columns: 200px 1fr 110px 24px;
-    padding: 4px 12px;
+    grid-template-columns: 200px 1fr 110px 80px 24px;
+    padding: 3px 12px;
     font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -330,15 +330,15 @@
 
   .card-row {
     display: grid;
-    grid-template-columns: 200px 1fr 110px 24px;
+    grid-template-columns: 200px 1fr 110px 80px 24px;
     align-items: center;
-    padding: 5px 12px;
-    min-height: 32px;
+    padding: 4px 12px;
+    min-height: 28px;
     user-select: none;
   }
 
   .card-company {
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     font-weight: 700;
     color: var(--text);
     overflow: hidden;
@@ -348,7 +348,7 @@
   }
 
   .card-programme {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     color: var(--muted);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -357,7 +357,7 @@
   }
 
   .card-date {
-    font-size: 0.74rem;
+    font-size: 0.68rem;
     color: var(--subtle);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -522,13 +522,13 @@
   .card-footer-meta strong { color: var(--text-mid); font-weight: 700; }
 
   .apply-btn {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 700;
     background: var(--green);
     color: #fff;
     border: none;
-    border-radius: 8px;
-    padding: 7px 18px;
+    border-radius: 6px;
+    padding: 5px 14px;
     cursor: pointer;
     text-decoration: none;
     transition: background 0.15s, transform 0.1s;
@@ -536,6 +536,13 @@
     white-space: nowrap;
   }
   .apply-btn:hover { background: var(--green-deep); transform: translateY(-1px); }
+  /* inline (card row) variant — smaller to fit row height */
+  .apply-btn-inline {
+    font-size: 0.68rem;
+    padding: 3px 10px;
+    border-radius: 5px;
+    justify-self: start;
+  }
 
   /* ── LOADING / ERROR ── */
   .state-msg {
@@ -714,7 +721,7 @@
       }
     }
 
-    const colHeader = `<div class="col-header"><span>Company</span><span>Programme</span><span>Opened</span><span></span></div>`;
+    const colHeader = `<div class="col-header"><span>Company</span><span>Programme</span><span>Opened</span><span></span><span></span></div>`;
 
     // "New" section — distinct panel, not collapsible
     const newBody = newJobs.length === 0
@@ -776,7 +783,7 @@
 
   function collapsibleSection(key, label, jobs, emptyHtml) {
     const isCollapsed = collapsedSections.has(key);
-    const colHeader = `<div class="col-header"><span>Company</span><span>Programme</span><span>Opened</span><span></span></div>`;
+    const colHeader = `<div class="col-header"><span>Company</span><span>Programme</span><span>Opened</span><span></span><span></span></div>`;
     const bodyContent = emptyHtml || colHeader + '<div class="card-list">' + jobs.map(cardHtml).join('') + '</div>';
     return `
       <div class="section-row collapsible${isCollapsed ? ' collapsed' : ''}" data-key="${key}">
@@ -811,6 +818,7 @@
           <span class="card-company">${esc(job.company)}</span>
           <span class="card-programme">${esc(job.programme)}</span>
           <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
+          <a href="${esc(job.apply_url || '#')}" target="_blank" rel="noopener" class="apply-btn apply-btn-inline" onclick="event.stopPropagation()">Apply →</a>
           <span class="card-chevron">▾</span>
         </div>
         <div class="card-dropdown">
