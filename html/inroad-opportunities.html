@@ -47,80 +47,36 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 48px;
-    background: rgba(255,255,255,0.96);
-    backdrop-filter: blur(16px);
+    padding: 0 52px;
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 50;
   }
 
-  .wordmark {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-  }
-
-  .wm-icon {
-    width: 28px; height: 28px;
-    background: var(--green);
-    border-radius: 7px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .wm-text {
-    font-family: var(--serif);
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.02em;
-  }
-
-  .nav-links {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    list-style: none;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .nav-links a {
-    font-size: 0.83rem;
-    font-weight: 400;
-    color: var(--muted);
-    text-decoration: none;
-    padding: 5px 12px;
-    border-radius: 6px;
-    transition: color 0.15s, background 0.15s;
-  }
-  .nav-links a:hover { color: var(--text); background: var(--surface); }
-  .nav-links a.active { color: var(--green); font-weight: 700; background: var(--green-lite); }
+  .wordmark { display: flex; align-items: center; gap: 9px; text-decoration: none; }
 
   .nav-right { display: flex; align-items: center; gap: 8px; }
 
   .btn-login {
-    font-size: 0.83rem; font-weight: 700;
+    font-size: 0.83rem; font-weight: 700; font-family: var(--sans);
     color: var(--text); background: transparent;
     border: 1.5px solid var(--border-md);
-    padding: 6px 16px; border-radius: 8px;
+    padding: 7px 18px; border-radius: 8px;
     text-decoration: none;
     transition: border-color 0.15s, color 0.15s;
   }
   .btn-login:hover { border-color: var(--green); color: var(--green); }
 
-  .btn-cta {
-    font-size: 0.83rem; font-weight: 700;
+  .btn-nav-cta {
+    font-size: 0.83rem; font-weight: 700; font-family: var(--sans);
     color: #fff; background: var(--green);
-    border: none; padding: 7px 16px;
+    border: none; padding: 8px 18px;
     border-radius: 8px; text-decoration: none;
-    transition: background 0.15s, transform 0.1s;
+    transition: background 0.15s, transform 0.1s; white-space: nowrap;
   }
-  .btn-cta:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .btn-nav-cta:hover { background: var(--green-deep); transform: translateY(-1px); }
 
   /* ── PAGE ── */
   .page {
@@ -444,21 +400,31 @@
     border: 1px solid var(--green-mid);
   }
 
-  .connect-btn {
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: transparent;
-    color: var(--muted);
-    border: 1.5px solid var(--border-md);
-    border-radius: 6px;
-    padding: 5px 12px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.15s;
-    flex-shrink: 0;
-    white-space: nowrap;
+  .lead-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .btn-linkedin {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.73rem; font-weight: 700; font-family: var(--sans);
+    background: #0A66C2; color: #fff;
+    border: none; border-radius: 6px;
+    padding: 5px 11px; cursor: pointer;
+    text-decoration: none; white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
   }
-  .connect-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-lite); }
+  .btn-linkedin:hover { background: #004182; transform: translateY(-1px); }
+  .btn-linkedin svg { flex-shrink: 0; }
+
+  .btn-email {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.73rem; font-weight: 700; font-family: var(--sans);
+    background: #111; color: #fff;
+    border: none; border-radius: 6px;
+    padding: 5px 11px; cursor: pointer;
+    text-decoration: none; white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-email:hover { background: #333; transform: translateY(-1px); }
+  .btn-email svg { flex-shrink: 0; }
 
   .card-footer {
     display: flex;
@@ -547,18 +513,11 @@
 
 <nav>
   <a href="/" class="wordmark">
-    <div class="wm-icon">
-      <svg width="16" height="16" viewBox="0 0 88 88" fill="none"><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="9" stroke-linecap="round"/></svg>
-    </div>
-    <span class="wm-text">inroad</span>
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
   </a>
-  <ul class="nav-links">
-    <li><a href="/">Home</a></li>
-    <li><a href="/opportunities" class="active">Opportunities</a></li>
-  </ul>
   <div class="nav-right">
     <a href="/login" class="btn-login">Log in</a>
-    <a href="/signup" class="btn-cta">Get started free →</a>
+    <a href="/signup" class="btn-nav-cta">Get started free →</a>
   </div>
 </nav>
 
@@ -731,12 +690,24 @@
       </div>`;
   }
 
+  const LI_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`;
+  const EMAIL_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>`;
+
   function leadHtml(lead) {
     const initials = lead.initials || initFromName(lead.name);
     const badges   = (lead.badges || []).map(b =>
       `<span class="badge ${b}">${badgeLabel(b, lead)}</span>`).join('');
-    const href    = lead.linkedin_url || '#';
-    const target  = lead.linkedin_url ? 'target="_blank" rel="noopener"' : '';
+
+    const liHref   = lead.linkedin_url || null;
+    const liBtn    = liHref
+      ? `<a href="${esc(liHref)}" target="_blank" rel="noopener" class="btn-linkedin">${LI_ICON} LinkedIn</a>`
+      : `<span class="btn-linkedin" style="opacity:0.35;cursor:default;">${LI_ICON} LinkedIn</span>`;
+
+    const emailHref = lead.expected_email || null;
+    const emailBtn  = emailHref
+      ? `<a href="mailto:${esc(emailHref)}" class="btn-email">${EMAIL_ICON} Email</a>`
+      : `<span class="btn-email" style="opacity:0.35;cursor:default;">${EMAIL_ICON} Email</span>`;
+
     return `
       <div class="lead-row">
         <div class="lead-avatar">${esc(initials)}</div>
@@ -745,7 +716,7 @@
           <div class="lead-title">${esc(lead.title || '')}</div>
           ${badges ? `<div class="lead-badges">${badges}</div>` : ''}
         </div>
-        <a href="${esc(href)}" ${target} class="connect-btn">Connect →</a>
+        <div class="lead-actions">${liBtn}${emailBtn}</div>
       </div>`;
   }
 

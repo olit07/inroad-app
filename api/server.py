@@ -1778,14 +1778,15 @@ def api_opportunities():
             if is_alumni and is_alumni not in (0, False, "0", "false"):
                 badges.append("exp")
             leads.append({
-                "id":           l.get("id"),
-                "name":         name,
-                "title":        l.get("title") or l.get("job_title") or "",
-                "initials":     make_initials(name),
-                "linkedin_url": l.get("linkedin_url") or "",
-                "badges":       badges,
-                "university":   l.get("university") or "",
-                "verified":     False,
+                "id":             l.get("id"),
+                "name":           name,
+                "title":          l.get("title") or l.get("job_title") or "",
+                "initials":       make_initials(name),
+                "linkedin_url":   l.get("linkedin_url") or "",
+                "expected_email": l.get("expected_email") or l.get("job_expected_email") or "",
+                "badges":         badges,
+                "university":     l.get("university") or "",
+                "verified":       False,
             })
 
         jobs.append({
