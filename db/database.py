@@ -970,11 +970,12 @@ def upsert_job(conn, job: dict) -> tuple:
 
     if existing:
         job_id = existing[0] if not isinstance(existing, dict) else existing["id"]
+        now_expr = "NOW()" if USE_POSTGRES else "datetime('now')"
         _exec(
             conn,
-            "UPDATE jobs SET title=?, company=?, url=?, location=?, "
-            "industry=?, company_size=?, opening_date=?, closing_date=?, source=?, raw=?, role_type=? "
-            "WHERE id=?",
+            f"UPDATE jobs SET title=?, company=?, url=?, location=?, "
+            f"industry=?, company_size=?, opening_date=?, closing_date=?, source=?, raw=?, role_type=?, created_at={now_expr} "
+            f"WHERE id=?",
             (title, company, url, location, industry, company_sz,
              opening_date, closing_date, source, raw, role_type, job_id)
         )

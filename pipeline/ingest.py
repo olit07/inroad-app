@@ -1,5 +1,5 @@
 """
-CCC Backend — Ingestion pipeline
+inroad Backend — Ingestion pipeline
 
 Orchestrates all scrapers → normalises → deduplicates → writes to DB.
 Called by the scheduler daily, or via the CLI for manual runs.
@@ -38,12 +38,12 @@ def run_single_scraper(scraper, db_path=DB_PATH) -> dict:
     try:
         raw_jobs = scraper.run()
 
-        # Filter to jobs posted within the last 2 days to limit load
-        cutoff = (datetime.utcnow() - timedelta(days=2)).date().isoformat()
+        # Filter to jobs posted within the last 30 days
+        cutoff = (datetime.utcnow() - timedelta(days=30)).date().isoformat()
         fresh_jobs = [j for j in raw_jobs if (j.get("posted_date") or j.get("opening_date") or "9999") >= cutoff]
         stale      = len(raw_jobs) - len(fresh_jobs)
         if stale:
-            logger.info(f"[{source_id}] Skipped {stale} jobs older than 2 days")
+            logger.info(f"[{source_id}] Skipped {stale} jobs older than 30 days")
         raw_jobs   = fresh_jobs
         jobs_found = len(raw_jobs)
 
@@ -134,14 +134,22 @@ def run_all_scrapers(db_path=DB_PATH, source_ids: list[str] | None = None) -> li
 
 def expire_stale_jobs(db_path=DB_PATH, max_age_days: int = 14) -> int:
     """
-    Delete jobs whose posted_at is older than max_age_days.
+    Delete jobs not seen (created_at / upserted) in the last max_age_days.
+    opening_date is intentionally excluded: many long-running programmes (off-cycle,
+    graduate, etc.) have old opening dates but remain valid for months.
     Returns the number of rows deleted.
     """
     from db.database import USE_POSTGRES, execute as db_execute
     if USE_POSTGRES:
-        sql = f"DELETE FROM jobs WHERE created_at < NOW() - INTERVAL '{max_age_days} days'"
+        sql = (
+            f"DELETE FROM jobs WHERE id NOT IN (SELECT DISTINCT job_id FROM matches) "
+            f"AND created_at < NOW() - INTERVAL '{max_age_days} days'"
+        )
     else:
-        sql = f"DELETE FROM jobs WHERE created_at < datetime('now', '-{max_age_days} days')"
+        sql = (
+            f"DELETE FROM jobs WHERE id NOT IN (SELECT DISTINCT job_id FROM matches) "
+            f"AND created_at < datetime('now', '-{max_age_days} days')"
+        )
     deleted = db_execute(sql) or 0
     return deleted
 
