@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline — inroad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #FFFFFF;
+    --surface:    #F3F1EE;
+    --border:     #E6E2DB;
+    --border-md:  #CEC8BF;
+    --green:      #1F4530;
+    --green-lite: #EAF2EC;
+    --green-mid:  #A8C9B0;
+    --green-deep: #122B1E;
+    --text:       #1A1714;
+    --muted:      #7A7068;
+    --subtle:     #ADA79F;
+    --serif: 'Lora', Georgia, serif;
+    --sans:  'Lato', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    background: var(--green);
+    border-bottom: 1px solid transparent;
+  }
+
+  .wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+
+  .nav-center {
+    display: flex; align-items: center; gap: 32px; list-style: none;
+    position: absolute; left: 50%; transform: translateX(-50%);
+  }
+  .nav-center a {
+    font-size: 0.85rem; font-weight: 400;
+    color: rgba(255,255,255,0.7); text-decoration: none; transition: color 0.15s;
+  }
+  .nav-center a:hover { color: #fff; }
+  .nav-center a.active { color: #fff; font-weight: 700; }
+
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+
+  .btn-login {
+    font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    color: rgba(255,255,255,0.8); background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.3);
+    padding: 7px 18px; border-radius: 8px; text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-login:hover { border-color: rgba(255,255,255,0.7); color: #fff; }
+
+  .btn-nav-cta {
+    font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    color: var(--green); background: #fff;
+    border: none; padding: 8px 18px;
+    border-radius: 8px; text-decoration: none;
+    transition: background 0.15s; white-space: nowrap;
+  }
+  .btn-nav-cta:hover { background: var(--green-lite); }
+
+  .nav-user { display: flex; align-items: center; gap: 12px; }
+  .nav-initials {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .btn-settings {
+    font-size: 0.82rem; font-weight: 500; font-family: var(--sans);
+    color: rgba(255,255,255,0.75); background: transparent;
+    border: none; padding: 0; text-decoration: none; cursor: pointer;
+    transition: color 0.15s;
+  }
+  .btn-settings:hover { color: #fff; }
+
+  /* ── REFERRAL BUTTON ── */
+  .nav-refer-btn {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 12px; font-weight: 700; font-family: var(--sans);
+    cursor: pointer; white-space: nowrap; letter-spacing: 0.01em;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .nav-refer-btn:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); }
+
+  /* ── REFERRAL MODAL ── */
+  .refer-modal-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(26,23,20,0.45); backdrop-filter: blur(4px);
+    z-index: 200; align-items: center; justify-content: center; padding: 24px;
+  }
+  .refer-modal-backdrop.open { display: flex; }
+  .refer-modal {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 20px; width: 100%; max-width: 420px;
+    box-shadow: 0 24px 80px rgba(26,23,20,0.18); overflow: hidden;
+  }
+  .refer-modal-header {
+    padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .refer-modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+  .refer-modal-close {
+    background: none; border: none; cursor: pointer;
+    font-size: 1.2rem; color: var(--subtle); padding: 2px; line-height: 1; transition: color 0.15s;
+  }
+  .refer-modal-close:hover { color: var(--text); }
+  .refer-modal-body { padding: 20px 24px; }
+  .btn-refer-copy {
+    background: #fff; color: var(--text-mid);
+    border: 1.5px solid var(--border); border-radius: 9px;
+    padding: 8px 16px; font-size: 0.8rem; font-weight: 600; font-family: var(--sans);
+    cursor: pointer; transition: border-color 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0;
+  }
+  .btn-refer-copy:hover { border-color: var(--green); color: var(--green); }
+
+  /* ── MAIN ── */
+  .main {
+    padding-top: 62px;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .coming-soon-label {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--green);
+    background: var(--green-lite); border: 1px solid var(--green-mid);
+    padding: 4px 12px; border-radius: 100px;
+  }
+
+  .coming-soon-title {
+    font-family: var(--serif);
+    font-size: 2.2rem; font-weight: 700;
+    color: var(--text); letter-spacing: -0.02em;
+  }
+
+  .coming-soon-sub {
+    font-size: 0.9rem; color: var(--muted); font-weight: 400;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:#fff;">inroad</span>
+  </a>
+  <ul class="nav-center" id="nav-center">
+    <li><a href="/opportunities">Opportunities</a></li>
+    <li><a href="/pipeline" class="active">Pipeline</a></li>
+  </ul>
+  <div class="nav-right" id="nav-right">
+    <a href="/login" class="btn-login">Login / Sign up</a>
+    <a href="/opportunities" class="btn-nav-cta">Get started free →</a>
+  </div>
+</nav>
+
+<!-- Referral modal -->
+<div class="refer-modal-backdrop" id="refer-modal-overlay" onclick="if(event.target===this)closeReferModal()">
+  <div class="refer-modal">
+    <div class="refer-modal-header">
+      <div class="refer-modal-title">Get 5 daily emails</div>
+      <button class="refer-modal-close" onclick="closeReferModal()">✕</button>
+    </div>
+    <div class="refer-modal-body">
+      <p style="font-size:0.88rem;color:var(--text-mid);line-height:1.65;margin:0 0 16px">Share your link. When a friend signs up, you unlock <strong style="color:var(--text)">5 daily emails</strong> instead of 3.</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="refer-link-input" type="text" readonly style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.8rem;font-family:var(--sans);color:var(--text-mid);background:var(--surface);outline:none;">
+        <button class="btn-refer-copy" onclick="copyReferLink()" id="copy-refer-btn">Copy link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <span class="coming-soon-label">Coming soon</span>
+  <h1 class="coming-soon-title">Pipeline</h1>
+  <p class="coming-soon-sub">Track your applications and outreach in one place.</p>
+</div>
+
+<script>
+(function updateNav() {
+  const token = sessionStorage.getItem('inroad_token') || localStorage.getItem('inroad_access_token') || localStorage.getItem('access_token') || '';
+  if (!token) return;
+  fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (!d) return;
+      const name     = d.name || '';
+      const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+      const navRight = document.getElementById('nav-right');
+      if (d.referral_code) {
+        const inp = document.getElementById('refer-link-input');
+        if (inp) inp.value = `https://www.the-inroad.com/signup?ref=${d.referral_code}`;
+      }
+      if (navRight) navRight.innerHTML = `
+        <div class="nav-user">
+          ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
+          <a href="/settings" class="btn-settings">Settings</a>
+          <div class="nav-initials">${initials || '?'}</div>
+        </div>`;
+    })
+    .catch(() => {});
+})();
+
+function openReferModal() {
+  document.getElementById('refer-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeReferModal() {
+  document.getElementById('refer-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function copyReferLink() {
+  const val = document.getElementById('refer-link-input').value;
+  navigator.clipboard.writeText(val).then(() => {
+    const btn = document.getElementById('copy-refer-btn');
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>
