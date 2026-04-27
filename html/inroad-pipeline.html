@@ -182,6 +182,18 @@
     border-right: none;
   }
 
+  /* Invisible click zone covering the full border height */
+  .listings-border-zone {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: calc(28% - 5px);
+    width: 10px;
+    z-index: 15;
+    cursor: col-resize;
+    transition: left 0.25s ease;
+  }
+  .listings-border-zone.collapsed { left: -5px; }
+
   /* Toggle tab on the border between panels */
   .listings-toggle {
     position: absolute;
@@ -245,13 +257,13 @@
   .filter-wrap::-webkit-scrollbar { display: none; }
   .filter-btn {
     font-size: 0.62rem; font-weight: 700;
-    background: var(--bg); color: var(--muted);
-    border: 1px solid var(--border); border-radius: 100px;
-    padding: 3px 7px; cursor: pointer; white-space: nowrap;
-    transition: all 0.15s; flex-shrink: 0;
+    background: transparent; color: var(--muted);
+    border: 1.5px solid var(--border); border-radius: 100px;
+    padding: 3px 9px; cursor: pointer; white-space: nowrap;
+    transition: all 0.15s; flex-shrink: 0; opacity: 0.55;
   }
-  .filter-btn:hover { border-color: var(--border-md); color: var(--text-mid); }
-  .filter-btn.on { background: var(--green-lite); border-color: var(--green); color: var(--green-deep); }
+  .filter-btn:hover { opacity: 0.8; }
+  .filter-btn.on { opacity: 1; color: #fff; }
 
   /* Section rows */
   .new-section {
@@ -287,7 +299,13 @@
   .section-body { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease; max-height: 9999px; opacity: 1; }
   .section-body.collapsed { max-height: 0 !important; opacity: 0; }
 
-  /* Compact listing cards (no date column) */
+  /* Listing cards */
+  .col-header {
+    display: grid; grid-template-columns: 1fr 44px 68px;
+    padding: 2px 7px;
+    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--subtle);
+  }
   .card-list { display: flex; flex-direction: column; gap: 2px; }
   .card-empty { font-size: 0.73rem; color: var(--subtle); padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
 
@@ -302,16 +320,16 @@
   .job-card.in-pipeline { border-left: 3px solid; }
 
   .card-row {
-    display: grid; grid-template-columns: 1fr auto;
-    align-items: center; padding: 4px 7px; min-height: 26px; gap: 5px;
+    display: grid; grid-template-columns: 1fr 44px 68px;
+    align-items: center; padding: 4px 7px; min-height: 28px; gap: 4px;
   }
   .card-left { min-width: 0; }
   .card-company { font-size: 0.71rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card-programme { font-size: 0.63rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
-  .card-date-line { font-size: 0.58rem; color: var(--subtle); margin-top: 1px; }
-  .card-date-line.fresh { color: var(--green); font-weight: 700; }
+  .card-date { font-size: 0.64rem; color: var(--subtle); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .card-date.fresh { color: var(--green); font-weight: 700; }
 
-  .card-right { display: flex; align-items: center; gap: 4px; justify-content: flex-end; flex-shrink: 0; }
+  .card-right { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
   .apply-btn-inline {
     font-size: 0.6rem; font-weight: 700;
     background: var(--green); color: #fff;
@@ -324,7 +342,7 @@
   .stage-badge {
     font-size: 0.55rem; font-weight: 700; border-radius: 4px;
     padding: 2px 5px; white-space: nowrap; line-height: 1.4;
-    max-width: 60px; overflow: hidden; text-overflow: ellipsis;
+    max-width: 64px; overflow: hidden; text-overflow: ellipsis;
   }
 
   .job-card.dragging { opacity: 0.4; }
@@ -361,28 +379,34 @@
   }
   .pipeline-stats strong { color: var(--text); }
 
-  /* Horizontal kanban track — centred */
+  /* Horizontal kanban track — centred both axes */
   .kanban-track {
     display: flex;
-    flex-direction: row;
-    gap: 0;
-    padding: 16px 24px 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
     overflow-x: auto;
     overflow-y: auto;
     flex: 1;
-    align-items: flex-start;
-    justify-content: center;
   }
   .kanban-track::-webkit-scrollbar { height: 5px; }
   .kanban-track::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 99px; }
 
-  /* Arrow between columns */
+  /* Inner row — columns sit inside this, starts at top within itself */
+  .kanban-inner {
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    align-items: flex-start;
+  }
+
+  /* Horizontal arrow between columns */
   .kanban-arrow {
     flex-shrink: 0;
     width: 28px;
     display: flex;
     align-items: flex-start;
-    padding-top: 14px;
+    padding-top: 13px;
     justify-content: center;
     color: var(--border-md);
     font-size: 13px;
@@ -391,11 +415,23 @@
 
   /* Each column: active stage on top, rejection stage below */
   .kanban-col {
-    flex: 0 0 155px;
-    min-width: 155px;
+    flex: 0 0 200px;
+    min-width: 200px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 0;
+  }
+
+  /* Down arrow between active and rejection block */
+  .kstage-down-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 20px;
+    color: var(--border-md);
+    font-size: 13px;
+    user-select: none;
+    flex-shrink: 0;
   }
 
   /* Stage block (active or rejection) */
@@ -405,9 +441,7 @@
     border: 1px solid rgba(0,0,0,0.07);
     background: #fff;
   }
-  .kstage-block.rejection-block {
-    opacity: 0.85;
-  }
+  .kstage-block.rejection-block { opacity: 0.85; }
 
   .kstage-hdr {
     display: flex; align-items: center; justify-content: space-between;
@@ -495,7 +529,8 @@
 
 <div class="page-layout" style="position:relative">
 
-  <!-- Toggle tab -->
+  <!-- Clickable border zone + toggle tab -->
+  <div class="listings-border-zone" id="listings-border-zone" onclick="toggleListings()"></div>
   <div class="listings-toggle" id="listings-toggle" onclick="toggleListings()" title="Toggle listings">◀</div>
 
   <!-- ── LISTINGS PANEL (28%) ── -->
@@ -508,15 +543,7 @@
           <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
         </div>
         <div class="filter-wrap" id="filter-wrap">
-          <button class="filter-btn" data-div="Bulge Bracket">Bulge Bracket</button>
-          <button class="filter-btn" data-div="Elite Boutique">Elite Boutique</button>
-          <button class="filter-btn" data-div="Middle Market">Middle Market</button>
-          <button class="filter-btn" data-div="Buy-Side">Buy-Side</button>
-          <button class="filter-btn" data-div="Asset Management">Asset Management</button>
-          <button class="filter-btn" data-div="Big 4">Big 4</button>
-          <button class="filter-btn" data-div="Consulting">Consulting</button>
-          <button class="filter-btn" data-div="Trading and Quant">Trading and Quant</button>
-          <button class="filter-btn" data-div="Miscellaneous">Miscellaneous</button>
+          <!-- Stage filter pills rendered by JS -->
         </div>
       </div>
     </div>
@@ -637,30 +664,45 @@
   let dragJob = null;
 
   // ── Render pipeline (horizontal kanban) ──────────────────────────────────
+  const REJECTION_IDS = new Set(
+    COLUMNS.flatMap(c => c.rejection ? [c.rejection.id] : [])
+  );
+
   function renderPipeline() {
-    const total  = totalTracked();
+    const p        = getPipeline();
+    const entries  = Object.entries(p);
+    const total    = entries.length;
+    const rejected = entries.filter(([, s]) => REJECTION_IDS.has(s)).length;
+    const applied  = total - rejected;
+
     const statsEl = document.getElementById('pipeline-stats');
     if (total === 0) {
       statsEl.innerHTML = 'Drag a listing here to start tracking';
     } else {
-      statsEl.innerHTML = `<strong>${total}</strong> application${total !== 1 ? 's' : ''} tracked`;
+      statsEl.innerHTML =
+        `Total Applications: <strong>${applied}</strong> &nbsp;·&nbsp; ` +
+        `Total Rejections: <strong>${rejected}</strong>`;
     }
 
     const track = document.getElementById('kanban-track');
-    track.innerHTML = COLUMNS.map((col, i) =>
-      (i > 0 ? '<div class="kanban-arrow">→</div>' : '') + colHtml(col)
+    const inner = COLUMNS.map((col, i) =>
+      (i > 0 ? '<div class="kanban-arrow">→</div>' : '') + colHtml(col, i)
     ).join('');
+    track.innerHTML = `<div class="kanban-inner">${inner}</div>`;
 
     attachDropHandlers();
     attachChipHandlers();
   }
 
-  function colHtml(col) {
+  // Offer→Ghosted is the last column (index 5), no down arrow there
+  const NO_DOWN_ARROW_IDX = COLUMNS.length - 1;
+
+  function colHtml(col, colIdx) {
     const activeJobs = jobsInStage(col.active.id);
     const rejJobs    = col.rejection ? jobsInStage(col.rejection.id) : [];
 
-    const activeCntBg  = col.active.fg  === '#fff' ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.1)';
-    const rejCntBg     = 'rgba(255,255,255,0.22)';
+    const activeCntBg = col.active.fg === '#fff' ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.1)';
+    const rejCntBg    = 'rgba(255,255,255,0.22)';
 
     const activeBlock = `
       <div class="kstage-block">
@@ -675,6 +717,9 @@
         </div>
       </div>`;
 
+    const showDownArrow = col.rejection && colIdx !== NO_DOWN_ARROW_IDX;
+    const downArrow = showDownArrow ? '<div class="kstage-down-arrow">↓</div>' : (col.rejection ? '<div style="height:20px"></div>' : '');
+
     const rejBlock = col.rejection ? `
       <div class="kstage-block rejection-block">
         <div class="kstage-hdr" style="background:${col.rejection.bg};color:${col.rejection.fg}">
@@ -688,7 +733,7 @@
         </div>
       </div>` : '';
 
-    return `<div class="kanban-col">${activeBlock}${rejBlock}</div>`;
+    return `<div class="kanban-col">${activeBlock}${downArrow}${rejBlock}</div>`;
   }
 
   function chipHtml(job) {
@@ -753,7 +798,10 @@
 
   function filtered() {
     return allJobs.filter(j => {
-      if (activeFilters.size > 0 && !activeFilters.has(j.division)) return false;
+      if (activeFilters.size > 0) {
+        const stage = stageForJob(j.id);
+        if (!activeFilters.has(stage || '__none__')) return false;
+      }
       if (searchQuery && !(j.company + ' ' + j.programme).toLowerCase().includes(searchQuery)) return false;
       return true;
     });
@@ -771,13 +819,15 @@
       else noProg.push(j);
     }
 
+    const colHdr = `<div class="col-header"><span>Company / Programme</span><span>Opened</span><span></span></div>`;
+
     const newSection = newJobs.length === 0 ? '' : `
       <div class="new-section">
         <div class="section-row">
           <span class="section-pill new-pill"><span class="pill-dot"></span>New — last 72h<span class="pill-count">${newJobs.length}</span></span>
           <span class="section-line"></span>
         </div>
-        <div class="card-list">${newJobs.map(cardHtml).join('')}</div>
+        ${colHdr}<div class="card-list">${newJobs.map(cardHtml).join('')}</div>
       </div>`;
 
     const parts = [];
@@ -822,6 +872,7 @@
 
   function collapsibleSection(key, label, jobs) {
     const collapsed = collapsedSections.has(key);
+    const colHdr = `<div class="col-header"><span>Company / Programme</span><span>Opened</span><span></span></div>`;
     return `
       <div class="section-row collapsible${collapsed ? ' collapsed' : ''}" data-key="${key}">
         <span class="section-pill all-pill">${label}<span class="pill-count">${jobs.length}</span></span>
@@ -829,7 +880,7 @@
         <span class="section-chevron">▾</span>
       </div>
       <div class="section-body${collapsed ? ' collapsed' : ''}">
-        <div class="card-list">${jobs.map(cardHtml).join('')}</div>
+        ${colHdr}<div class="card-list">${jobs.map(cardHtml).join('')}</div>
       </div>`;
   }
 
@@ -841,7 +892,7 @@
            title="${esc(stage.label)}">${esc(stage.label)}</span>`
       : (job.apply_url ? `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>` : '<span></span>');
     const borderStyle = stage ? `border-left:3px solid ${stage.bg}` : '';
-    const fresh = isNew(job.opening_date);
+    const fresh   = isNew(job.opening_date);
     const dateStr = fmtDate(job.opening_date);
     return `
       <div class="job-card" draggable="true" data-id="${job.id}" style="${borderStyle}">
@@ -849,22 +900,42 @@
           <div class="card-left">
             <div class="card-company">${esc(job.company)}</div>
             <div class="card-programme">${esc(job.programme)}</div>
-            ${dateStr ? `<div class="card-date-line${fresh ? ' fresh' : ''}">Opened ${dateStr}</div>` : ''}
           </div>
+          <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
           <div class="card-right">${stageBadge}</div>
         </div>
       </div>`;
   }
 
-  // ── Filter buttons ────────────────────────────────────────────────────────
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const div = btn.dataset.div;
-      if (activeFilters.has(div)) { activeFilters.delete(div); btn.classList.remove('on'); }
-      else                        { activeFilters.add(div);    btn.classList.add('on'); }
-      renderListings();
+  // ── Stage filter pills ────────────────────────────────────────────────────
+  (function buildStagePills() {
+    const wrap = document.getElementById('filter-wrap');
+    const allStages = [...COLUMNS.flatMap(c => c.rejection ? [c.active, c.rejection] : [c.active])];
+    allStages.forEach(stage => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.dataset.stageId = stage.id;
+      btn.textContent = stage.label;
+      btn.style.borderColor = stage.bg;
+      btn.style.setProperty('--stage-bg', stage.bg);
+      btn.addEventListener('click', () => {
+        const id = stage.id;
+        if (activeFilters.has(id)) {
+          activeFilters.delete(id);
+          btn.classList.remove('on');
+          btn.style.background = 'transparent';
+          btn.style.color = 'var(--muted)';
+        } else {
+          activeFilters.add(id);
+          btn.classList.add('on');
+          btn.style.background = stage.bg;
+          btn.style.color = stage.fg;
+        }
+        renderListings();
+      });
+      wrap.appendChild(btn);
     });
-  });
+  })();
   searchEl.addEventListener('input', () => {
     searchQuery = searchEl.value.trim().toLowerCase();
     renderListings();
@@ -891,14 +962,17 @@
   function applyListingsState() {
     const panel  = document.getElementById('listings-panel');
     const toggle = document.getElementById('listings-toggle');
+    const zone   = document.getElementById('listings-border-zone');
     if (listingsVisible) {
       panel.classList.remove('collapsed');
       toggle.classList.remove('collapsed');
+      zone.classList.remove('collapsed');
       toggle.textContent = '◀';
       toggle.style.left  = 'calc(28% - 1px)';
     } else {
       panel.classList.add('collapsed');
       toggle.classList.add('collapsed');
+      zone.classList.add('collapsed');
       toggle.textContent = '▶';
       toggle.style.left  = '0px';
     }
