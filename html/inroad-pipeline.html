@@ -165,9 +165,9 @@
     overflow: hidden;
   }
 
-  /* ── LISTINGS PANEL (70%) ── */
+  /* ── LISTINGS PANEL (30%) ── */
   .listings-panel {
-    flex: 0 0 70%;
+    flex: 0 0 30%;
     height: 100%;
     overflow-y: auto;
     border-right: 1px solid var(--border);
@@ -182,96 +182,90 @@
     background: rgba(255,255,255,0.96);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: 14px 20px 10px;
+    padding: 10px 14px 8px;
     flex-shrink: 0;
   }
 
   .panel-title {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--subtle);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 
-  .panel-body { padding: 12px 20px 40px; flex: 1; }
+  .panel-body { padding: 8px 14px 40px; flex: 1; }
 
-  /* Toolbar */
-  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .search-wrap { position: relative; flex: 1; min-width: 160px; }
-  .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--subtle); font-size: 13px; pointer-events: none; }
+  /* Compact toolbar */
+  .toolbar { display: flex; flex-direction: column; gap: 6px; }
+  .search-wrap { position: relative; }
+  .search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--subtle); font-size: 12px; pointer-events: none; }
   .search-input {
     width: 100%; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 7px; padding: 6px 10px 6px 28px;
-    font-family: var(--sans); font-size: 0.78rem; color: var(--text); outline: none;
+    border-radius: 7px; padding: 5px 8px 5px 24px;
+    font-family: var(--sans); font-size: 0.75rem; color: var(--text); outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .search-input::placeholder { color: var(--subtle); }
   .search-input:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(31,69,48,0.07); }
 
   .filter-wrap {
-    display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px;
-    scrollbar-width: none; flex-wrap: nowrap; width: 100%;
+    display: flex; gap: 3px; overflow-x: auto; padding-bottom: 1px;
+    scrollbar-width: none; flex-wrap: nowrap;
   }
   .filter-wrap::-webkit-scrollbar { display: none; }
   .filter-btn {
-    font-size: 0.68rem; font-weight: 700;
+    font-size: 0.62rem; font-weight: 700;
     background: var(--bg); color: var(--muted);
     border: 1px solid var(--border); border-radius: 100px;
-    padding: 4px 9px; cursor: pointer; white-space: nowrap;
+    padding: 3px 7px; cursor: pointer; white-space: nowrap;
     transition: all 0.15s; flex-shrink: 0;
   }
   .filter-btn:hover { border-color: var(--border-md); color: var(--text-mid); }
   .filter-btn.on { background: var(--green-lite); border-color: var(--green); color: var(--green-deep); }
-  .shown-count { font-size: 0.7rem; color: var(--subtle); white-space: nowrap; }
 
   /* Section rows */
   .new-section {
     background: var(--green-lite); border: 1.5px solid var(--green-mid);
-    border-radius: 8px; padding: 10px 12px 8px; margin-bottom: 20px;
+    border-radius: 7px; padding: 8px 10px 6px; margin-bottom: 14px;
   }
   .new-section .col-header { color: var(--green-deep); opacity: 0.55; }
   .new-section .job-card { border-color: rgba(31,69,48,0.14); background: rgba(255,255,255,0.6); }
   .new-section .job-card:hover { border-color: var(--green-mid); background: rgba(255,255,255,0.85); }
 
   .section-row {
-    display: flex; align-items: center; gap: 10px;
-    margin-top: 20px; margin-bottom: 5px;
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 14px; margin-bottom: 4px;
   }
-  .new-section .section-row { margin-top: 0; margin-bottom: 8px; }
+  .new-section .section-row { margin-top: 0; margin-bottom: 6px; }
   .section-row.collapsible { cursor: pointer; user-select: none; }
 
   .section-pill {
-    font-size: 0.63rem; font-weight: 700; letter-spacing: 0.07em;
-    text-transform: uppercase; padding: 3px 9px; border-radius: 100px;
-    white-space: nowrap; display: flex; align-items: center; gap: 5px;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 2px 8px; border-radius: 100px;
+    white-space: nowrap; display: flex; align-items: center; gap: 4px;
   }
-  .section-pill.new-pill { background: var(--green); color: #fff; font-size: 0.65rem; padding: 3px 10px; }
+  .section-pill.new-pill { background: var(--green); color: #fff; font-size: 0.62rem; padding: 2px 9px; }
   .pill-dot { width: 5px; height: 5px; background: #6ee29a; border-radius: 50%; flex-shrink: 0; animation: blink 2s ease infinite; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
   .section-pill.all-pill { background: var(--surface); color: var(--muted); border: 1px solid var(--border); transition: border-color 0.15s, color 0.15s; }
-  .pill-count { font-size: 0.58rem; font-weight: 700; background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 100px; }
+  .pill-count { font-size: 0.56rem; font-weight: 700; background: rgba(0,0,0,0.08); padding: 1px 4px; border-radius: 100px; }
   .new-pill .pill-count { background: rgba(255,255,255,0.25); }
-  .section-chevron { font-size: 10px; color: var(--subtle); transition: transform 0.2s; flex-shrink: 0; }
+  .section-chevron { font-size: 9px; color: var(--subtle); transition: transform 0.2s; flex-shrink: 0; }
   .section-row.collapsed .section-chevron { transform: rotate(-90deg); }
   .section-line { flex: 1; height: 1px; background: var(--border); }
   .new-section .section-line { background: var(--green-mid); opacity: 0.4; }
   .section-body { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease; max-height: 9999px; opacity: 1; }
   .section-body.collapsed { max-height: 0 !important; opacity: 0; }
 
-  /* Column header & job cards */
-  .col-header {
-    display: grid; grid-template-columns: 1fr 70px 80px;
-    padding: 3px 8px;
-    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--subtle);
-  }
+  /* Compact listing cards (no date column) */
   .card-list { display: flex; flex-direction: column; gap: 2px; }
-  .card-empty { font-size: 0.76rem; color: var(--subtle); padding: 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); }
+  .card-empty { font-size: 0.73rem; color: var(--subtle); padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
 
   .job-card {
     background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; cursor: grab;
+    border-radius: 5px; cursor: grab;
     transition: border-color 0.12s, background 0.12s;
     user-select: none;
   }
@@ -280,42 +274,39 @@
   .job-card.in-pipeline { border-left: 3px solid; }
 
   .card-row {
-    display: grid; grid-template-columns: 1fr 70px 80px;
-    align-items: center; padding: 5px 8px; min-height: 28px; gap: 6px;
+    display: grid; grid-template-columns: 1fr auto;
+    align-items: center; padding: 4px 7px; min-height: 26px; gap: 5px;
   }
   .card-left { min-width: 0; }
-  .card-company { font-size: 0.74rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .card-programme { font-size: 0.67rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
-  .card-date { font-size: 0.64rem; color: var(--subtle); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .card-date.fresh { color: var(--green); font-weight: 700; }
+  .card-company { font-size: 0.71rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-programme { font-size: 0.63rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
 
-  .card-right { display: flex; align-items: center; gap: 5px; justify-content: flex-end; }
+  .card-right { display: flex; align-items: center; gap: 4px; justify-content: flex-end; flex-shrink: 0; }
   .apply-btn-inline {
-    font-size: 0.63rem; font-weight: 700;
+    font-size: 0.6rem; font-weight: 700;
     background: var(--green); color: #fff;
     border: none; border-radius: 4px;
-    padding: 3px 8px; cursor: pointer; text-decoration: none; white-space: nowrap;
+    padding: 2px 7px; cursor: pointer; text-decoration: none; white-space: nowrap;
     transition: background 0.12s;
   }
   .apply-btn-inline:hover { background: var(--green-deep); }
 
   .stage-badge {
-    font-size: 0.58rem; font-weight: 700; border-radius: 4px;
-    padding: 2px 6px; white-space: nowrap; line-height: 1.4;
-    max-width: 70px; overflow: hidden; text-overflow: ellipsis;
+    font-size: 0.55rem; font-weight: 700; border-radius: 4px;
+    padding: 2px 5px; white-space: nowrap; line-height: 1.4;
+    max-width: 60px; overflow: hidden; text-overflow: ellipsis;
   }
 
-  /* drag ghost */
   .job-card.dragging { opacity: 0.4; }
 
-  /* ── PIPELINE PANEL (30%) ── */
+  /* ── PIPELINE PANEL (70%) ── */
   .pipeline-panel {
-    flex: 0 0 30%;
+    flex: 0 0 70%;
     height: 100%;
-    overflow-y: auto;
     background: var(--surface);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .pipeline-header {
@@ -325,13 +316,13 @@
     background: rgba(243,241,238,0.96);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: 14px 16px 12px;
+    padding: 10px 16px 8px;
     flex-shrink: 0;
   }
 
   .pipeline-title {
-    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--subtle); margin-bottom: 6px;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--subtle); margin-bottom: 4px;
   }
 
   .pipeline-stats {
@@ -339,69 +330,88 @@
   }
   .pipeline-stats strong { color: var(--text); }
 
-  .pipeline-body { padding: 12px 12px 40px; flex: 1; }
-
-  /* Stage blocks */
-  .stage-block { margin-bottom: 6px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,0,0,0.07); }
-
-  .stage-hdr {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 7px 10px; font-size: 0.72rem; font-weight: 700;
-    letter-spacing: 0.01em;
+  /* Horizontal kanban track */
+  .kanban-track {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    padding: 12px 14px 20px;
+    overflow-x: auto;
+    overflow-y: auto;
+    flex: 1;
+    align-items: flex-start;
   }
-  .stage-hdr-left { display: flex; align-items: center; gap: 7px; }
-  .stage-arrow { font-size: 0.65rem; opacity: 0.6; }
-  .stage-cnt {
-    font-size: 0.68rem; font-weight: 700;
-    border-radius: 100px; padding: 2px 8px; min-width: 22px; text-align: center;
+  .kanban-track::-webkit-scrollbar { height: 5px; }
+  .kanban-track::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 99px; }
+
+  /* Each column: active stage on top, rejection stage below */
+  .kanban-col {
+    flex: 0 0 165px;
+    min-width: 165px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  /* Stage block (active or rejection) */
+  .kstage-block {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.07);
+    background: #fff;
+  }
+  .kstage-block.rejection-block {
+    opacity: 0.85;
+  }
+
+  .kstage-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 9px;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.01em;
+    line-height: 1.3;
+  }
+  .kstage-hdr-label { flex: 1; }
+  .kstage-cnt {
+    font-size: 0.63rem; font-weight: 700;
+    border-radius: 100px; padding: 1px 7px; min-width: 20px; text-align: center;
+    flex-shrink: 0;
   }
 
   .drop-zone {
-    min-height: 36px;
-    padding: 6px 8px;
-    background: rgba(255,255,255,0.35);
-    border-top: 1px solid rgba(0,0,0,0.06);
+    min-height: 40px;
+    padding: 5px 6px;
+    background: rgba(255,255,255,0.3);
+    border-top: 1px solid rgba(0,0,0,0.05);
     transition: background 0.15s;
   }
-  .drop-zone.drag-over { background: rgba(255,255,255,0.75); outline: 2px dashed rgba(31,69,48,0.3); outline-offset: -3px; }
-  .dz-hint { font-size: 0.68rem; color: var(--subtle); display: block; text-align: center; padding: 6px 0; font-style: italic; }
+  .rejection-block .drop-zone {
+    min-height: 32px;
+    background: rgba(255,255,255,0.2);
+  }
+  .drop-zone.drag-over { background: rgba(255,255,255,0.8); outline: 2px dashed rgba(31,69,48,0.28); outline-offset: -3px; }
+  .dz-hint { font-size: 0.62rem; color: var(--subtle); display: block; text-align: center; padding: 5px 0; font-style: italic; }
 
   /* Pipeline chips */
   .pipeline-chip {
-    display: grid; grid-template-columns: auto 1fr auto;
-    align-items: center; gap: 5px;
+    display: grid; grid-template-columns: 1fr auto;
+    align-items: center; gap: 4px;
     background: #fff; border: 1px solid var(--border);
-    border-radius: 5px; padding: 4px 6px;
-    margin-bottom: 4px; cursor: grab;
-    font-size: 0.7rem;
+    border-radius: 4px; padding: 3px 5px;
+    margin-bottom: 3px; cursor: grab;
+    font-size: 0.65rem;
     transition: border-color 0.12s;
   }
   .pipeline-chip:hover { border-color: var(--border-md); }
   .pipeline-chip:active { cursor: grabbing; }
-  .chip-co { font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
-  .chip-prog { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .chip-info { min-width: 0; }
+  .chip-co { font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .chip-prog { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; font-size: 0.6rem; margin-top: 1px; }
   .chip-remove {
     background: none; border: none; cursor: pointer;
-    color: var(--subtle); font-size: 0.85rem; line-height: 1;
-    padding: 0 2px; flex-shrink: 0; transition: color 0.12s;
+    color: var(--subtle); font-size: 0.8rem; line-height: 1;
+    padding: 0 1px; flex-shrink: 0; transition: color 0.12s;
   }
   .chip-remove:hover { color: #b91c1c; }
-
-  /* Rejection section */
-  .rejection-toggle {
-    display: flex; align-items: center; gap: 8px; margin: 10px 0 4px;
-    cursor: pointer; user-select: none;
-  }
-  .rejection-toggle-line { flex: 1; height: 1px; background: var(--border-md); }
-  .rejection-toggle-label {
-    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em;
-    text-transform: uppercase; color: var(--subtle);
-    white-space: nowrap;
-  }
-  .rejection-toggle-chevron { font-size: 9px; color: var(--subtle); transition: transform 0.2s; }
-  .rejection-toggle.open .rejection-toggle-chevron { transform: rotate(180deg); }
-  .rejection-body { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
-  .rejection-body.open { max-height: 9999px; }
 </style>
 </head>
 <body>
@@ -440,7 +450,7 @@
 
 <div class="page-layout">
 
-  <!-- ── LISTINGS PANEL ── -->
+  <!-- ── LISTINGS PANEL (30%) ── -->
   <div class="listings-panel" id="listings-panel">
     <div class="panel-header">
       <div class="panel-title">Listings &nbsp;<span id="listing-count" style="font-weight:400;color:var(--subtle)"></span></div>
@@ -460,35 +470,21 @@
           <button class="filter-btn" data-div="Trading and Quant">Trading and Quant</button>
           <button class="filter-btn" data-div="Miscellaneous">Miscellaneous</button>
         </div>
-        <span class="shown-count" id="shown-count" style="display:none"></span>
       </div>
     </div>
     <div class="panel-body" id="listings">
-      <p style="font-size:0.78rem;color:var(--subtle);padding:20px 0;">Loading listings…</p>
+      <p style="font-size:0.75rem;color:var(--subtle);padding:16px 0;">Loading listings…</p>
     </div>
   </div>
 
-  <!-- ── PIPELINE PANEL ── -->
+  <!-- ── PIPELINE PANEL (70%) ── -->
   <div class="pipeline-panel" id="pipeline-panel">
     <div class="pipeline-header">
       <div class="pipeline-title">Your Pipeline</div>
-      <div class="pipeline-stats" id="pipeline-stats">No applications tracked yet</div>
+      <div class="pipeline-stats" id="pipeline-stats">Drag a listing here to start tracking</div>
     </div>
-    <div class="pipeline-body">
-
-      <!-- Active stages -->
-      <div id="active-stages"></div>
-
-      <!-- Rejection / dead stages -->
-      <div class="rejection-toggle" id="rejection-toggle" onclick="toggleRejection()">
-        <span class="rejection-toggle-line"></span>
-        <span class="rejection-toggle-label">Rejected / Closed</span>
-        <span class="rejection-toggle-chevron">▾</span>
-      </div>
-      <div class="rejection-body" id="rejection-body">
-        <div id="rejection-stages"></div>
-      </div>
-
+    <div class="kanban-track" id="kanban-track">
+      <!-- Columns rendered by JS -->
     </div>
   </div>
 
@@ -514,27 +510,39 @@
   }
 
   // ── Stage definitions ─────────────────────────────────────────────────────
-  const ACTIVE_STAGES = [
-    { id: 'open',       label: 'Open',                    bg: '#D8D5CF', fg: '#1A1714' },
-    { id: 'applied',    label: 'Applied and Pending',     bg: '#E8960C', fg: '#fff'    },
-    { id: 'hirevue',    label: 'HireVue and Tested',      bg: '#D4C31E', fg: '#1A1714' },
-    { id: 'int1',       label: 'Interview #1',            bg: '#9CC87A', fg: '#1A1714' },
-    { id: 'int2',       label: 'Interview #2',            bg: '#72B050', fg: '#fff'    },
-    { id: 'ac',         label: 'Assessment Center',       bg: '#3A7246', fg: '#fff'    },
-    { id: 'offer',      label: 'Offer',                   bg: '#1F4530', fg: '#fff'    },
+  // Each active stage optionally pairs with a rejection stage shown below it.
+  const COLUMNS = [
+    {
+      active:    { id: 'missed',   label: 'Missed',                bg: '#B91C1C', fg: '#fff'    },
+      rejection: null,
+    },
+    {
+      active:    { id: 'applied',  label: 'Applied and Pending',   bg: '#E8960C', fg: '#fff'    },
+      rejection: { id: 'rej-out',  label: 'Rejected Outright',     bg: '#7F1D1D', fg: '#fff'    },
+    },
+    {
+      active:    { id: 'hirevue',  label: 'HireVue and Tested',    bg: '#D4C31E', fg: '#1A1714' },
+      rejection: { id: 'rej-hv',   label: 'Rejected after HV',     bg: '#78716C', fg: '#fff'    },
+    },
+    {
+      active:    { id: 'int1',     label: 'Interview #1',          bg: '#9CC87A', fg: '#1A1714' },
+      rejection: { id: 'rej-int1', label: 'Rejected after Int. #1',bg: '#78716C', fg: '#fff'    },
+    },
+    {
+      active:    { id: 'int2',     label: 'Interview #2',          bg: '#72B050', fg: '#fff'    },
+      rejection: { id: 'rej-int2', label: 'Rejected after Int. #2',bg: '#78716C', fg: '#fff'    },
+    },
+    {
+      active:    { id: 'ac',       label: 'Assessment Center',     bg: '#3A7246', fg: '#fff'    },
+      rejection: { id: 'rej-ac',   label: 'Rejected after AC',     bg: '#78716C', fg: '#fff'    },
+    },
+    {
+      active:    { id: 'offer',    label: 'Offer',                 bg: '#1F4530', fg: '#fff'    },
+      rejection: { id: 'ghosted',  label: 'Ghosted',               bg: '#78716C', fg: '#fff'    },
+    },
   ];
 
-  const REJECTION_STAGES = [
-    { id: 'missed',     label: 'Missed',                         bg: '#B91C1C', fg: '#fff' },
-    { id: 'rej-out',    label: 'Rejected Outright',              bg: '#B91C1C', fg: '#fff' },
-    { id: 'rej-hv',     label: 'Rejected after HV/Test',         bg: '#B91C1C', fg: '#fff' },
-    { id: 'rej-int1',   label: 'Rejected after Interview #1',    bg: '#B91C1C', fg: '#fff' },
-    { id: 'rej-int2',   label: 'Rejected after Interview #2',    bg: '#B91C1C', fg: '#fff' },
-    { id: 'rej-ac',     label: 'Rejected after AC',              bg: '#B91C1C', fg: '#fff' },
-    { id: 'ghosted',    label: 'Ghosted',                        bg: '#C5C2BC', fg: '#3D3831' },
-  ];
-
-  const ALL_STAGES = [...ACTIVE_STAGES, ...REJECTION_STAGES];
+  const ALL_STAGES = COLUMNS.flatMap(c => c.rejection ? [c.active, c.rejection] : [c.active]);
   const STAGE_MAP  = Object.fromEntries(ALL_STAGES.map(s => [s.id, s]));
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -561,13 +569,9 @@
       .filter(Boolean);
   }
 
-  function totalTracked() {
-    return Object.keys(getPipeline()).length;
-  }
+  function totalTracked() { return Object.keys(getPipeline()).length; }
 
-  function stageForJob(jobId) {
-    return getPipeline()[String(jobId)] || null;
-  }
+  function stageForJob(jobId) { return getPipeline()[String(jobId)] || null; }
 
   function moveToStage(jobId, stageId) {
     const p = getPipeline();
@@ -585,20 +589,12 @@
     renderListings();
   }
 
-  // ── Rejection toggle ──────────────────────────────────────────────────────
-  let rejectionOpen = false;
-  function toggleRejection() {
-    rejectionOpen = !rejectionOpen;
-    document.getElementById('rejection-toggle').classList.toggle('open', rejectionOpen);
-    document.getElementById('rejection-body').classList.toggle('open', rejectionOpen);
-  }
-
   // ── Drag state ────────────────────────────────────────────────────────────
   let dragJob = null;
 
-  // ── Render pipeline ───────────────────────────────────────────────────────
+  // ── Render pipeline (horizontal kanban) ──────────────────────────────────
   function renderPipeline() {
-    const total = totalTracked();
+    const total  = totalTracked();
     const statsEl = document.getElementById('pipeline-stats');
     if (total === 0) {
       statsEl.innerHTML = 'Drag a listing here to start tracking';
@@ -606,39 +602,57 @@
       statsEl.innerHTML = `<strong>${total}</strong> application${total !== 1 ? 's' : ''} tracked`;
     }
 
-    document.getElementById('active-stages').innerHTML =
-      ACTIVE_STAGES.map(s => stageBlockHtml(s)).join('');
-    document.getElementById('rejection-stages').innerHTML =
-      REJECTION_STAGES.map(s => stageBlockHtml(s)).join('');
+    const track = document.getElementById('kanban-track');
+    track.innerHTML = COLUMNS.map(col => colHtml(col)).join('');
 
     attachDropHandlers();
     attachChipHandlers();
   }
 
-  function stageBlockHtml(stage) {
-    const jobs   = jobsInStage(stage.id);
-    const cntBg  = stage.fg === '#fff' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)';
-    const chips  = jobs.map(j => chipHtml(j, stage)).join('');
-    return `
-      <div class="stage-block">
-        <div class="stage-hdr" style="background:${stage.bg};color:${stage.fg}">
-          <span class="stage-hdr-left"><span>${esc(stage.label)}</span></span>
-          <span class="stage-cnt" style="background:${cntBg};color:${stage.fg}">${jobs.length}</span>
+  function colHtml(col) {
+    const activeJobs = jobsInStage(col.active.id);
+    const rejJobs    = col.rejection ? jobsInStage(col.rejection.id) : [];
+
+    const activeCntBg  = col.active.fg  === '#fff' ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.1)';
+    const rejCntBg     = 'rgba(255,255,255,0.22)';
+
+    const activeBlock = `
+      <div class="kstage-block">
+        <div class="kstage-hdr" style="background:${col.active.bg};color:${col.active.fg}">
+          <span class="kstage-hdr-label">${esc(col.active.label)}</span>
+          <span class="kstage-cnt" style="background:${activeCntBg};color:${col.active.fg}">${activeJobs.length}</span>
         </div>
-        <div class="drop-zone" data-stage="${stage.id}">
-          ${jobs.length === 0
-            ? '<span class="dz-hint">Drop to track</span>'
-            : chips}
+        <div class="drop-zone" data-stage="${col.active.id}">
+          ${activeJobs.length === 0
+            ? '<span class="dz-hint">Drop here</span>'
+            : activeJobs.map(j => chipHtml(j)).join('')}
         </div>
       </div>`;
+
+    const rejBlock = col.rejection ? `
+      <div class="kstage-block rejection-block">
+        <div class="kstage-hdr" style="background:${col.rejection.bg};color:${col.rejection.fg}">
+          <span class="kstage-hdr-label">${esc(col.rejection.label)}</span>
+          <span class="kstage-cnt" style="background:${rejCntBg};color:${col.rejection.fg}">${rejJobs.length}</span>
+        </div>
+        <div class="drop-zone" data-stage="${col.rejection.id}">
+          ${rejJobs.length === 0
+            ? '<span class="dz-hint">Drop here</span>'
+            : rejJobs.map(j => chipHtml(j)).join('')}
+        </div>
+      </div>` : '';
+
+    return `<div class="kanban-col">${activeBlock}${rejBlock}</div>`;
   }
 
-  function chipHtml(job, stage) {
+  function chipHtml(job) {
     return `
       <div class="pipeline-chip" draggable="true" data-id="${job.id}">
-        <span class="chip-co" title="${esc(job.company)}">${esc(job.company)}</span>
-        <span class="chip-prog" title="${esc(job.programme)}">${esc(job.programme)}</span>
-        <button class="chip-remove" data-id="${job.id}" title="Remove from pipeline">×</button>
+        <div class="chip-info">
+          <span class="chip-co" title="${esc(job.company)}">${esc(job.company)}</span>
+          <span class="chip-prog" title="${esc(job.programme)}">${esc(job.programme)}</span>
+        </div>
+        <button class="chip-remove" data-id="${job.id}" title="Remove">×</button>
       </div>`;
   }
 
@@ -689,7 +703,6 @@
 
   const listingsEl   = document.getElementById('listings');
   const listingCount = document.getElementById('listing-count');
-  const shownCountEl = document.getElementById('shown-count');
   const searchEl     = document.getElementById('search');
 
   function filtered() {
@@ -705,10 +718,6 @@
     const newJobs = jobs.filter(j =>  isNew(j.opening_date));
     const oldJobs = jobs.filter(j => !isNew(j.opening_date));
 
-    const filtering = activeFilters.size > 0 || searchQuery;
-    shownCountEl.style.display = filtering ? '' : 'none';
-    if (filtering) shownCountEl.textContent = jobs.length + ' shown';
-
     const byProg = {}, noProg = [];
     for (const j of oldJobs) {
       const pt = j.programme_type;
@@ -716,15 +725,13 @@
       else noProg.push(j);
     }
 
-    const colHdr = `<div class="col-header"><span>Company / Programme</span><span>Opened</span><span></span></div>`;
-
     const newSection = newJobs.length === 0 ? '' : `
       <div class="new-section">
         <div class="section-row">
           <span class="section-pill new-pill"><span class="pill-dot"></span>New — last 72h<span class="pill-count">${newJobs.length}</span></span>
           <span class="section-line"></span>
         </div>
-        ${colHdr}<div class="card-list">${newJobs.map(cardHtml).join('')}</div>
+        <div class="card-list">${newJobs.map(cardHtml).join('')}</div>
       </div>`;
 
     const parts = [];
@@ -755,7 +762,6 @@
       btn.addEventListener('click', e => e.stopPropagation());
     });
 
-    // Attach drag handlers to cards
     listingsEl.querySelectorAll('.job-card').forEach(card => {
       card.addEventListener('dragstart', e => {
         const job = allJobs.find(j => String(j.id) === card.dataset.id);
@@ -770,7 +776,6 @@
 
   function collapsibleSection(key, label, jobs) {
     const collapsed = collapsedSections.has(key);
-    const colHdr = `<div class="col-header"><span>Company / Programme</span><span>Opened</span><span></span></div>`;
     return `
       <div class="section-row collapsible${collapsed ? ' collapsed' : ''}" data-key="${key}">
         <span class="section-pill all-pill">${label}<span class="pill-count">${jobs.length}</span></span>
@@ -778,13 +783,11 @@
         <span class="section-chevron">▾</span>
       </div>
       <div class="section-body${collapsed ? ' collapsed' : ''}">
-        ${colHdr}<div class="card-list">${jobs.map(cardHtml).join('')}</div>
+        <div class="card-list">${jobs.map(cardHtml).join('')}</div>
       </div>`;
   }
 
   function cardHtml(job) {
-    const fresh    = isNew(job.opening_date);
-    const dateStr  = fmtDate(job.opening_date);
     const stageId  = stageForJob(job.id);
     const stage    = stageId ? STAGE_MAP[stageId] : null;
     const stageBadge = stage
@@ -799,7 +802,6 @@
             <div class="card-company">${esc(job.company)}</div>
             <div class="card-programme">${esc(job.programme)}</div>
           </div>
-          <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
           <div class="card-right">${stageBadge}</div>
         </div>
       </div>`;
@@ -829,10 +831,9 @@
       renderPipeline();
     })
     .catch(() => {
-      listingsEl.innerHTML = '<p style="font-size:0.78rem;color:var(--subtle);padding:20px 0;">Failed to load — please refresh.</p>';
+      listingsEl.innerHTML = '<p style="font-size:0.75rem;color:var(--subtle);padding:16px 0;">Failed to load — please refresh.</p>';
     });
 
-  // Initial pipeline render (shows empty state while jobs load)
   renderPipeline();
 
   // ── Auth nav ──────────────────────────────────────────────────────────────
