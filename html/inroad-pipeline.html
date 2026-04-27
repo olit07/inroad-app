@@ -388,7 +388,10 @@
     overflow-x: auto;
     overflow-y: auto;
     flex: 1;
+    cursor: grab;
+    user-select: none;
   }
+  .kanban-track.panning { cursor: grabbing; }
   .kanban-track::-webkit-scrollbar { height: 5px; }
   .kanban-track::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 99px; }
 
@@ -907,10 +910,10 @@
       </div>`;
   }
 
-  // ── Stage filter pills ────────────────────────────────────────────────────
+  // ── Stage filter pills (active stages only, no rejections) ───────────────
   (function buildStagePills() {
     const wrap = document.getElementById('filter-wrap');
-    const allStages = [...COLUMNS.flatMap(c => c.rejection ? [c.active, c.rejection] : [c.active])];
+    const allStages = COLUMNS.map(c => c.active);
     allStages.forEach(stage => {
       const btn = document.createElement('button');
       btn.className = 'filter-btn';
@@ -985,6 +988,36 @@
   };
 
   applyListingsState();
+
+  // ── Kanban pan-by-drag ────────────────────────────────────────────────────
+  (function initPan() {
+    const track = document.getElementById('kanban-track');
+    let isPanning = false, startX = 0, startY = 0, scrollLeft = 0, scrollTop = 0;
+
+    track.addEventListener('mousedown', e => {
+      // Only pan on the track background itself, not on interactive children
+      if (e.target.closest('.drop-zone, .pipeline-chip, .chip-remove, button, a')) return;
+      isPanning = true;
+      track.classList.add('panning');
+      startX     = e.clientX;
+      startY     = e.clientY;
+      scrollLeft = track.scrollLeft;
+      scrollTop  = track.scrollTop;
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (!isPanning) return;
+      e.preventDefault();
+      track.scrollLeft = scrollLeft - (e.clientX - startX);
+      track.scrollTop  = scrollTop  - (e.clientY - startY);
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isPanning) return;
+      isPanning = false;
+      track.classList.remove('panning');
+    });
+  })();
 
   // ── Auth nav ──────────────────────────────────────────────────────────────
   (function updateNav() {
