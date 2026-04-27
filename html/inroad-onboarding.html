@@ -615,7 +615,7 @@
 <!-- LOADING OVERLAY (shown on final step submit) -->
 <div id="onboarding-loading-overlay">
   <div class="loading-spinner"></div>
-  <p class="loading-text">Setting up your dashboard…</p>
+  <p class="loading-text">Setting up your opportunities…</p>
 </div>
 
 <!-- NAV -->
@@ -742,21 +742,19 @@
         <span class="industry-pill" onclick="togglePill(this)">Finance</span>
         <span class="industry-pill" onclick="togglePill(this)">Technology</span>
         <span class="industry-pill" onclick="togglePill(this)">Law</span>
-        <span class="industry-pill locked" title="Coming soon">Investment Banking</span>
-        <span class="industry-pill locked" title="Coming soon">Software Engineering</span>
-        <span class="industry-pill locked" title="Coming soon">Product Management</span>
-        <span class="industry-pill locked" title="Coming soon">Data & Analytics</span>
-        <span class="industry-pill locked" title="Coming soon">Consulting</span>
-        <span class="industry-pill locked" title="Coming soon">Strategy</span>
-        <span class="industry-pill locked" title="Coming soon">Marketing</span>
-        <span class="industry-pill locked" title="Coming soon">Healthcare</span>
+        <span class="industry-pill" onclick="togglePill(this)">Investment Banking</span>
+        <span class="industry-pill" onclick="togglePill(this)">Software Engineering</span>
+        <span class="industry-pill" onclick="togglePill(this)">Product Management</span>
+        <span class="industry-pill" onclick="togglePill(this)">Data &amp; Analytics</span>
+        <span class="industry-pill" onclick="togglePill(this)">Consulting</span>
+        <span class="industry-pill" onclick="togglePill(this)">Strategy</span>
+        <span class="industry-pill" onclick="togglePill(this)">Marketing</span>
+        <span class="industry-pill" onclick="togglePill(this)">Healthcare</span>
         <span class="industry-pill locked" title="Coming soon">Media &amp; Journalism</span>
-        <span class="industry-pill locked" title="Coming soon">Design &amp; UX</span>
         <span class="industry-pill locked" title="Coming soon">Real Estate</span>
         <span class="industry-pill locked" title="Coming soon">Non-profit &amp; Policy</span>
-        <span class="industry-pill locked" title="Coming soon">Venture Capital</span>
       </div>
-      <p class="industry-hint">Select all that apply · More industries coming soon</p>
+      <p class="industry-hint">Select all that apply</p>
 
       <div class="step-actions">
         <button class="btn-back" onclick="prevStep(4)">← Back</button>
@@ -818,17 +816,6 @@
           rows="4"
         ></textarea>
         <p class="char-count" id="char-count">0 / 300</p>
-      </div>
-
-      <div class="field" style="margin-top:20px">
-        <p style="font-size:0.82rem;font-weight:700;color:var(--text-mid);margin:0 0 10px;letter-spacing:0.01em">Email me matches</p>
-        <div style="display:flex;flex-wrap:wrap;gap:9px">
-          <div class="industry-pill selected" id="notify-daily-pill"  onclick="selectNotifyFreq('daily')"  style="cursor:pointer">Daily</div>
-          <div class="industry-pill"          id="notify-weekly-pill" onclick="selectNotifyFreq('weekly')" style="cursor:pointer">Weekly (Mondays)</div>
-          <div class="industry-pill"          id="notify-never-pill"  onclick="selectNotifyFreq('never')"  style="cursor:pointer">Never</div>
-        </div>
-        <input type="hidden" id="notify-matches"   value="true">
-        <input type="hidden" id="notify-frequency" value="daily">
       </div>
 
       <div class="step-actions">
@@ -1043,16 +1030,6 @@
     observer.observe(p, { attributes: true, attributeFilter: ['class'] });
   });
 
-  // ── NOTIFICATION PILL TOGGLES ──
-  function selectNotifyFreq(val) {
-    const on = val !== 'never';
-    document.getElementById('notify-matches').value   = on ? 'true' : 'false';
-    document.getElementById('notify-frequency').value = on ? val : 'daily';
-    document.getElementById('notify-daily-pill').classList.toggle('selected',  val === 'daily');
-    document.getElementById('notify-weekly-pill').classList.toggle('selected', val === 'weekly');
-    document.getElementById('notify-never-pill').classList.toggle('selected',  val === 'never');
-  }
-
   // ── FINISH ──
 
   function finish() {
@@ -1067,8 +1044,6 @@
     document.getElementById('onboarding-loading-overlay').classList.add('visible');
 
     async function saveAndGo() {
-      const notifyMatches   = document.getElementById('notify-matches')?.value === 'true';
-      const notifyFrequency = document.getElementById('notify-frequency')?.value || 'daily';
       const payload = JSON.stringify({
         name,
         age:           age ? parseInt(age) : null,
@@ -1076,8 +1051,6 @@
         industries,
         companySize,
         bio,
-        notifyMatches,
-        notifyFrequency,
       });
 
       // apiFetch (from auth.js) adds the Bearer token automatically and handles
@@ -1096,7 +1069,7 @@
       const tok = getAccessToken();
       if (tok) sessionStorage.setItem('inroad_token', tok);
 
-      window.location.href = '/dashboard';
+      window.location.href = '/opportunities';
     }
 
     saveAndGo();

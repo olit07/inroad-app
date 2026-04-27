@@ -107,7 +107,7 @@
   <a href="/" class="wordmark">
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
   </a>
-  <a href="/dashboard" class="nav-back" id="back-btn">← Dashboard</a>
+  <a href="/opportunities" class="nav-back" id="back-btn">← Opportunities</a>
 </nav>
 
 <div class="page">
@@ -168,23 +168,6 @@
     </div>
   </div>
 
-  <!-- Notifications -->
-  <div class="section">
-    <div class="section-label">Notifications</div>
-    <div class="section-card">
-      <div class="field">
-        <label style="font-size:0.75rem;font-weight:700;color:var(--text-mid);margin-bottom:8px;display:block">Email me matches</label>
-        <div style="display:flex;flex-wrap:wrap;gap:9px">
-          <div class="industry-pill" id="notify-daily-pill"  onclick="setNotifyFreq('daily')"  style="cursor:pointer">Daily</div>
-          <div class="industry-pill" id="notify-weekly-pill" onclick="setNotifyFreq('weekly')" style="cursor:pointer">Weekly (Mondays)</div>
-          <div class="industry-pill" id="notify-never-pill"  onclick="setNotifyFreq('never')"  style="cursor:pointer">Never</div>
-        </div>
-        <input type="hidden" id="notify-matches"   value="false">
-        <input type="hidden" id="notify-frequency" value="daily">
-      </div>
-    </div>
-  </div>
-
   <button class="btn-save" id="save-btn" onclick="saveSettings()">Save changes</button>
 
   <!-- Danger zone -->
@@ -203,15 +186,13 @@
 <script>
 const INDUSTRIES = [
   'Finance','Technology','Law',
-  // Coming soon in V0
   'Investment Banking','Software Engineering','Product Management','Data & Analytics',
-  'Consulting','Strategy','Marketing','Healthcare','Media & Journalism',
-  'Design & UX','Real Estate','Non-profit & Policy','Venture Capital'
+  'Consulting','Strategy','Marketing','Healthcare',
+  // Coming soon
+  'Media & Journalism','Real Estate','Non-profit & Policy'
 ];
 const LOCKED_INDUSTRIES = new Set([
-  'Investment Banking','Software Engineering','Product Management','Data & Analytics',
-  'Consulting','Strategy','Marketing','Healthcare','Media & Journalism',
-  'Design & UX','Real Estate','Non-profit & Policy','Venture Capital','Other'
+  'Media & Journalism','Real Estate','Non-profit & Policy','Other'
 ]);
 
 // Save token to sessionStorage before leaving so dashboard can reuse it
@@ -219,16 +200,6 @@ document.getElementById('back-btn').addEventListener('click', function(e) {
   const tok = getAccessToken();
   if (tok) sessionStorage.setItem('inroad_token', tok);
 });
-
-function setNotifyFreq(val) {
-  // val: 'daily' | 'weekly' | 'never'
-  const on = val !== 'never';
-  document.getElementById('notify-matches').value   = on ? 'true' : 'false';
-  document.getElementById('notify-frequency').value = on ? val : 'daily';
-  document.getElementById('notify-daily-pill').classList.toggle('selected',  val === 'daily');
-  document.getElementById('notify-weekly-pill').classList.toggle('selected', val === 'weekly');
-  document.getElementById('notify-never-pill').classList.toggle('selected',  val === 'never');
-}
 
 // Populate industry pills
 const grid = document.getElementById('industry-grid');
@@ -280,10 +251,6 @@ async function loadSettings() {
     const sizeEl = document.querySelector(`[data-value="${data.company_size}"]`);
     if (sizeEl) selectSize(sizeEl);
 
-    // Notification preferences
-    const freq = data.notify_frequency || 'daily';
-    setNotifyFreq(data.notify_matches ? freq : 'never');
-
     document.getElementById('page-sub').textContent =
       `Signed in as ${data.email}`;
   } catch(e) {
@@ -304,12 +271,10 @@ async function saveSettings() {
   const size = document.querySelector('.size-card.selected')?.dataset.value || '';
 
   const payload = {
-    name:            document.getElementById('name-input').value.trim(),
-    bio:             document.getElementById('bio').value.trim(),
+    name:        document.getElementById('name-input').value.trim(),
+    bio:         document.getElementById('bio').value.trim(),
     industries,
-    companySize:     size,
-    notifyMatches:   document.getElementById('notify-matches').value === 'true',
-    notifyFrequency: document.getElementById('notify-frequency').value,
+    companySize: size,
   };
 
   const btn = document.getElementById('save-btn');
