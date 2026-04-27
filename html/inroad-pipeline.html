@@ -165,15 +165,43 @@
     overflow: hidden;
   }
 
-  /* ── LISTINGS PANEL (30%) ── */
+  /* ── LISTINGS PANEL (collapsible, ~28%) ── */
   .listings-panel {
-    flex: 0 0 30%;
+    flex: 0 0 28%;
     height: 100%;
     overflow-y: auto;
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
+    transition: flex-basis 0.25s ease, opacity 0.2s ease;
   }
+  .listings-panel.collapsed {
+    flex: 0 0 0px;
+    overflow: hidden;
+    opacity: 0;
+    border-right: none;
+  }
+
+  /* Toggle tab on the border between panels */
+  .listings-toggle {
+    position: absolute;
+    left: calc(28% - 1px);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    width: 18px; height: 44px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 9px; color: var(--subtle);
+    transition: background 0.15s, color 0.15s, left 0.25s ease;
+    user-select: none;
+  }
+  .listings-toggle:hover { background: var(--surface-2); color: var(--text); }
+  .listings-toggle.collapsed { left: 0; border-radius: 0 6px 6px 0; }
 
   .panel-header {
     position: sticky;
@@ -280,6 +308,8 @@
   .card-left { min-width: 0; }
   .card-company { font-size: 0.71rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card-programme { font-size: 0.63rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+  .card-date-line { font-size: 0.58rem; color: var(--subtle); margin-top: 1px; }
+  .card-date-line.fresh { color: var(--green); font-weight: 700; }
 
   .card-right { display: flex; align-items: center; gap: 4px; justify-content: flex-end; flex-shrink: 0; }
   .apply-btn-inline {
@@ -299,9 +329,10 @@
 
   .job-card.dragging { opacity: 0.4; }
 
-  /* ── PIPELINE PANEL (70%) ── */
+  /* ── PIPELINE PANEL (fills remaining space) ── */
   .pipeline-panel {
-    flex: 0 0 70%;
+    flex: 1 1 0;
+    min-width: 0;
     height: 100%;
     background: var(--surface);
     display: flex;
@@ -330,24 +361,38 @@
   }
   .pipeline-stats strong { color: var(--text); }
 
-  /* Horizontal kanban track */
+  /* Horizontal kanban track — centred */
   .kanban-track {
     display: flex;
     flex-direction: row;
-    gap: 8px;
-    padding: 12px 14px 20px;
+    gap: 0;
+    padding: 16px 24px 24px;
     overflow-x: auto;
     overflow-y: auto;
     flex: 1;
     align-items: flex-start;
+    justify-content: center;
   }
   .kanban-track::-webkit-scrollbar { height: 5px; }
   .kanban-track::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 99px; }
 
+  /* Arrow between columns */
+  .kanban-arrow {
+    flex-shrink: 0;
+    width: 28px;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 14px;
+    justify-content: center;
+    color: var(--border-md);
+    font-size: 13px;
+    user-select: none;
+  }
+
   /* Each column: active stage on top, rejection stage below */
   .kanban-col {
-    flex: 0 0 165px;
-    min-width: 165px;
+    flex: 0 0 155px;
+    min-width: 155px;
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -448,9 +493,12 @@
   </div>
 </div>
 
-<div class="page-layout">
+<div class="page-layout" style="position:relative">
 
-  <!-- ── LISTINGS PANEL (30%) ── -->
+  <!-- Toggle tab -->
+  <div class="listings-toggle" id="listings-toggle" onclick="toggleListings()" title="Toggle listings">◀</div>
+
+  <!-- ── LISTINGS PANEL (28%) ── -->
   <div class="listings-panel" id="listings-panel">
     <div class="panel-header">
       <div class="panel-title">Listings &nbsp;<span id="listing-count" style="font-weight:400;color:var(--subtle)"></span></div>
@@ -512,10 +560,6 @@
   // ── Stage definitions ─────────────────────────────────────────────────────
   // Each active stage optionally pairs with a rejection stage shown below it.
   const COLUMNS = [
-    {
-      active:    { id: 'missed',   label: 'Missed',                bg: '#B91C1C', fg: '#fff'    },
-      rejection: null,
-    },
     {
       active:    { id: 'applied',  label: 'Applied and Pending',   bg: '#E8960C', fg: '#fff'    },
       rejection: { id: 'rej-out',  label: 'Rejected Outright',     bg: '#7F1D1D', fg: '#fff'    },
@@ -603,7 +647,9 @@
     }
 
     const track = document.getElementById('kanban-track');
-    track.innerHTML = COLUMNS.map(col => colHtml(col)).join('');
+    track.innerHTML = COLUMNS.map((col, i) =>
+      (i > 0 ? '<div class="kanban-arrow">→</div>' : '') + colHtml(col)
+    ).join('');
 
     attachDropHandlers();
     attachChipHandlers();
@@ -795,12 +841,15 @@
            title="${esc(stage.label)}">${esc(stage.label)}</span>`
       : (job.apply_url ? `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>` : '<span></span>');
     const borderStyle = stage ? `border-left:3px solid ${stage.bg}` : '';
+    const fresh = isNew(job.opening_date);
+    const dateStr = fmtDate(job.opening_date);
     return `
       <div class="job-card" draggable="true" data-id="${job.id}" style="${borderStyle}">
         <div class="card-row">
           <div class="card-left">
             <div class="card-company">${esc(job.company)}</div>
             <div class="card-programme">${esc(job.programme)}</div>
+            ${dateStr ? `<div class="card-date-line${fresh ? ' fresh' : ''}">Opened ${dateStr}</div>` : ''}
           </div>
           <div class="card-right">${stageBadge}</div>
         </div>
@@ -835,6 +884,33 @@
     });
 
   renderPipeline();
+
+  // ── Listings toggle ───────────────────────────────────────────────────────
+  let listingsVisible = localStorage.getItem('inroad_listings_visible') !== 'false';
+
+  function applyListingsState() {
+    const panel  = document.getElementById('listings-panel');
+    const toggle = document.getElementById('listings-toggle');
+    if (listingsVisible) {
+      panel.classList.remove('collapsed');
+      toggle.classList.remove('collapsed');
+      toggle.textContent = '◀';
+      toggle.style.left  = 'calc(28% - 1px)';
+    } else {
+      panel.classList.add('collapsed');
+      toggle.classList.add('collapsed');
+      toggle.textContent = '▶';
+      toggle.style.left  = '0px';
+    }
+  }
+
+  window.toggleListings = function() {
+    listingsVisible = !listingsVisible;
+    localStorage.setItem('inroad_listings_visible', listingsVisible);
+    applyListingsState();
+  };
+
+  applyListingsState();
 
   // ── Auth nav ──────────────────────────────────────────────────────────────
   (function updateNav() {
