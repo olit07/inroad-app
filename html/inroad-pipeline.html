@@ -12,6 +12,7 @@
   :root {
     --bg:         #FFFFFF;
     --surface:    #F3F1EE;
+    --surface-2:  #EEECEA;
     --border:     #E6E2DB;
     --border-md:  #CEC8BF;
     --green:      #1F4530;
@@ -19,6 +20,7 @@
     --green-mid:  #A8C9B0;
     --green-deep: #122B1E;
     --text:       #1A1714;
+    --text-mid:   #3D3831;
     --muted:      #7A7068;
     --subtle:     #ADA79F;
     --serif: 'Lora', Georgia, serif;
@@ -26,13 +28,14 @@
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
+  html, body { height: 100%; overflow: hidden; }
 
   body {
     background: var(--bg);
     color: var(--text);
     font-family: var(--sans);
     font-size: 14px;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -46,8 +49,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 48px;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.25s, border-color 0.25s;
+  }
+  nav.nav-logged-in {
     background: var(--green);
-    border-bottom: 1px solid transparent;
+    border-bottom-color: transparent;
   }
 
   .wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
@@ -58,30 +67,35 @@
   }
   .nav-center a {
     font-size: 0.85rem; font-weight: 400;
-    color: rgba(255,255,255,0.7); text-decoration: none; transition: color 0.15s;
+    color: var(--muted); text-decoration: none; transition: color 0.15s;
   }
-  .nav-center a:hover { color: #fff; }
-  .nav-center a.active { color: #fff; font-weight: 700; }
+  .nav-center a:hover { color: var(--text); }
+  .nav-center a.active { color: var(--green); font-weight: 700; }
+  nav.nav-logged-in .nav-center a { color: rgba(255,255,255,0.7); }
+  nav.nav-logged-in .nav-center a:hover { color: #fff; }
+  nav.nav-logged-in .nav-center a.active { color: #fff; font-weight: 700; }
 
   .nav-right { display: flex; align-items: center; gap: 10px; }
 
   .btn-login {
     font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
-    color: rgba(255,255,255,0.8); background: transparent;
-    border: 1.5px solid rgba(255,255,255,0.3);
+    color: var(--text); background: transparent;
+    border: 1.5px solid var(--border-md);
     padding: 7px 18px; border-radius: 8px; text-decoration: none;
     transition: border-color 0.15s, color 0.15s;
   }
-  .btn-login:hover { border-color: rgba(255,255,255,0.7); color: #fff; }
+  .btn-login:hover { border-color: var(--green); color: var(--green); }
 
   .btn-nav-cta {
     font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
-    color: var(--green); background: #fff;
+    color: #fff; background: var(--green);
     border: none; padding: 8px 18px;
     border-radius: 8px; text-decoration: none;
     transition: background 0.15s; white-space: nowrap;
   }
-  .btn-nav-cta:hover { background: var(--green-lite); }
+  .btn-nav-cta:hover { background: var(--green-deep); }
+  nav.nav-logged-in .btn-nav-cta { color: var(--green); background: #fff; }
+  nav.nav-logged-in .btn-nav-cta:hover { background: var(--green-lite); }
 
   .nav-user { display: flex; align-items: center; gap: 12px; }
   .nav-initials {
@@ -100,7 +114,6 @@
   }
   .btn-settings:hover { color: #fff; }
 
-  /* ── REFERRAL BUTTON ── */
   .nav-refer-btn {
     background: rgba(255,255,255,0.15);
     color: #fff;
@@ -144,48 +157,266 @@
   }
   .btn-refer-copy:hover { border-color: var(--green); color: var(--green); }
 
-  /* ── MAIN ── */
-  .main {
-    padding-top: 62px;
-    height: 100vh;
+  /* ── TWO-COLUMN LAYOUT ── */
+  .page-layout {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    height: calc(100vh - 62px);
+    margin-top: 62px;
+    overflow: hidden;
+  }
+
+  /* ── LISTINGS PANEL (70%) ── */
+  .listings-panel {
+    flex: 0 0 70%;
+    height: 100%;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    display: flex;
     flex-direction: column;
-    gap: 12px;
   }
 
-  .coming-soon-label {
-    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--green);
-    background: var(--green-lite); border: 1px solid var(--green-mid);
-    padding: 4px 12px; border-radius: 100px;
+  .panel-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px 10px;
+    flex-shrink: 0;
   }
 
-  .coming-soon-title {
-    font-family: var(--serif);
-    font-size: 2.2rem; font-weight: 700;
-    color: var(--text); letter-spacing: -0.02em;
+  .panel-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    margin-bottom: 10px;
   }
 
-  .coming-soon-sub {
-    font-size: 0.9rem; color: var(--muted); font-weight: 400;
+  .panel-body { padding: 12px 20px 40px; flex: 1; }
+
+  /* Toolbar */
+  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .search-wrap { position: relative; flex: 1; min-width: 160px; }
+  .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--subtle); font-size: 13px; pointer-events: none; }
+  .search-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 7px; padding: 6px 10px 6px 28px;
+    font-family: var(--sans); font-size: 0.78rem; color: var(--text); outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
+  .search-input::placeholder { color: var(--subtle); }
+  .search-input:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(31,69,48,0.07); }
+
+  .filter-wrap {
+    display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px;
+    scrollbar-width: none; flex-wrap: nowrap; width: 100%;
+  }
+  .filter-wrap::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    font-size: 0.68rem; font-weight: 700;
+    background: var(--bg); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 100px;
+    padding: 4px 9px; cursor: pointer; white-space: nowrap;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .filter-btn:hover { border-color: var(--border-md); color: var(--text-mid); }
+  .filter-btn.on { background: var(--green-lite); border-color: var(--green); color: var(--green-deep); }
+  .shown-count { font-size: 0.7rem; color: var(--subtle); white-space: nowrap; }
+
+  /* Section rows */
+  .new-section {
+    background: var(--green-lite); border: 1.5px solid var(--green-mid);
+    border-radius: 8px; padding: 10px 12px 8px; margin-bottom: 20px;
+  }
+  .new-section .col-header { color: var(--green-deep); opacity: 0.55; }
+  .new-section .job-card { border-color: rgba(31,69,48,0.14); background: rgba(255,255,255,0.6); }
+  .new-section .job-card:hover { border-color: var(--green-mid); background: rgba(255,255,255,0.85); }
+
+  .section-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 20px; margin-bottom: 5px;
+  }
+  .new-section .section-row { margin-top: 0; margin-bottom: 8px; }
+  .section-row.collapsible { cursor: pointer; user-select: none; }
+
+  .section-pill {
+    font-size: 0.63rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 100px;
+    white-space: nowrap; display: flex; align-items: center; gap: 5px;
+  }
+  .section-pill.new-pill { background: var(--green); color: #fff; font-size: 0.65rem; padding: 3px 10px; }
+  .pill-dot { width: 5px; height: 5px; background: #6ee29a; border-radius: 50%; flex-shrink: 0; animation: blink 2s ease infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+  .section-pill.all-pill { background: var(--surface); color: var(--muted); border: 1px solid var(--border); transition: border-color 0.15s, color 0.15s; }
+  .pill-count { font-size: 0.58rem; font-weight: 700; background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 100px; }
+  .new-pill .pill-count { background: rgba(255,255,255,0.25); }
+  .section-chevron { font-size: 10px; color: var(--subtle); transition: transform 0.2s; flex-shrink: 0; }
+  .section-row.collapsed .section-chevron { transform: rotate(-90deg); }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+  .new-section .section-line { background: var(--green-mid); opacity: 0.4; }
+  .section-body { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease; max-height: 9999px; opacity: 1; }
+  .section-body.collapsed { max-height: 0 !important; opacity: 0; }
+
+  /* Column header & job cards */
+  .col-header {
+    display: grid; grid-template-columns: 1fr 70px 80px;
+    padding: 3px 8px;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--subtle);
+  }
+  .card-list { display: flex; flex-direction: column; gap: 2px; }
+  .card-empty { font-size: 0.76rem; color: var(--subtle); padding: 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); }
+
+  .job-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; cursor: grab;
+    transition: border-color 0.12s, background 0.12s;
+    user-select: none;
+  }
+  .job-card:hover { border-color: var(--border-md); background: var(--surface); }
+  .job-card:active { cursor: grabbing; }
+  .job-card.in-pipeline { border-left: 3px solid; }
+
+  .card-row {
+    display: grid; grid-template-columns: 1fr 70px 80px;
+    align-items: center; padding: 5px 8px; min-height: 28px; gap: 6px;
+  }
+  .card-left { min-width: 0; }
+  .card-company { font-size: 0.74rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-programme { font-size: 0.67rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+  .card-date { font-size: 0.64rem; color: var(--subtle); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .card-date.fresh { color: var(--green); font-weight: 700; }
+
+  .card-right { display: flex; align-items: center; gap: 5px; justify-content: flex-end; }
+  .apply-btn-inline {
+    font-size: 0.63rem; font-weight: 700;
+    background: var(--green); color: #fff;
+    border: none; border-radius: 4px;
+    padding: 3px 8px; cursor: pointer; text-decoration: none; white-space: nowrap;
+    transition: background 0.12s;
+  }
+  .apply-btn-inline:hover { background: var(--green-deep); }
+
+  .stage-badge {
+    font-size: 0.58rem; font-weight: 700; border-radius: 4px;
+    padding: 2px 6px; white-space: nowrap; line-height: 1.4;
+    max-width: 70px; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* drag ghost */
+  .job-card.dragging { opacity: 0.4; }
+
+  /* ── PIPELINE PANEL (30%) ── */
+  .pipeline-panel {
+    flex: 0 0 30%;
+    height: 100%;
+    overflow-y: auto;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pipeline-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(243,241,238,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px 12px;
+    flex-shrink: 0;
+  }
+
+  .pipeline-title {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--subtle); margin-bottom: 6px;
+  }
+
+  .pipeline-stats {
+    font-size: 0.72rem; color: var(--muted);
+  }
+  .pipeline-stats strong { color: var(--text); }
+
+  .pipeline-body { padding: 12px 12px 40px; flex: 1; }
+
+  /* Stage blocks */
+  .stage-block { margin-bottom: 6px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,0,0,0.07); }
+
+  .stage-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .stage-hdr-left { display: flex; align-items: center; gap: 7px; }
+  .stage-arrow { font-size: 0.65rem; opacity: 0.6; }
+  .stage-cnt {
+    font-size: 0.68rem; font-weight: 700;
+    border-radius: 100px; padding: 2px 8px; min-width: 22px; text-align: center;
+  }
+
+  .drop-zone {
+    min-height: 36px;
+    padding: 6px 8px;
+    background: rgba(255,255,255,0.35);
+    border-top: 1px solid rgba(0,0,0,0.06);
+    transition: background 0.15s;
+  }
+  .drop-zone.drag-over { background: rgba(255,255,255,0.75); outline: 2px dashed rgba(31,69,48,0.3); outline-offset: -3px; }
+  .dz-hint { font-size: 0.68rem; color: var(--subtle); display: block; text-align: center; padding: 6px 0; font-style: italic; }
+
+  /* Pipeline chips */
+  .pipeline-chip {
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 5px;
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 5px; padding: 4px 6px;
+    margin-bottom: 4px; cursor: grab;
+    font-size: 0.7rem;
+    transition: border-color 0.12s;
+  }
+  .pipeline-chip:hover { border-color: var(--border-md); }
+  .pipeline-chip:active { cursor: grabbing; }
+  .chip-co { font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+  .chip-prog { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .chip-remove {
+    background: none; border: none; cursor: pointer;
+    color: var(--subtle); font-size: 0.85rem; line-height: 1;
+    padding: 0 2px; flex-shrink: 0; transition: color 0.12s;
+  }
+  .chip-remove:hover { color: #b91c1c; }
+
+  /* Rejection section */
+  .rejection-toggle {
+    display: flex; align-items: center; gap: 8px; margin: 10px 0 4px;
+    cursor: pointer; user-select: none;
+  }
+  .rejection-toggle-line { flex: 1; height: 1px; background: var(--border-md); }
+  .rejection-toggle-label {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--subtle);
+    white-space: nowrap;
+  }
+  .rejection-toggle-chevron { font-size: 9px; color: var(--subtle); transition: transform 0.2s; }
+  .rejection-toggle.open .rejection-toggle-chevron { transform: rotate(180deg); }
+  .rejection-body { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+  .rejection-body.open { max-height: 9999px; }
 </style>
 </head>
 <body>
 
-<nav>
+<nav id="main-nav">
   <a href="/" class="wordmark">
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
-    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:#fff;">inroad</span>
+    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);" id="wordmark-text">inroad</span>
   </a>
   <ul class="nav-center" id="nav-center">
     <li><a href="/opportunities">Opportunities</a></li>
     <li><a href="/pipeline" class="active">Pipeline</a></li>
   </ul>
   <div class="nav-right" id="nav-right">
-    <a href="/login" class="btn-login">Login / Sign up</a>
+    <a href="/login?next=/pipeline" class="btn-login">Login / Sign up</a>
     <a href="/opportunities" class="btn-nav-cta">Get started free →</a>
   </div>
 </nav>
@@ -207,53 +438,458 @@
   </div>
 </div>
 
-<div class="main">
-  <span class="coming-soon-label">Coming soon</span>
-  <h1 class="coming-soon-title">Pipeline</h1>
-  <p class="coming-soon-sub">Track your applications and outreach in one place.</p>
+<div class="page-layout">
+
+  <!-- ── LISTINGS PANEL ── -->
+  <div class="listings-panel" id="listings-panel">
+    <div class="panel-header">
+      <div class="panel-title">Listings &nbsp;<span id="listing-count" style="font-weight:400;color:var(--subtle)"></span></div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
+        </div>
+        <div class="filter-wrap" id="filter-wrap">
+          <button class="filter-btn" data-div="Bulge Bracket">Bulge Bracket</button>
+          <button class="filter-btn" data-div="Elite Boutique">Elite Boutique</button>
+          <button class="filter-btn" data-div="Middle Market">Middle Market</button>
+          <button class="filter-btn" data-div="Buy-Side">Buy-Side</button>
+          <button class="filter-btn" data-div="Asset Management">Asset Management</button>
+          <button class="filter-btn" data-div="Big 4">Big 4</button>
+          <button class="filter-btn" data-div="Consulting">Consulting</button>
+          <button class="filter-btn" data-div="Trading and Quant">Trading and Quant</button>
+          <button class="filter-btn" data-div="Miscellaneous">Miscellaneous</button>
+        </div>
+        <span class="shown-count" id="shown-count" style="display:none"></span>
+      </div>
+    </div>
+    <div class="panel-body" id="listings">
+      <p style="font-size:0.78rem;color:var(--subtle);padding:20px 0;">Loading listings…</p>
+    </div>
+  </div>
+
+  <!-- ── PIPELINE PANEL ── -->
+  <div class="pipeline-panel" id="pipeline-panel">
+    <div class="pipeline-header">
+      <div class="pipeline-title">Your Pipeline</div>
+      <div class="pipeline-stats" id="pipeline-stats">No applications tracked yet</div>
+    </div>
+    <div class="pipeline-body">
+
+      <!-- Active stages -->
+      <div id="active-stages"></div>
+
+      <!-- Rejection / dead stages -->
+      <div class="rejection-toggle" id="rejection-toggle" onclick="toggleRejection()">
+        <span class="rejection-toggle-line"></span>
+        <span class="rejection-toggle-label">Rejected / Closed</span>
+        <span class="rejection-toggle-chevron">▾</span>
+      </div>
+      <div class="rejection-body" id="rejection-body">
+        <div id="rejection-stages"></div>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <script>
-(function updateNav() {
-  const token = sessionStorage.getItem('inroad_token') || localStorage.getItem('inroad_access_token') || localStorage.getItem('access_token') || '';
-  if (!token) return;
-  fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
-    .then(r => r.ok ? r.json() : null)
-    .then(d => {
-      if (!d) return;
-      const name     = d.name || '';
-      const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
-      const navRight = document.getElementById('nav-right');
-      if (d.referral_code) {
-        const inp = document.getElementById('refer-link-input');
-        if (inp) inp.value = `https://www.the-inroad.com/signup?ref=${d.referral_code}`;
-      }
-      if (navRight) navRight.innerHTML = `
-        <div class="nav-user">
-          ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
-          <a href="/settings" class="btn-settings">Settings</a>
-          <div class="nav-initials">${initials || '?'}</div>
-        </div>`;
-    })
-    .catch(() => {});
-})();
+(function () {
 
-function openReferModal() {
-  document.getElementById('refer-modal-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeReferModal() {
-  document.getElementById('refer-modal-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-function copyReferLink() {
-  const val = document.getElementById('refer-link-input').value;
-  navigator.clipboard.writeText(val).then(() => {
-    const btn = document.getElementById('copy-refer-btn');
-    btn.textContent = 'Copied ✓';
-    setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function fmtDate(d) {
+    if (!d) return '';
+    const dt = new Date(d);
+    if (isNaN(dt)) return '';
+    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+  function isNew(d) {
+    if (!d) return false;
+    const dt = new Date(d);
+    return !isNaN(dt) && (Date.now() - dt.getTime()) <= 72 * 3600 * 1000;
+  }
+
+  // ── Stage definitions ─────────────────────────────────────────────────────
+  const ACTIVE_STAGES = [
+    { id: 'open',       label: 'Open',                    bg: '#D8D5CF', fg: '#1A1714' },
+    { id: 'applied',    label: 'Applied and Pending',     bg: '#E8960C', fg: '#fff'    },
+    { id: 'hirevue',    label: 'HireVue and Tested',      bg: '#D4C31E', fg: '#1A1714' },
+    { id: 'int1',       label: 'Interview #1',            bg: '#9CC87A', fg: '#1A1714' },
+    { id: 'int2',       label: 'Interview #2',            bg: '#72B050', fg: '#fff'    },
+    { id: 'ac',         label: 'Assessment Center',       bg: '#3A7246', fg: '#fff'    },
+    { id: 'offer',      label: 'Offer',                   bg: '#1F4530', fg: '#fff'    },
+  ];
+
+  const REJECTION_STAGES = [
+    { id: 'missed',     label: 'Missed',                         bg: '#B91C1C', fg: '#fff' },
+    { id: 'rej-out',    label: 'Rejected Outright',              bg: '#B91C1C', fg: '#fff' },
+    { id: 'rej-hv',     label: 'Rejected after HV/Test',         bg: '#B91C1C', fg: '#fff' },
+    { id: 'rej-int1',   label: 'Rejected after Interview #1',    bg: '#B91C1C', fg: '#fff' },
+    { id: 'rej-int2',   label: 'Rejected after Interview #2',    bg: '#B91C1C', fg: '#fff' },
+    { id: 'rej-ac',     label: 'Rejected after AC',              bg: '#B91C1C', fg: '#fff' },
+    { id: 'ghosted',    label: 'Ghosted',                        bg: '#C5C2BC', fg: '#3D3831' },
+  ];
+
+  const ALL_STAGES = [...ACTIVE_STAGES, ...REJECTION_STAGES];
+  const STAGE_MAP  = Object.fromEntries(ALL_STAGES.map(s => [s.id, s]));
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  const PIPELINE_KEY = 'inroad_pipeline_v1';
+  let allJobs = [];
+  let activeFilters = new Set();
+  let searchQuery   = '';
+  const collapsedSections = new Set();
+
+  function loadPipeline() {
+    try { return JSON.parse(localStorage.getItem(PIPELINE_KEY) || '{}'); }
+    catch { return {}; }
+  }
+  function savePipeline(p) {
+    localStorage.setItem(PIPELINE_KEY, JSON.stringify(p));
+  }
+  function getPipeline() { return loadPipeline(); }
+
+  function jobsInStage(stageId) {
+    const p = getPipeline();
+    return Object.entries(p)
+      .filter(([, s]) => s === stageId)
+      .map(([id]) => allJobs.find(j => String(j.id) === String(id)))
+      .filter(Boolean);
+  }
+
+  function totalTracked() {
+    return Object.keys(getPipeline()).length;
+  }
+
+  function stageForJob(jobId) {
+    return getPipeline()[String(jobId)] || null;
+  }
+
+  function moveToStage(jobId, stageId) {
+    const p = getPipeline();
+    p[String(jobId)] = stageId;
+    savePipeline(p);
+    renderPipeline();
+    renderListings();
+  }
+
+  function removeFromPipeline(jobId) {
+    const p = getPipeline();
+    delete p[String(jobId)];
+    savePipeline(p);
+    renderPipeline();
+    renderListings();
+  }
+
+  // ── Rejection toggle ──────────────────────────────────────────────────────
+  let rejectionOpen = false;
+  function toggleRejection() {
+    rejectionOpen = !rejectionOpen;
+    document.getElementById('rejection-toggle').classList.toggle('open', rejectionOpen);
+    document.getElementById('rejection-body').classList.toggle('open', rejectionOpen);
+  }
+
+  // ── Drag state ────────────────────────────────────────────────────────────
+  let dragJob = null;
+
+  // ── Render pipeline ───────────────────────────────────────────────────────
+  function renderPipeline() {
+    const total = totalTracked();
+    const statsEl = document.getElementById('pipeline-stats');
+    if (total === 0) {
+      statsEl.innerHTML = 'Drag a listing here to start tracking';
+    } else {
+      statsEl.innerHTML = `<strong>${total}</strong> application${total !== 1 ? 's' : ''} tracked`;
+    }
+
+    document.getElementById('active-stages').innerHTML =
+      ACTIVE_STAGES.map(s => stageBlockHtml(s)).join('');
+    document.getElementById('rejection-stages').innerHTML =
+      REJECTION_STAGES.map(s => stageBlockHtml(s)).join('');
+
+    attachDropHandlers();
+    attachChipHandlers();
+  }
+
+  function stageBlockHtml(stage) {
+    const jobs   = jobsInStage(stage.id);
+    const cntBg  = stage.fg === '#fff' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)';
+    const chips  = jobs.map(j => chipHtml(j, stage)).join('');
+    return `
+      <div class="stage-block">
+        <div class="stage-hdr" style="background:${stage.bg};color:${stage.fg}">
+          <span class="stage-hdr-left"><span>${esc(stage.label)}</span></span>
+          <span class="stage-cnt" style="background:${cntBg};color:${stage.fg}">${jobs.length}</span>
+        </div>
+        <div class="drop-zone" data-stage="${stage.id}">
+          ${jobs.length === 0
+            ? '<span class="dz-hint">Drop to track</span>'
+            : chips}
+        </div>
+      </div>`;
+  }
+
+  function chipHtml(job, stage) {
+    return `
+      <div class="pipeline-chip" draggable="true" data-id="${job.id}">
+        <span class="chip-co" title="${esc(job.company)}">${esc(job.company)}</span>
+        <span class="chip-prog" title="${esc(job.programme)}">${esc(job.programme)}</span>
+        <button class="chip-remove" data-id="${job.id}" title="Remove from pipeline">×</button>
+      </div>`;
+  }
+
+  function attachDropHandlers() {
+    document.querySelectorAll('.drop-zone').forEach(dz => {
+      dz.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        dz.classList.add('drag-over');
+      });
+      dz.addEventListener('dragleave', e => {
+        if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over');
+      });
+      dz.addEventListener('drop', e => {
+        e.preventDefault();
+        dz.classList.remove('drag-over');
+        const raw = e.dataTransfer.getData('application/json');
+        if (!raw) return;
+        try {
+          const job = JSON.parse(raw);
+          moveToStage(job.id, dz.dataset.stage);
+        } catch {}
+      });
+    });
+  }
+
+  function attachChipHandlers() {
+    document.querySelectorAll('.pipeline-chip').forEach(chip => {
+      chip.addEventListener('dragstart', e => {
+        const job = allJobs.find(j => String(j.id) === chip.dataset.id);
+        if (!job) return;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('application/json', JSON.stringify({ id: job.id, company: job.company, programme: job.programme }));
+        chip.style.opacity = '0.4';
+        setTimeout(() => { chip.style.opacity = ''; }, 0);
+      });
+    });
+    document.querySelectorAll('.chip-remove').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        removeFromPipeline(btn.dataset.id);
+      });
+    });
+  }
+
+  // ── Render listings ───────────────────────────────────────────────────────
+  const PROG_ORDER = ['Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement', 'Graduate Programme', 'Pre-Uni', 'Events'];
+
+  const listingsEl   = document.getElementById('listings');
+  const listingCount = document.getElementById('listing-count');
+  const shownCountEl = document.getElementById('shown-count');
+  const searchEl     = document.getElementById('search');
+
+  function filtered() {
+    return allJobs.filter(j => {
+      if (activeFilters.size > 0 && !activeFilters.has(j.division)) return false;
+      if (searchQuery && !(j.company + ' ' + j.programme).toLowerCase().includes(searchQuery)) return false;
+      return true;
+    });
+  }
+
+  function renderListings() {
+    const jobs    = filtered();
+    const newJobs = jobs.filter(j =>  isNew(j.opening_date));
+    const oldJobs = jobs.filter(j => !isNew(j.opening_date));
+
+    const filtering = activeFilters.size > 0 || searchQuery;
+    shownCountEl.style.display = filtering ? '' : 'none';
+    if (filtering) shownCountEl.textContent = jobs.length + ' shown';
+
+    const byProg = {}, noProg = [];
+    for (const j of oldJobs) {
+      const pt = j.programme_type;
+      if (pt && PROG_ORDER.includes(pt)) (byProg[pt] = byProg[pt] || []).push(j);
+      else noProg.push(j);
+    }
+
+    const colHdr = `<div class="col-header"><span>Company / Programme</span><span>Opened</span><span></span></div>`;
+
+    const newSection = newJobs.length === 0 ? '' : `
+      <div class="new-section">
+        <div class="section-row">
+          <span class="section-pill new-pill"><span class="pill-dot"></span>New — last 72h<span class="pill-count">${newJobs.length}</span></span>
+          <span class="section-line"></span>
+        </div>
+        ${colHdr}<div class="card-list">${newJobs.map(cardHtml).join('')}</div>
+      </div>`;
+
+    const parts = [];
+    for (const pt of PROG_ORDER) {
+      const g = byProg[pt];
+      if (!g || !g.length) continue;
+      parts.push(collapsibleSection(pt, pt, g));
+    }
+    if (noProg.length) parts.push(collapsibleSection('other', 'Other', noProg));
+    if (!parts.length && !newJobs.length) {
+      parts.push(`<p class="card-empty">No listings match your filters.</p>`);
+    }
+
+    listingsEl.innerHTML = newSection + parts.join('');
+
+    listingsEl.querySelectorAll('.section-row.collapsible').forEach(row => {
+      const key = row.dataset.key;
+      row.addEventListener('click', () => {
+        collapsedSections.has(key) ? collapsedSections.delete(key) : collapsedSections.add(key);
+        row.classList.toggle('collapsed', collapsedSections.has(key));
+        const body = row.nextElementSibling;
+        if (body && body.classList.contains('section-body'))
+          body.classList.toggle('collapsed', collapsedSections.has(key));
+      });
+    });
+
+    listingsEl.querySelectorAll('.apply-btn-inline').forEach(btn => {
+      btn.addEventListener('click', e => e.stopPropagation());
+    });
+
+    // Attach drag handlers to cards
+    listingsEl.querySelectorAll('.job-card').forEach(card => {
+      card.addEventListener('dragstart', e => {
+        const job = allJobs.find(j => String(j.id) === card.dataset.id);
+        if (!job) return;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('application/json', JSON.stringify({ id: job.id, company: job.company, programme: job.programme }));
+        card.classList.add('dragging');
+      });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    });
+  }
+
+  function collapsibleSection(key, label, jobs) {
+    const collapsed = collapsedSections.has(key);
+    const colHdr = `<div class="col-header"><span>Company / Programme</span><span>Opened</span><span></span></div>`;
+    return `
+      <div class="section-row collapsible${collapsed ? ' collapsed' : ''}" data-key="${key}">
+        <span class="section-pill all-pill">${label}<span class="pill-count">${jobs.length}</span></span>
+        <span class="section-line"></span>
+        <span class="section-chevron">▾</span>
+      </div>
+      <div class="section-body${collapsed ? ' collapsed' : ''}">
+        ${colHdr}<div class="card-list">${jobs.map(cardHtml).join('')}</div>
+      </div>`;
+  }
+
+  function cardHtml(job) {
+    const fresh    = isNew(job.opening_date);
+    const dateStr  = fmtDate(job.opening_date);
+    const stageId  = stageForJob(job.id);
+    const stage    = stageId ? STAGE_MAP[stageId] : null;
+    const stageBadge = stage
+      ? `<span class="stage-badge" style="background:${stage.bg};color:${stage.fg};border:1px solid rgba(0,0,0,0.08)"
+           title="${esc(stage.label)}">${esc(stage.label)}</span>`
+      : (job.apply_url ? `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>` : '<span></span>');
+    const borderStyle = stage ? `border-left:3px solid ${stage.bg}` : '';
+    return `
+      <div class="job-card" draggable="true" data-id="${job.id}" style="${borderStyle}">
+        <div class="card-row">
+          <div class="card-left">
+            <div class="card-company">${esc(job.company)}</div>
+            <div class="card-programme">${esc(job.programme)}</div>
+          </div>
+          <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
+          <div class="card-right">${stageBadge}</div>
+        </div>
+      </div>`;
+  }
+
+  // ── Filter buttons ────────────────────────────────────────────────────────
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const div = btn.dataset.div;
+      if (activeFilters.has(div)) { activeFilters.delete(div); btn.classList.remove('on'); }
+      else                        { activeFilters.add(div);    btn.classList.add('on'); }
+      renderListings();
+    });
   });
-}
+  searchEl.addEventListener('input', () => {
+    searchQuery = searchEl.value.trim().toLowerCase();
+    renderListings();
+  });
+
+  // ── Load jobs ─────────────────────────────────────────────────────────────
+  fetch('/api/opportunities')
+    .then(r => r.json())
+    .then(data => {
+      allJobs = data.jobs || [];
+      listingCount.textContent = allJobs.length;
+      renderListings();
+      renderPipeline();
+    })
+    .catch(() => {
+      listingsEl.innerHTML = '<p style="font-size:0.78rem;color:var(--subtle);padding:20px 0;">Failed to load — please refresh.</p>';
+    });
+
+  // Initial pipeline render (shows empty state while jobs load)
+  renderPipeline();
+
+  // ── Auth nav ──────────────────────────────────────────────────────────────
+  (function updateNav() {
+    const token = sessionStorage.getItem('inroad_token') || localStorage.getItem('inroad_access_token') || localStorage.getItem('access_token') || '';
+    if (!token) return;
+    fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        const navEl    = document.getElementById('main-nav');
+        const navRight = document.getElementById('nav-right');
+        if (!navRight) return;
+        const name     = d.name || '';
+        const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+        if (navEl) {
+          navEl.classList.add('nav-logged-in');
+          const wm = document.getElementById('wordmark-text');
+          if (wm) wm.style.color = '#fff';
+        }
+        const navCenter = document.getElementById('nav-center');
+        if (navCenter) navCenter.innerHTML = `
+          <li><a href="/opportunities">Opportunities</a></li>
+          <li><a href="/pipeline" class="active">Pipeline</a></li>`;
+        if (d.referral_code) {
+          const inp = document.getElementById('refer-link-input');
+          if (inp) inp.value = `https://www.the-inroad.com/signup?ref=${d.referral_code}`;
+        }
+        navRight.innerHTML = `
+          <div class="nav-user">
+            ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
+            <a href="/settings" class="btn-settings">Settings</a>
+            <div class="nav-initials">${esc(initials || '?')}</div>
+          </div>`;
+      })
+      .catch(() => {});
+  })();
+
+  // ── Referral modal ────────────────────────────────────────────────────────
+  window.openReferModal = function() {
+    document.getElementById('refer-modal-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeReferModal = function() {
+    document.getElementById('refer-modal-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+  window.copyReferLink = function() {
+    const val = document.getElementById('refer-link-input').value;
+    navigator.clipboard.writeText(val).then(() => {
+      const btn = document.getElementById('copy-refer-btn');
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
+    });
+  };
+
+})();
 </script>
 
 </body>
