@@ -8,7 +8,7 @@ import os
 
 # ── Core ────────────────────────────────────────────────────────────────────
 
-# Set this to your Railway URL after first deploy, e.g. https://ccc.up.railway.app
+# Set this to your Railway URL after first deploy, e.g. https://inroad.up.railway.app
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://localhost:5001").rstrip("/")
 
 SESSION_SECRET = os.environ.get(
@@ -41,7 +41,7 @@ MAGIC_LINK_RATE_WINDOW    = int(os.environ.get("MAGIC_LINK_RATE_WINDOW", "10")) 
 SESSION_DAYS = int(os.environ.get("SESSION_DAYS", "30"))
 
 JWT_SECRET = os.environ.get("JWT_SECRET", "change-jwt-secret-in-production")
-JWT_ACCESS_TTL_MINUTES = int(os.environ.get("JWT_ACCESS_TTL_MINUTES", "15"))
+JWT_ACCESS_TTL_MINUTES = int(os.environ.get("JWT_ACCESS_TTL_MINUTES", "1440"))
 JWT_REFRESH_TTL_DAYS = int(os.environ.get("JWT_REFRESH_TTL_DAYS", "30"))
 
 # ── CORS ────────────────────────────────────────────────────────────────────
@@ -55,7 +55,9 @@ ALLOWED_ORIGINS = [
 
 # ── Feature flags ───────────────────────────────────────────────────────────
 
-DEV_MODE = os.environ.get("DEV_MODE", "false").lower() == "true"
+DEV_MODE             = os.environ.get("DEV_MODE",             "false").lower() == "true"
+SEARCH_ROLES_ENABLED = os.environ.get("SEARCH_ROLES_ENABLED", "false").lower() == "true"
+SEND_DAILY_EMAILS    = os.environ.get("SEND_DAILY_EMAILS",    "false").lower() == "true"
 
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
 
@@ -97,11 +99,11 @@ SENIORITY_KEYWORDS = {
 }
 
 INDUSTRIES = [
-    "Finance", "Investment Banking", "Technology", "Software Engineering",
+    "Finance", "Investment Banking", "Software Engineering", "Technology",
     "Product Management", "Consulting", "Strategy", "Marketing",
-    "Law", "Healthcare", "Media & Journalism", "Design & UX",
+    "Law", "Healthcare", "Media & Journalism",
     "Data & Analytics", "Real Estate", "Non-profit & Policy",
-    "Venture Capital", "Other",
+    "Other",
 ]
 
 # ── Lead pre-fetch: company size lookup ──────────────────────────────────────
@@ -436,7 +438,8 @@ TITLE_DEPT_MAP = [
     (["investment banking", "m&a", "mergers", "dcm", "ecm", "leveraged finance",
       "capital markets", "fig ", "debt advisory", "restructuring", "ipo",
       "equity capital", "debt capital", "advisory intern", "ib analyst",
-      "ib associate", "corporate finance"], "investment_banking"),
+      "ib associate", "corporate finance",
+      "global advisory", "strategic advisory", "advisory"], "investment_banking"),
     # Quant (before sales_trading — "quant trader" should map here not sales_trading)
     (["quantitative", "quant trader", "quant research", "quant analyst",
       "quant intern", "strat intern", "structur"], "quant"),
@@ -444,6 +447,10 @@ TITLE_DEPT_MAP = [
     (["sales trading", "sales & trading", "fixed income", "derivatives",
       "fx trading", "equity sales", "trader", "markets intern", "trading intern",
       "flow trading", "market making"], "sales_trading"),
+    # Healthcare / Life Sciences (before equity_research — "clinical research" must not map there)
+    (["life sciences", "clinical research", "pharmaceutical", "pharma", "biotech",
+      "biotechnology", "medical devices", "health economics", "healthcare analyst",
+      "clinical data", "clinical trial"], "healthcare"),
     # Equity research
     (["equity research", "research analyst", "sell-side", "research associate",
       "equity analyst"], "equity_research"),
@@ -454,8 +461,11 @@ TITLE_DEPT_MAP = [
     (["asset management", "portfolio manag", "wealth manag", "fund manag",
       "investment manag", "private equity", "pe intern", "buyout",
       "venture capital", "vc intern", "real estate invest", "property invest",
+      "real estate", "property invest", "real assets",
       "credit invest", "special situations", "private credit",
-      "infrastructure invest", "private markets"], "asset_management"),
+      "infrastructure invest", "private markets",
+      "investor relations", "clean energy", "renewable energy",
+      "infrastructure fund"], "asset_management"),
     # Software engineering (before generic "engineer" / "data")
     (["software engineer", "software developer", "swe ", "backend", "frontend",
       "full stack", "mobile engineer", "platform engineer intern",
@@ -463,7 +473,8 @@ TITLE_DEPT_MAP = [
     # Data / ML
     (["data scientist", "data analyst", "data engineer", "machine learning",
       "ml engineer", "analytics engineer", "data intern", "ai intern",
-      "nlp ", "computer vision"], "data_ml"),
+      "nlp ", "computer vision", "business intelligence", "bi analyst",
+      "bi developer"], "data_ml"),
     # Product
     (["product manager", "product analyst", "product management",
       "product intern", "product owner"], "product"),
@@ -472,7 +483,7 @@ TITLE_DEPT_MAP = [
       "platform engineer", "site reliability"], "infrastructure"),
     # Design / UX
     (["ux designer", "product designer", "ui designer", "design intern",
-      "ux intern", "user experience"], "design"),
+      "ux intern", "user experience", "graphic designer", "ux researcher"], "design"),
     # Law
     (["training contract", "trainee solicitor", "trainee lawyer",
       "paralegal", "solicitor intern", "legal intern", "law intern",
@@ -481,15 +492,19 @@ TITLE_DEPT_MAP = [
     (["consultant", "consulting intern", "strategy intern", "management consulting",
       "strategy analyst", "strategy associate", "business analyst",
       "graduate scheme consulting", "advisory analyst"], "consulting"),
-    # Marketing
-    (["marketing intern", "marketing analyst", "brand analyst", "brand intern",
-      "marketing graduate", "digital marketing", "growth intern",
-      "marketing associate", "comms intern", "pr intern"], "marketing"),
+    # Marketing (broad — catches executive, manager, coordinator, specialist variants)
+    (["marketing", "brand manager", "brand analyst", "brand intern",
+      "digital marketing", "growth intern", "growth marketing",
+      "marketing associate", "comms intern", "pr intern", "pr manager",
+      "social media", "content marketing", "content manager"], "marketing"),
     # Generic engineer catch-all
     (["engineer", "engineering intern", "engineering placement"], "software_engineering"),
     # Generic "investments" / "finance" catch-all
     (["investment intern", "investment analyst", "investments intern",
       "finance intern", "financial analyst", "financial intern"], "investment_banking"),
+    # Technology / IT catch-all (before generic fallback)
+    (["information technology", "it intern", " it analyst", "technology analyst",
+      "technology intern", "technology programme", "technology summer"], "software_engineering"),
 ]
 
 
@@ -558,6 +573,34 @@ UNI_FULL_NAMES = {
     "cmu":       "Carnegie Mellon University",
 }
 
+# ── Russell Group universities (used for multi-uni lead scraping) ─────────────
+RUSSELL_GROUP_UNIS = [
+    "University of Oxford",
+    "University of Cambridge",
+    "London School of Economics and Political Science",
+    "Imperial College London",
+    "University College London",
+    "University of Edinburgh",
+    "University of Manchester",
+    "King's College London",
+    "University of Bristol",
+    "University of Warwick",
+    "University of Leeds",
+    "University of Nottingham",
+    "University of Birmingham",
+    "University of Glasgow",
+    "University of Sheffield",
+    "Durham University",
+    "University of Southampton",
+    "University of Exeter",
+    "Cardiff University",
+    "Queen's University Belfast",
+    "University of Liverpool",
+    "Newcastle University",
+    "University of York",
+    "Queen Mary University of London",
+]
+
 # ── Lead pre-fetch: department → search keywords map ────────────────────────
 
 DEPT_MAP = {
@@ -582,23 +625,100 @@ DEPT_MAP = {
     "law_finance":        ["trainee", "associate", "partner", "solicitor", "finance"],
     "law_disputes":       ["trainee", "associate", "partner", "solicitor", "litigation"],
     "law_tech":           ["trainee", "associate", "solicitor", "technology", "IP"],
+    "healthcare":         ["life sciences", "clinical research", "pharmaceutical", "healthcare analyst",
+                           "biotech", "medical devices", "health economics"],
+    "general":            ["analyst", "associate", "intern"],
 }
+
+# ── Title → specific LinkedIn search keyword ─────────────────────────────────
+# Checked against job title (lowercase) before falling back to DEPT_MAP[dept_tag][0].
+# First match wins. Keeps searches specific so LinkedIn results are relevant.
+TITLE_SEARCH_KEYWORD_MAP: list[tuple[list[str], str]] = [
+    # ── Investment Banking sub-roles ──────────────────────────────────────────
+    (["m&a", "mergers and acquisitions", "mergers &"],      "M&A analyst"),
+    (["leveraged finance"],                                  "leveraged finance analyst"),
+    (["dcm", "debt capital markets"],                        "DCM analyst"),
+    (["ecm", "equity capital markets"],                      "ECM analyst"),
+    (["restructuring"],                                      "restructuring analyst"),
+    (["capital markets"],                                    "capital markets analyst"),
+    (["corporate finance"],                                  "corporate finance analyst"),
+    # ── Quant sub-roles ───────────────────────────────────────────────────────
+    (["quantitative researcher", "quant research"],          "quantitative researcher"),
+    (["quantitative trader", "quant trader"],                "quantitative trader"),
+    (["structur"],                                           "structurer"),
+    # ── Sales & Trading sub-roles ─────────────────────────────────────────────
+    (["fixed income"],                                       "fixed income analyst"),
+    (["fx trading", "fx trader", "foreign exchange"],        "FX trader"),
+    (["derivatives"],                                        "derivatives analyst"),
+    (["equity sales"],                                       "equity sales"),
+    # ── Data sub-roles ────────────────────────────────────────────────────────
+    (["data engineer"],                                      "data engineer"),
+    (["business intelligence", "bi analyst", "bi developer"], "business intelligence analyst"),
+    (["machine learning", "ml engineer"],                    "machine learning engineer"),
+    (["analytics engineer"],                                 "analytics engineer"),
+    (["data analyst"],                                       "data analyst"),
+    (["data scientist"],                                     "data scientist"),
+    (["ai researcher", "ai engineer", "ai intern"],          "AI engineer"),
+    # ── Software Engineering sub-roles ───────────────────────────────────────
+    (["backend", "back-end", "back end"],                    "backend engineer"),
+    (["frontend", "front-end", "front end"],                 "frontend engineer"),
+    (["full stack", "fullstack", "full-stack"],              "full stack engineer"),
+    (["mobile engineer", "mobile developer", "ios ", "android "], "mobile engineer"),
+    (["devops", "site reliability", "sre "],                 "DevOps engineer"),
+    (["platform engineer", "infrastructure engineer"],       "platform engineer"),
+    # ── Product sub-roles ─────────────────────────────────────────────────────
+    (["product manager", "product management"],              "product manager"),
+    (["product analyst"],                                    "product analyst"),
+    # ── Design sub-roles ──────────────────────────────────────────────────────
+    (["ux researcher"],                                      "UX researcher"),
+    (["ux designer", "user experience designer"],            "UX designer"),
+    (["ui designer", "user interface designer"],             "UI designer"),
+    (["product designer"],                                   "product designer"),
+    (["graphic designer"],                                   "graphic designer"),
+    # ── Consulting sub-roles ──────────────────────────────────────────────────
+    (["healthcare consultant", "life sciences consultant"],  "healthcare consultant"),
+    (["strategy analyst", "strategy associate"],             "strategy analyst"),
+    (["business analyst"],                                   "business analyst"),
+    (["advisory analyst", "economic analyst"],               "economic analyst"),
+    (["management consultant", "management consulting"],     "management consultant"),
+    (["associate consultant"],                               "associate consultant"),
+    # ── Marketing sub-roles ───────────────────────────────────────────────────
+    (["digital marketing"],                                  "digital marketing manager"),
+    (["brand manager", "brand analyst"],                     "brand manager"),
+    (["growth marketing", "growth manager"],                 "growth manager"),
+    (["content marketing", "content manager"],               "content marketer"),
+    (["social media"],                                       "social media manager"),
+    (["marketing analyst"],                                  "marketing analyst"),
+    (["pr ", "public relations", "communications"],          "communications manager"),
+    # ── Law sub-roles ─────────────────────────────────────────────────────────
+    (["training contract", "trainee solicitor"],             "trainee solicitor"),
+    (["paralegal"],                                          "paralegal"),
+    (["vacation scheme"],                                    "trainee solicitor"),
+    # ── Healthcare / Life Sciences ────────────────────────────────────────────
+    (["clinical research associate", "cra "],                "clinical research associate"),
+    (["clinical data", "clinical data analyst"],             "clinical data analyst"),
+    (["health economics", "health economist"],               "health economist"),
+    (["medical devices", "medical device"],                  "medical devices"),
+    (["life sciences", "life science"],                      "life sciences"),
+    (["pharmaceutical", "pharma analyst"],                   "pharmaceutical analyst"),
+    (["biotech", "biotechnology"],                           "biotech analyst"),
+    (["healthcare analyst"],                                 "healthcare analyst"),
+]
 
 # Maps Trackr industry → relevant DEPT_MAP keys
 INDUSTRY_DEPT_MAP = {
     "Finance":            ["investment_banking", "sales_trading", "asset_management",
                            "equity_research", "risk", "quant"],
     "Investment Banking": ["investment_banking", "sales_trading", "risk", "quant"],
-    "Technology":         ["software_engineering", "product", "data_ml", "infrastructure", "design"],
-    "Software Engineering": ["software_engineering", "product", "data_ml"],
+    "Software Engineering": ["software_engineering", "infrastructure", "data_ml"],
+    "Technology":         ["product", "data_ml", "infrastructure"],
     "Data & Analytics":   ["data_ml", "software_engineering"],
     "Law":                ["law_corporate", "law_finance", "law_disputes", "law_tech"],
     "Consulting":         ["consulting", "investment_banking", "data_ml"],
     "Strategy":           ["consulting", "investment_banking"],
-    "Marketing":          ["marketing", "product", "design"],
-    "Design & UX":        ["design", "product"],
-    "Venture Capital":    ["asset_management", "investment_banking"],
+    "Marketing":          ["marketing", "product"],
     "Product Management": ["product", "software_engineering", "data_ml"],
+    "Healthcare":         ["healthcare"],
 }
 
 # Fallback city per region if job has no location field
