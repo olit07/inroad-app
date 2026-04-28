@@ -107,7 +107,7 @@
   <a href="/" class="wordmark">
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
   </a>
-  <a href="/opportunities" class="nav-back" id="back-btn">← Opportunities</a>
+  <a href="/opportunities" class="nav-back" id="back-btn">← Back</a>
 </nav>
 
 <div class="page">
@@ -196,6 +196,18 @@ const LOCKED_INDUSTRIES = new Set([
 ]);
 
 // Save token to sessionStorage before leaving so dashboard can reuse it
+// Set back button to referring page if it's same-origin, else default to /opportunities
+(function() {
+  const btn = document.getElementById('back-btn');
+  const ref = document.referrer;
+  if (ref) {
+    try {
+      const u = new URL(ref);
+      if (u.origin === location.origin) btn.href = ref;
+    } catch(_) {}
+  }
+})();
+
 document.getElementById('back-btn').addEventListener('click', function(e) {
   const tok = getAccessToken();
   if (tok) sessionStorage.setItem('inroad_token', tok);

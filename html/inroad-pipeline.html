@@ -379,11 +379,10 @@
   }
   .pipeline-stats strong { color: var(--text); }
 
-  /* Horizontal kanban track — centred both axes */
+  /* Horizontal kanban track — centred via inner margin (allows full left scroll) */
   .kanban-track {
     display: flex;
     align-items: center;
-    justify-content: center;
     padding: 20px;
     overflow-x: auto;
     overflow-y: auto;
@@ -395,12 +394,13 @@
   .kanban-track::-webkit-scrollbar { height: 5px; }
   .kanban-track::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 99px; }
 
-  /* Inner row — columns sit inside this, starts at top within itself */
+  /* Inner row — margin:auto centres when space available; scrolls properly when overflowing */
   .kanban-inner {
     display: flex;
     flex-direction: row;
     gap: 0;
     align-items: flex-start;
+    margin: auto;
   }
 
   /* Horizontal arrow between columns */
