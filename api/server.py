@@ -30,7 +30,7 @@ from config.settings import (
     MAGIC_LINK_EXPIRY_MINUTES, MAGIC_LINK_RATE_LIMIT,
     MAGIC_LINK_RATE_WINDOW, SESSION_DAYS, ALLOWED_ORIGINS, DEV_MODE,
     JWT_REFRESH_TTL_DAYS, ADMIN_SECRET, SEARCH_ROLES_ENABLED,
-    AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
+    AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, ADMIN_UI_ENABLED,
 )
 from db.database import (
     init_db, get_student_by_email, get_student_by_id,
@@ -2064,6 +2064,8 @@ def api_opportunities():
 @app.route("/admin")
 @require_admin
 def admin_page():
+    if not ADMIN_UI_ENABLED:
+        return "", 404
     return _send_html("inroad-admin.html")
 
 

@@ -58,6 +58,7 @@ ALLOWED_ORIGINS = [
 DEV_MODE             = os.environ.get("DEV_MODE",             "false").lower() == "true"
 SEARCH_ROLES_ENABLED = os.environ.get("SEARCH_ROLES_ENABLED", "false").lower() == "true"
 SEND_DAILY_EMAILS    = os.environ.get("SEND_DAILY_EMAILS",    "false").lower() == "true"
+ADMIN_UI_ENABLED     = os.environ.get("ADMIN_UI_ENABLED",     "false").lower() == "true"
 
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
 

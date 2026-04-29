@@ -1196,14 +1196,12 @@
     const firstName   = (lead.name || '').split(' ')[0];
     const subject     = `${job.programme} at ${job.company}`;
     const to          = lead.expected_email || '';
-    const userName    = currentUser?.name    || '[Your name]';
     const userUni     = currentUser?.university || '';
-    const userAge     = currentUser?.age     ? String(currentUser.age) : '[your age]';
     const roleIndustry = (job.division && job.division !== 'Miscellaneous') ? job.division : 'finance';
 
-    const msgBodyA = `Hi ${firstName},\n\nI hope you don't mind the message. I came across your profile while researching opportunities at ${job.company} and was impressed by your background in ${lead.title || 'the industry'}.\n\nI'm currently applying for the ${job.programme} role and would love any insight you could share about the team or application process, even a 15-minute call would be incredibly helpful.\n\nThanks so much,\n${userName}`;
+    const msgBodyA = `Hi ${firstName},\n\nI hope you don't mind the message. I came across your profile while researching opportunities at ${job.company} and was impressed by your background in ${lead.title || 'the industry'}.\n\nI'm currently applying for the ${job.programme} role and would love any insight you could share about the team or application process, even a 15-minute call would be incredibly helpful.\n\nThanks so much`;
 
-    const msgBodyB = `Dear ${firstName},\n\nI know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.\n\nI'm a ${userAge} year old student${userUni ? ` at ${userUni}` : ''} and I'm looking to break in to ${roleIndustry}.\n\nWhat do you think are the most critical skills or qualities that an aspiring researcher should possess, given the current market dynamics? Specifically, what attributes do you look for in your team?\n\nI totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.\n\nAll the best,\n${userName}`;
+    const msgBodyB = `Dear ${firstName},\n\nI know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.\n\nI'm a student${userUni ? ` at ${userUni}` : ''} with a keen interest in ${roleIndustry}.\n\nWhat do you think are the most critical skills or qualities that an aspiring researcher should possess, given the current market dynamics? Specifically, what attributes do you look for in your team?\n\nI totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.\n\nAll the best`;
 
     const msgBody = ((lead.id || 0) % 2 === 0) ? msgBodyA : msgBodyB;
 
@@ -1427,6 +1425,7 @@
     // Filter out degree descriptions masquerading as university names
     if (/\bbsc\b|\bhons\b|\bba\b|\bma\b|\bmsc\b|\bphd\b|\bdegree\b|\bgraduate\b|\brecent\b|\bstudent\b|\beconomics\b/.test(lower)) return false;
     if (name.trim().split(/\s+/).length > 7) return false;
+    if (lower === 'university of york' || lower === 'york university') return false;
     return true;
   }
 
