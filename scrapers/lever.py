@@ -30,8 +30,9 @@ ENTRY_LEVEL_KEYWORDS = {
 }
 
 def _is_entry_level(title: str) -> bool:
+    from scrapers.base import is_too_senior
     t = title.lower()
-    return any(k in t for k in ENTRY_LEVEL_KEYWORDS)
+    return any(k in t for k in ENTRY_LEVEL_KEYWORDS) and not is_too_senior(title)
 
 
 def _ts_to_iso(ts_ms) -> str:
@@ -55,6 +56,11 @@ DEFAULT_TARGETS = [
     ("Palantir",         "palantir"),       # Data analytics, NY/London
     ("Spotify",          "spotify"),        # Music tech, London/NY
     ("Plaid",            "plaid"),          # Fintech infrastructure, US/UK
+    # ── Healthcare ────────────────────────────────────────────────────────────
+    ("Lyra Health",      "lyrahealth"),     # Mental health benefits platform, US
+    ("Ro Health",        "ro"),             # Direct-to-patient telehealth, US
+    # ── Consulting / Strategy ─────────────────────────────────────────────────
+    ("Oliver Wyman",     "oliverwyman"),    # Management consulting, London/NY
 ]
 
 

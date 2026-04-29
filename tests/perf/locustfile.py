@@ -10,9 +10,9 @@ Target: p99 < 300ms on GET /api/matches/today/<student_id>
 
 Authentication notes
 --------------------
-* The matches endpoint uses @require_session (signed cookie "ccc_session"),
+* The matches endpoint uses @require_session (signed cookie "inroad_session"),
   NOT a JWT Bearer header.
-* /auth/refresh reads the httponly "ccc_refresh" cookie — Locust's built-in
+* /auth/refresh reads the httponly "inroad_refresh" cookie — Locust's built-in
   cookie jar handles both cookies automatically once they are set by /auth/verify.
 * DEV_MODE must be enabled on the server so that /auth/magic-link returns a
   "dev_token" in its JSON body (no actual email is sent).
@@ -54,8 +54,8 @@ class MatchingUser(HttpUser):
             return
 
         # 2. Verify the magic-link token.
-        #    /auth/verify sets both "ccc_session" (cookie) and returns an
-        #    access_token in JSON, and sets the "ccc_refresh" httponly cookie.
+        #    /auth/verify sets both "inroad_session" (cookie) and returns an
+        #    access_token in JSON, and sets the "inroad_refresh" httponly cookie.
         #    Locust's session cookie jar stores all Set-Cookie headers.
         resp2 = self.client.get(
             f"/auth/verify?token={dev_token}",
@@ -85,7 +85,7 @@ class MatchingUser(HttpUser):
         """Primary task: fetch today's matches (session-cookie auth)."""
         if not self.student_id:
             return
-        # No explicit Authorization header needed — "ccc_session" cookie is
+        # No explicit Authorization header needed — "inroad_session" cookie is
         # sent automatically by the Locust HTTP session.
         self.client.get(
             f"/api/matches/today/{self.student_id}",
@@ -104,8 +104,8 @@ class MatchingUser(HttpUser):
 
     @task(1)
     def refresh_token(self):
-        """Occasional token refresh — rotates the ccc_refresh cookie."""
-        # The "ccc_refresh" httponly cookie is sent automatically; a 401 here
+        """Occasional token refresh — rotates the inroad_refresh cookie."""
+        # The "inroad_refresh" httponly cookie is sent automatically; a 401 here
         # just means no valid cookie yet, which is safe to ignore.
         resp = self.client.post("/auth/refresh")
         if resp.status_code == 200:

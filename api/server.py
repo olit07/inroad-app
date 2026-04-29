@@ -452,9 +452,9 @@ def magic_link():
     # Store as ISO string — works for both SQLite and Postgres
     expires_at_str = expires_at_dt.isoformat()
 
-    # Login page always forces dashboard destination
+    # Login page always forces opportunities destination
     if data.get("source") == "login":
-        next_url = "/dashboard"
+        next_url = "/opportunities"
     else:
         next_url = (data.get("next") or "").strip() or None
     # Referral code passed from signup page (?ref=CODE or body.ref)
@@ -536,8 +536,8 @@ def verify():
                     (ref_code,)
                 )
 
-    # next_param always wins (login page sets next=/dashboard).
-    # New users with no next_param → onboarding. Everyone else → dashboard.
+    # next_param always wins (login page sets next=/opportunities).
+    # New users with no next_param → onboarding. Everyone else → opportunities.
     has_profile = bool(student.get("name"))
     next_param = request.args.get("next", "").strip()
     if next_param:
@@ -545,7 +545,7 @@ def verify():
     elif is_new_user and not has_profile:
         destination = "/onboarding"
     else:
-        destination = "/dashboard"
+        destination = "/opportunities"
 
     # Issue JWT access token
     access_token = make_access_token(student_id)
@@ -1048,12 +1048,12 @@ def outlook_auth_callback():
 
     if error or not code:
         app.logger.error(f"[outlook/callback] Microsoft returned error: {error!r}, code present: {bool(code)}")
-        return redirect(f"{APP_BASE_URL}/dashboard?outlook=error")
+        return redirect(f"{APP_BASE_URL}/opportunities?outlook=error")
 
     student_id = _verify_outlook_state(state)
     if not student_id:
         app.logger.error(f"[outlook/callback] State verification failed for state: {state[:40]!r}")
-        return redirect(f"{APP_BASE_URL}/dashboard?outlook=error")
+        return redirect(f"{APP_BASE_URL}/opportunities?outlook=error")
 
     redirect_uri = f"{APP_BASE_URL}/api/auth/outlook/callback"
     app.logger.info(f"[outlook/callback] Exchanging code for tokens, redirect_uri={redirect_uri!r}, client_id={AZURE_CLIENT_ID!r}")
@@ -1068,7 +1068,7 @@ def outlook_auth_callback():
 
     if r.status_code != 200:
         app.logger.error(f"[outlook/callback] Token exchange failed {r.status_code}: {r.text[:400]}")
-        return redirect(f"{APP_BASE_URL}/dashboard?outlook=error")
+        return redirect(f"{APP_BASE_URL}/opportunities?outlook=error")
 
     data = r.json()
     expiry = int(datetime.now(timezone.utc).timestamp()) + int(data.get("expires_in", 3600))
@@ -1077,7 +1077,7 @@ def outlook_auth_callback():
         "outlook_refresh_token": data.get("refresh_token", ""),
         "outlook_token_expiry":  expiry,
     })
-    return redirect(f"{APP_BASE_URL}/dashboard?outlook=connected")
+    return redirect(f"{APP_BASE_URL}/opportunities?outlook=connected")
 
 
 @app.route("/api/auth/outlook/disconnect", methods=["POST"])
@@ -1089,6 +1089,39 @@ def outlook_auth_disconnect():
         "outlook_token_expiry":  None,
     })
     return jsonify({"status": "ok"})
+
+
+@app.route("/api/outlook/send-direct", methods=["POST"])
+@require_jwt
+def outlook_send_direct():
+    """Send an arbitrary email via the student's connected Outlook account."""
+    import requests as req
+    data    = request.get_json(silent=True) or {}
+    to_addr = (data.get("to") or "").strip()
+    subject = (data.get("subject") or "").strip()
+    body    = (data.get("body") or "").strip()
+    if not to_addr:
+        return jsonify({"error": "recipient required"}), 400
+    token = _get_valid_outlook_token(g.student_id)
+    if not token:
+        return jsonify({"error": "Outlook not connected"}), 403
+    payload = {
+        "message": {
+            "subject": subject,
+            "body": {"contentType": "Text", "content": body},
+            "toRecipients": [{"emailAddress": {"address": to_addr}}],
+        },
+        "saveToSentItems": True,
+    }
+    r = req.post(
+        _MS_GRAPH_SEND, json=payload,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        timeout=15,
+    )
+    if r.status_code not in (200, 202):
+        app.logger.error(f"[outlook/send-direct] {r.status_code}: {r.text[:300]}")
+        return jsonify({"error": "Failed to send"}), 502
+    return jsonify({"status": "sent"})
 
 
 @app.route("/api/matches/<int:match_id>/send", methods=["POST"])
@@ -1424,6 +1457,36 @@ def admin_credit_referral():
     return jsonify({"status": "ok", "student_id": student_id, "daily_cards_override": 5})
 
 
+@app.route("/api/admin/fix-leads-apr2026", methods=["POST"])
+@require_admin
+def admin_fix_leads_apr2026():
+    """One-time lead data cleanup: delete ghost lead, fix bad universities."""
+    from db.database import execute as _execute, fetchall as _fetchall
+    results = {}
+
+    # 1. Delete Vishal Singh Chauhan (Facebook employee erroneously linked to D.E. Shaw)
+    _execute("DELETE FROM leads WHERE name ILIKE 'Vishal Singh Chauhan'")
+    results["deleted_vishal"] = True
+
+    # 2. Clear Simon Zeng's false 'Unc' university
+    _execute("UPDATE leads SET university = '' WHERE name = 'Simon Zeng' AND lower(university) = 'unc'")
+    results["fixed_simon_zeng"] = True
+
+    # 3. Fix Malay Patel's university — lived in New York, went to Harvard
+    _execute("UPDATE leads SET university = 'Harvard' WHERE name = 'Malay Patel' AND lower(university) = 'york'")
+    results["fixed_malay_patel"] = True
+
+    # 4. Clear 'York' university for all US-based leads — false positive from 'New York' location
+    # %% escapes the literal % so psycopg2 doesn't treat it as a placeholder
+    _execute(
+        "UPDATE leads SET university = '' WHERE lower(university) = 'york' "
+        "AND (lower(location_country) LIKE '%%united states%%' OR lower(location_city) LIKE '%%new york%%')"
+    )
+    results["cleared_york_us"] = True
+
+    return jsonify({"status": "ok", **results})
+
+
 @app.route("/api/admin/build-leads", methods=["POST"])
 @require_admin
 def admin_build_leads():
@@ -1684,7 +1747,7 @@ def onboarding():
 
 @app.route("/dashboard")
 def dashboard():
-    return _send_html("inroad-dashboard.html")
+    return redirect("/opportunities", 301)
 
 
 @app.route("/settings")
@@ -1697,27 +1760,214 @@ def opportunities_page():
     return _send_html("inroad-opportunities.html")
 
 
+@app.route("/pipeline")
+def pipeline_page():
+    return _send_html("inroad-pipeline.html")
+
+
 @app.route("/api/opportunities")
 def api_opportunities():
     """Return all jobs with insider leads, formatted for the opportunities page."""
     from datetime import datetime, timezone
     from db.database import USE_POSTGRES
 
-    DIVISION_RULES = [
-        ("IB",  ["investment bank", "m&a", "mergers", "acquisitions", "capital markets",
-                  "corporate finance", "ecm", "dcm", "leveraged finance"]),
-        ("AM",  ["asset management", "asset manager", "portfolio", "fund manager",
-                 "wealth management", "private wealth", "investment management"]),
-        ("S&T", ["sales & trading", "sales and trading", "s&t", "structuring",
-                 "market making", "fixed income", "derivatives", "commodities"]),
-    ]
+    # Firm type lookup by company name (used as section headers)
+    FIRM_TYPE_MAP = {
+        # Bulge Bracket
+        'goldman sachs': 'Bulge Bracket', 'goldman': 'Bulge Bracket',
+        'jp morgan': 'Bulge Bracket', 'jpmorgan': 'Bulge Bracket', 'j.p. morgan': 'Bulge Bracket',
+        'morgan stanley': 'Bulge Bracket',
+        'barclays': 'Bulge Bracket',
+        'deutsche bank': 'Bulge Bracket',
+        'ubs': 'Bulge Bracket',
+        'citi': 'Bulge Bracket', 'citigroup': 'Bulge Bracket', 'citibank': 'Bulge Bracket',
+        'bank of america': 'Bulge Bracket', 'bofa': 'Bulge Bracket', 'merrill lynch': 'Bulge Bracket',
+        'credit suisse': 'Bulge Bracket',
+        'hsbc': 'Bulge Bracket',
+        'bnp paribas': 'Bulge Bracket',
+        'société générale': 'Bulge Bracket', 'societe generale': 'Bulge Bracket',
+        'nomura': 'Bulge Bracket',
+        'mizuho': 'Bulge Bracket',
+        'mufg': 'Bulge Bracket', 'mitsubishi': 'Bulge Bracket',
+        'wells fargo': 'Bulge Bracket',
+        # Elite Boutique
+        'lazard': 'Elite Boutique',
+        'rothschild': 'Elite Boutique',
+        'evercore': 'Elite Boutique',
+        'moelis': 'Elite Boutique',
+        'centerview': 'Elite Boutique',
+        'houlihan lokey': 'Elite Boutique',
+        'greenhill': 'Elite Boutique',
+        'pjt partners': 'Elite Boutique',
+        'perella weinberg': 'Elite Boutique',
+        'liontrust': 'Elite Boutique',
+        # Middle Market
+        'jefferies': 'Middle Market',
+        'baird': 'Middle Market',
+        'william blair': 'Middle Market',
+        'piper sandler': 'Middle Market',
+        'stifel': 'Middle Market',
+        'raymond james': 'Middle Market',
+        'dc advisory': 'Middle Market',
+        'harris williams': 'Middle Market',
+        'lincoln international': 'Middle Market',
+        'numis': 'Middle Market',
+        'investec': 'Middle Market',
+        'shore capital': 'Middle Market',
+        'liberum': 'Middle Market',
+        'canaccord': 'Middle Market',
+        # Buy-Side
+        'blackstone': 'Buy-Side',
+        'kkr': 'Buy-Side',
+        'carlyle': 'Buy-Side',
+        'apollo': 'Buy-Side',
+        'tpg': 'Buy-Side',
+        'warburg pincus': 'Buy-Side',
+        'cvc capital': 'Buy-Side', 'cvc': 'Buy-Side',
+        'permira': 'Buy-Side',
+        'apax': 'Buy-Side',
+        'cinven': 'Buy-Side',
+        'bain capital': 'Buy-Side',
+        'bc partners': 'Buy-Side',
+        'bridgepoint': 'Buy-Side',
+        'advent international': 'Buy-Side',
+        'man group': 'Buy-Side',
+        'bridgewater': 'Buy-Side',
+        'two sigma': 'Buy-Side',
+        'citadel': 'Buy-Side',
+        'de shaw': 'Buy-Side', 'd.e. shaw': 'Buy-Side',
+        'millennium': 'Buy-Side',
+        'renaissance': 'Buy-Side',
+        'aqr': 'Buy-Side',
+        # Asset Management
+        'blackrock': 'Asset Management',
+        'vanguard': 'Asset Management',
+        'fidelity': 'Asset Management',
+        'pimco': 'Asset Management',
+        'schroders': 'Asset Management',
+        'invesco': 'Asset Management',
+        'aviva investors': 'Asset Management',
+        'legal & general investment': 'Asset Management', 'lgim': 'Asset Management',
+        'm&g': 'Asset Management',
+        'aberdeen': 'Asset Management', 'abrdn': 'Asset Management',
+        'jupiter asset': 'Asset Management',
+        'baillie gifford': 'Asset Management',
+        'artemis investment': 'Asset Management',
+        'rathbones': 'Asset Management',
+        'pictet': 'Asset Management',
+        'state street': 'Asset Management',
+        'northern trust': 'Asset Management',
+        't. rowe price': 'Asset Management',
+        'columbia threadneedle': 'Asset Management',
+        # Big 4
+        'deloitte': 'Big 4',
+        'pwc': 'Big 4', 'pricewaterhousecoopers': 'Big 4', 'price waterhouse': 'Big 4',
+        'kpmg': 'Big 4',
+        'ernst & young': 'Big 4', 'ernst and young': 'Big 4',
+        # Consulting
+        'mckinsey': 'Consulting',
+        'bcg': 'Consulting', 'boston consulting': 'Consulting',
+        'bain & company': 'Consulting', 'bain and company': 'Consulting',
+        'oliver wyman': 'Consulting',
+        'roland berger': 'Consulting',
+        'accenture': 'Consulting',
+        'capgemini': 'Consulting',
+        'strategy&': 'Consulting',
+        'pa consulting': 'Consulting',
+        # Trading and Quant
+        'jane street': 'Trading and Quant',
+        'optiver': 'Trading and Quant',
+        'virtu': 'Trading and Quant',
+        'flow traders': 'Trading and Quant',
+        'imc trading': 'Trading and Quant',
+        'susquehanna': 'Trading and Quant', 'sig ': 'Trading and Quant',
+        'tower research': 'Trading and Quant',
+        'hudson river trading': 'Trading and Quant',
+        'drw': 'Trading and Quant',
+        'jump trading': 'Trading and Quant',
+        'akuna capital': 'Trading and Quant',
+        # Real Estate
+        'cbre': 'Real Estate',
+        'jll': 'Real Estate', 'jones lang lasalle': 'Real Estate',
+        'savills': 'Real Estate',
+        'colliers': 'Real Estate',
+        'knight frank': 'Real Estate',
+        'cushman': 'Real Estate',
+        # Pensions and Insurance
+        'aviva': 'Pensions and Insurance',
+        'legal & general': 'Pensions and Insurance',
+        'standard life': 'Pensions and Insurance',
+        'prudential': 'Pensions and Insurance',
+        'zurich': 'Pensions and Insurance',
+        'axa': 'Pensions and Insurance',
+        'metlife': 'Pensions and Insurance',
+        'aegon': 'Pensions and Insurance',
+        'lloyds of london': 'Pensions and Insurance',
+        'willis towers watson': 'Pensions and Insurance', 'wtw': 'Pensions and Insurance',
+        'marsh': 'Pensions and Insurance',
+        'aon': 'Pensions and Insurance',
+        # Accounting and Audit
+        'grant thornton': 'Accounting and Audit',
+        'bdo': 'Accounting and Audit',
+        'mazars': 'Accounting and Audit', 'forvis mazars': 'Accounting and Audit',
+        'rsm': 'Accounting and Audit',
+        'crowe': 'Accounting and Audit',
+        'baker tilly': 'Accounting and Audit',
+        'haysmacintyre': 'Accounting and Audit',
+    }
+
+    def infer_firm_type(company: str) -> str:
+        if not company:
+            return "Miscellaneous"
+        c = company.lower().strip()
+        for key, ftype in FIRM_TYPE_MAP.items():
+            if key in c:
+                return ftype
+        return "Miscellaneous"
+
+    _TRACKR_TYPE_LABEL = {
+        "summer-internships":    "Summer Internship",
+        "spring-weeks":          "Spring Week",
+        "off-cycle-internships": "Off-Cycle Internship",
+        "industrial-placements": "Industrial Placement",
+        "graduate-programmes":   "Graduate Programme",
+        "training-contracts":    "Graduate Programme",
+        "pre-uni":               "Pre-Uni",
+        "events":                "Events",
+    }
+
+    def infer_programme_type(title: str, raw_json: str = "") -> str:
+        import json as _json
+        # Use the authoritative trackr_type stored in raw JSON when available
+        if raw_json:
+            try:
+                raw_data = _json.loads(raw_json)
+                tt = raw_data.get("trackr_type", "")
+                if tt and tt in _TRACKR_TYPE_LABEL:
+                    return _TRACKR_TYPE_LABEL[tt]
+            except Exception:
+                pass
+        # Title-based fallback for legacy rows without trackr_type
+        t = title.lower()
+        if any(k in t for k in ['spring week', 'spring insight', 'spring into', 'spring programme', 'spring internship']):
+            return 'Spring Week'
+        if any(k in t for k in ['off-cycle', 'off cycle', 'offcycle']):
+            return 'Off-Cycle Internship'
+        if any(k in t for k in ['industrial placement', 'placement year', 'year in industry', 'sandwich', 'year placement']):
+            return 'Industrial Placement'
+        if any(k in t for k in ['pre-uni', 'pre uni', 'school leaver', 'year 12', 'year 13', 'sixth form']):
+            return 'Pre-Uni'
+        if any(k in t for k in ['event', 'open day', 'insight day', 'discovery', 'information session', 'networking']):
+            return 'Events'
+        if any(k in t for k in ['graduate programme', 'grad scheme', 'graduate scheme', 'grad programme',
+                                  'analyst programme', 'graduate analyst', 'graduate rotational']):
+            return 'Graduate Programme'
+        if 'graduate' in t or ('grad ' in t and 'internship' not in t):
+            return 'Graduate Programme'
+        return 'Summer Internship'  # default for trackr internships
 
     def infer_division(title: str, industry: str) -> str:
-        text = (title + " " + (industry or "")).lower()
-        for tag, keywords in DIVISION_RULES:
-            if any(k in text for k in keywords):
-                return tag
-        return ""
+        return ""  # kept for compat; firm type now drives sections
 
     def make_initials(name: str) -> str:
         parts = (name or "").strip().split()
@@ -1732,9 +1982,10 @@ def api_opportunities():
         order_clause = "ORDER BY CASE WHEN opening_date IS NULL OR opening_date = '' THEN 1 ELSE 0 END, opening_date DESC, created_at DESC"
 
     rows = fetchall(
-        "SELECT id, title, company, url, opening_date, closing_date, industry, created_at "
+        "SELECT id, title, company, url, opening_date, closing_date, industry, created_at, raw "
         "FROM jobs WHERE company IS NOT NULL AND company != '' "
-        f"AND title IS NOT NULL AND title != '' {order_clause} LIMIT 2000"
+        f"AND title IS NOT NULL AND title != '' AND source = 'trackr' "
+        f"AND lower(company) != 'trackr' {order_clause} LIMIT 2000"
     )
 
     if not rows:
@@ -1755,7 +2006,8 @@ def api_opportunities():
             f"SELECT * FROM leads "
             f"WHERE lower(company) IN ({placeholders}) "
             f"AND (stale_after IS NULL OR stale_after > {now_expr}) "
-            f"ORDER BY is_alumni DESC, tenure_months DESC",
+            f"ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END, "
+            f"is_alumni DESC, tenure_months DESC",
             tuple(companies),
         )
         for l in all_leads:
@@ -1767,7 +2019,7 @@ def api_opportunities():
         company = r.get("company") or ""
         title   = r.get("title") or ""
 
-        raw_leads = leads_by_company.get(company.lower(), [])[:5]
+        raw_leads = leads_by_company.get(company.lower(), [])
         leads = []
         for l in raw_leads:
             name   = l.get("name") or ""
@@ -1786,18 +2038,20 @@ def api_opportunities():
                 "expected_email": l.get("expected_email") or l.get("job_expected_email") or "",
                 "badges":         badges,
                 "university":     l.get("university") or "",
+                "lead_type":      l.get("lead_type") or "relevant",
                 "verified":       False,
             })
 
         jobs.append({
-            "id":           r.get("id"),
-            "company":      company,
-            "programme":    title,
-            "division":     infer_division(title, r.get("industry") or ""),
-            "opening_date": r.get("opening_date") or "",
-            "closing_date": r.get("closing_date") or "",
-            "apply_url":    r.get("url") or "",
-            "leads":        leads,
+            "id":             r.get("id"),
+            "company":        company,
+            "programme":      title,
+            "division":       infer_firm_type(company),
+            "programme_type": infer_programme_type(title, r.get("raw") or ""),
+            "opening_date":   r.get("opening_date") or "",
+            "closing_date":   r.get("closing_date") or "",
+            "apply_url":      r.get("url") or "",
+            "leads":          leads,
         })
 
     return jsonify({

@@ -1,5 +1,5 @@
 """
-CCC Backend — Greenhouse ATS Scraper
+inroad Backend — Greenhouse ATS Scraper
 
 Greenhouse exposes a free public API for any company using their ATS:
   GET https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs?content=true
@@ -28,8 +28,9 @@ ENTRY_LEVEL_KEYWORDS = {
 }
 
 def _is_entry_level(title: str) -> bool:
+    from scrapers.base import is_too_senior
     t = title.lower()
-    return any(k in t for k in ENTRY_LEVEL_KEYWORDS)
+    return any(k in t for k in ENTRY_LEVEL_KEYWORDS) and not is_too_senior(title)
 
 # Curated list of (company_name, board_token) — all known to hire UK/US grads
 DEFAULT_TARGETS = [
@@ -68,6 +69,13 @@ DEFAULT_TARGETS = [
     ("Skyscanner",           "skyscanner"),
     # ── VC ────────────────────────────────────────────────────────────────────
     ("Andreessen Horowitz",  "a16z"),
+    # ── Consulting / Strategy ─────────────────────────────────────────────────
+    ("AlixPartners",         "alixpartners"),   # Turnaround consulting, global
+    # ── Healthcare / Biotech ─────────────────────────────────────────────────
+    ("10x Genomics",         "10xgenomics"),    # Genomics instrumentation, US/global
+    ("Ginkgo Bioworks",      "ginkgobioworks"), # Synthetic biology, Boston/global
+    # ── Marketing ─────────────────────────────────────────────────────────────
+    ("HubSpot",              "hubspotjobs"),    # Marketing/CRM SaaS, global
     # ── Media ─────────────────────────────────────────────────────────────────
     ("Vox Media",            "voxmedia"),
     ("BuzzFeed",             "buzzfeed"),

@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<script src="/static/auth.js"></script>
 <style>
   :root {
     --bg:         #FFFFFF;
@@ -196,9 +197,11 @@
   /* ── SECTION HEADERS ── */
   .section-row {
     display: flex; align-items: center; gap: 10px;
-    margin-top: 20px; margin-bottom: 5px;
+    margin-top: 20px; margin-bottom: 10px;
   }
-  .new-section .section-row { margin-top: 0; margin-bottom: 8px; }
+  .new-section .section-row { margin-top: 0; margin-bottom: 10px; }
+  .new-section .section-row.collapsible { margin-top: 16px; margin-bottom: 4px; }
+  .new-section .section-row.collapsible.collapsed { margin-top: 8px; }
 
   .section-row.collapsible { cursor: pointer; user-select: none; }
   .section-row.collapsible:hover .section-pill.all-pill { border-color: var(--border-md); color: var(--text-mid); }
@@ -396,7 +399,7 @@
     background: var(--bg); outline: none; resize: none;
     line-height: 1.65;
     transition: border-color 0.15s, box-shadow 0.15s;
-    flex: 1; min-height: 260px;
+    flex: 1; min-height: 80px;
   }
   .draft-textarea:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(31,69,48,0.07); }
 
@@ -497,7 +500,11 @@
   .send-counter-label { font-size: 0.68rem; color: var(--subtle); }
 
   /* ── DRAFT CONTENT WRAPPER + LOCKOUT ── */
-  .draft-lockable { position: relative; }
+  #draft-panel { overflow: hidden; }
+  #draft-body { display: flex; flex-direction: column; overflow: hidden; min-height: 0; padding-bottom: 12px; }
+  .draft-panel { flex: 1; min-height: 0; }
+  .draft-lockable { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .draft-content-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .draft-content-wrap.is-locked {
     filter: blur(2.5px); pointer-events: none; user-select: none;
   }
@@ -616,9 +623,7 @@
   </a>
   <ul class="nav-center" id="nav-center">
     <li><a href="/opportunities" class="active">Opportunities</a></li>
-    <li><a href="/#how">How it works</a></li>
-    <li><a href="/#features">Features</a></li>
-    <li><a href="/#stories">Stories</a></li>
+    <li><a href="/login">Pipeline</a></li>
   </ul>
   <div class="nav-right" id="nav-right">
     <a href="/login" class="btn-login">Login / Sign up</a>
@@ -713,7 +718,10 @@
 
 <script>
 (function () {
-  const DAILY_LIMIT = 3;
+  function getDailyLimit() {
+    return (currentUser && currentUser.daily_cards_override)
+      ? parseInt(currentUser.daily_cards_override, 10) : 3;
+  }
 
   let allJobs = [];
   let activeFilters  = new Set();
@@ -721,7 +729,12 @@
   let leadsQuery     = '';
   let selectedJobId  = null;
   let selectedLeadId = null;
-  const collapsedSections = new Set();
+  let userStatus     = null; // 'grad-program' | 'full-time' | null
+  let currentUser    = null; // populated from /api/me once auth succeeds
+  const collapsedSections = new Set([
+    'Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement',
+    'Graduate Programme', 'Pre-Uni', 'Events', 'other',
+  ]);
 
   // Outlook auth state — resolved once on first draft open
   let outlookState = null;
@@ -739,6 +752,17 @@
     }, durationMs);
   }
 
+  // ── Seed token from URL param (email-link sign-in in fresh browser contexts) ──
+  (function handleTokenParam() {
+    const p = new URLSearchParams(location.search);
+    const t = p.get('_t');
+    if (t) {
+      setAccessToken(t);
+      p.delete('_t');
+      history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+    }
+  })();
+
   // ── Handle ?outlook= query param ──
   (function handleOutlookParam() {
     const p = new URLSearchParams(location.search);
@@ -749,36 +773,79 @@
   })();
 
   // ── Auth nav ──
-  (function updateNav() {
-    const token = sessionStorage.getItem('inroad_token') || localStorage.getItem('inroad_access_token') || localStorage.getItem('access_token') || '';
-    if (!token) return;
-    fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!d) return;
-        const navEl    = document.querySelector('nav');
-        const navRight = document.getElementById('nav-right');
-        if (!navRight) return;
-        const name     = d.name || '';
-        const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
-        if (navEl) navEl.classList.add('nav-logged-in');
-        const navCenter = document.getElementById('nav-center');
-        if (navCenter) navCenter.innerHTML = `
-          <li><a href="/opportunities" class="active">Opportunities</a></li>
-          <li><a href="/pipeline">Pipeline</a></li>`;
-        if (d.referral_code) {
-          const inp = document.getElementById('refer-link-input');
-          if (inp) inp.value = `https://www.the-inroad.com/signup?ref=${d.referral_code}`;
-        }
-        navRight.innerHTML = `
-          <div class="nav-user">
-            ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
-            <a href="/settings" class="btn-settings">Settings</a>
-            <div class="nav-initials">${esc(initials || '?')}</div>
-          </div>`;
-      })
-      .catch(() => {});
+  (async function updateNav() {
+    const navEl    = document.querySelector('nav');
+    const navRight = document.getElementById('nav-right');
+
+    let token = getAccessToken();
+    if (!token) {
+      const ok = await _tryRefresh();
+      if (!ok) return;
+      token = getAccessToken();
+    }
+
+    // Go green immediately; only revert if auth actually fails
+    if (navEl) navEl.classList.add('nav-logged-in');
+    if (navRight) navRight.style.visibility = 'hidden';
+
+    let d = null;
+    try {
+      let resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      if (resp.status === 401) {
+        const ok = await _tryRefresh();
+        if (!ok) { if (navEl) navEl.classList.remove('nav-logged-in'); if (navRight) navRight.style.visibility = ''; return; }
+        token = getAccessToken();
+        resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      }
+      if (resp.ok) d = await resp.json();
+    } catch { /* network error */ }
+
+    if (!d) {
+      if (navEl) navEl.classList.remove('nav-logged-in');
+      if (navRight) navRight.style.visibility = '';
+      return;
+    }
+
+    // Auth confirmed — update DOM; errors here never revert the green nav
+    currentUser = d;
+    if (navRight) navRight.style.visibility = '';
+    const name     = d.name || '';
+    const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+    const navCenter = document.getElementById('nav-center');
+    if (navCenter) navCenter.innerHTML = `
+      <li><a href="/opportunities" class="active">Opportunities</a></li>
+      <li><a href="/pipeline">Pipeline</a></li>`;
+    if (d.referral_code) {
+      const inp = document.getElementById('refer-link-input');
+      if (inp) inp.value = `https://www.the-inroad.com/signup?ref=${d.referral_code}`;
+    }
+    if (navRight) navRight.innerHTML = `
+      <div class="nav-user">
+        ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
+        <a href="/settings" class="btn-settings">Settings</a>
+        <div class="nav-initials">${esc(initials || '?')}</div>
+      </div>`;
+    try {
+      if (d.status && userStatus !== d.status) { userStatus = d.status; applyStatusCollapse(); }
+    } catch { /* non-fatal */ }
+    // Refresh counter now that getDailyLimit() has the correct value
+    updateSendCounter(getSendsToday());
   })();
+
+  function applyStatusCollapse() {
+    // Sections to auto-collapse for each career stage
+    const INTERNSHIP_ONLY = ['Graduate Programme'];
+    const FULLTIME_ONLY   = ['Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement', 'Events'];
+    const toCollapse = userStatus === 'full-time' ? FULLTIME_ONLY
+                     : userStatus === 'grad-program' ? INTERNSHIP_ONLY
+                     : [];
+    // Apply to both regular and new-prefixed keys, but only if not already explicitly set
+    toCollapse.forEach(pt => {
+      collapsedSections.add(pt);
+      collapsedSections.add('new-' + pt);
+    });
+    renderListings();
+  }
 
   const listingsEl      = document.getElementById('listings');
   const listingCount    = document.getElementById('listing-count');
@@ -802,7 +869,7 @@
   }
 
   function getSendsToday() { return getState().count || 0; }
-  function isLocked() { return getSendsToday() >= DAILY_LIMIT; }
+  function isLocked() { return getSendsToday() >= getDailyLimit(); }
 
   function hasRevealed(leadId) {
     return (getState().revealed || []).includes(String(leadId));
@@ -813,24 +880,26 @@
     const revealed = s.revealed || [];
     if (revealed.includes(String(leadId))) return s.count || 0; // already revealed today
     revealed.push(String(leadId));
-    const count = Math.min((s.count || 0) + 1, DAILY_LIMIT);
+    const count = Math.min((s.count || 0) + 1, getDailyLimit());
     localStorage.setItem(SENDS_KEY, JSON.stringify({ date: todayKey(), count, revealed }));
     return count;
   }
 
   function progressHtml(count) {
-    return [0, 1, 2].map(i =>
+    const lim = getDailyLimit();
+    return Array.from({ length: lim }, (_, i) =>
       `<span class="send-progress-seg${i < count ? ' filled' : ''}"></span>`
     ).join('');
   }
 
   function updateSendCounter(count) {
+    const lim = getDailyLimit();
     document.querySelectorAll('.send-progress-seg').forEach((s, i) =>
       s.classList.toggle('filled', i < count));
     const lbl = document.querySelector('.send-counter-label');
-    if (lbl) lbl.textContent = count >= DAILY_LIMIT
-      ? `${count} / ${DAILY_LIMIT} done today ✓`
-      : `${count} / ${DAILY_LIMIT} email reveals today`;
+    if (lbl) lbl.textContent = count >= lim
+      ? `${count} / ${lim} done today ✓`
+      : `${count} / ${lim} email reveals today`;
   }
 
   // ── Filter buttons ──
@@ -920,15 +989,32 @@
 
     const colHdr = `<div class="col-header"><span>Company / Programme</span><span>Opened</span><span></span></div>`;
 
+    const newByProg = {}, newNoProg = [];
+    for (const j of newJobs) {
+      const pt = j.programme_type;
+      if (pt && PROG_ORDER.includes(pt)) (newByProg[pt] = newByProg[pt] || []).push(j);
+      else newNoProg.push(j);
+    }
+    const newSubsections = [];
+    for (const pt of PROG_ORDER) {
+      const g = newByProg[pt];
+      if (!g || !g.length) continue;
+      newSubsections.push(collapsibleSection('new-' + pt, pt, g));
+    }
+    if (newNoProg.length) newSubsections.push(collapsibleSection('new-other', 'Other', newNoProg));
+
+    const newSubKeys = ['new-Summer Internship','new-Spring Week','new-Off-Cycle Internship','new-Industrial Placement','new-Graduate Programme','new-Pre-Uni','new-Events','new-other'];
+    const allNewCollapsed = newSubKeys.every(k => !document.querySelector(`[data-key="${k}"]`) || collapsedSections.has(k));
     const newSection = `
       <div class="new-section">
-        <div class="section-row">
+        <div class="section-row new-collapse-toggle" style="cursor:pointer;user-select:none">
           <span class="section-pill new-pill"><span class="pill-dot"></span>New — last 72h<span class="pill-count">${newJobs.length}</span></span>
           <span class="section-line"></span>
+          <span class="section-chevron new-collapse-chevron" style="${allNewCollapsed ? 'transform:rotate(-90deg)' : ''}">▾</span>
         </div>
         ${newJobs.length === 0
           ? '<p class="card-empty">No new listings in the last 72 hours.</p>'
-          : colHdr + '<div class="card-list">' + newJobs.map(cardHtml).join('') + '</div>'}
+          : newSubsections.join('')}
       </div>`;
 
     const divParts = [];
@@ -961,6 +1047,24 @@
           body.classList.toggle('collapsed', collapsedSections.has(key));
       });
     });
+
+    // Collapse-all toggle for the "New — last 72h" header
+    const newToggle = listingsEl.querySelector('.new-collapse-toggle');
+    if (newToggle) {
+      newToggle.addEventListener('click', () => {
+        const newRows = listingsEl.querySelectorAll('.new-section .section-row.collapsible');
+        const anyOpen = [...newRows].some(r => !collapsedSections.has(r.dataset.key));
+        newRows.forEach(r => {
+          const k = r.dataset.key;
+          if (anyOpen) collapsedSections.add(k); else collapsedSections.delete(k);
+          r.classList.toggle('collapsed', anyOpen);
+          const body = r.nextElementSibling;
+          if (body && body.classList.contains('section-body')) body.classList.toggle('collapsed', anyOpen);
+        });
+        const chevron = newToggle.querySelector('.new-collapse-chevron');
+        if (chevron) chevron.style.transform = anyOpen ? 'rotate(-90deg)' : '';
+      });
+    }
 
     if (selectedJobId) {
       const el = listingsEl.querySelector(`.job-card[data-id="${selectedJobId}"]`);
@@ -1089,15 +1193,24 @@
     leadsBody.querySelectorAll('.lead-card').forEach(c =>
       c.classList.toggle('selected', c.dataset.leadId === String(lead.id)));
 
-    const firstName = (lead.name || '').split(' ')[0];
-    const subject   = `${job.programme} at ${job.company}`;
-    const to        = lead.expected_email || '';
-    const msgBody   = `Hi ${firstName},\n\nI hope you don't mind the message. I came across your profile while researching opportunities at ${job.company} and was impressed by your background in ${lead.title || 'the industry'}.\n\nI'm currently applying for the ${job.programme} role and would love any insight you could share about the team or application process — even a 15-minute call would be incredibly helpful.\n\nThanks so much,\n[Your name]`;
+    const firstName   = (lead.name || '').split(' ')[0];
+    const subject     = `${job.programme} at ${job.company}`;
+    const to          = lead.expected_email || '';
+    const userName    = currentUser?.name    || '[Your name]';
+    const userUni     = currentUser?.university || '';
+    const userAge     = currentUser?.age     ? String(currentUser.age) : '[your age]';
+    const roleIndustry = (job.division && job.division !== 'Miscellaneous') ? job.division : 'finance';
+
+    const msgBodyA = `Hi ${firstName},\n\nI hope you don't mind the message. I came across your profile while researching opportunities at ${job.company} and was impressed by your background in ${lead.title || 'the industry'}.\n\nI'm currently applying for the ${job.programme} role and would love any insight you could share about the team or application process, even a 15-minute call would be incredibly helpful.\n\nThanks so much,\n${userName}`;
+
+    const msgBodyB = `Dear ${firstName},\n\nI know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.\n\nI'm a ${userAge} year old student${userUni ? ` at ${userUni}` : ''} and I'm looking to break in to ${roleIndustry}.\n\nWhat do you think are the most critical skills or qualities that an aspiring researcher should possess, given the current market dynamics? Specifically, what attributes do you look for in your team?\n\nI totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.\n\nAll the best,\n${userName}`;
+
+    const msgBody = ((lead.id || 0) % 2 === 0) ? msgBodyA : msgBodyB;
 
     draftPanelTitle.textContent = `Draft to ${firstName}`;
 
     const sends    = getSendsToday();
-    const locked   = sends >= DAILY_LIMIT;
+    const locked   = sends >= getDailyLimit();
     const revealed = hasRevealed(lead.id);
     const emailVisible = revealed || !to;
 
@@ -1105,7 +1218,7 @@
     const counterHtml = `
       <div class="send-counter">
         <div class="send-progress-bar">${progressHtml(sends)}</div>
-        <span class="send-counter-label">${sends} / ${DAILY_LIMIT} email reveals today</span>
+        <span class="send-counter-label">${sends} / ${getDailyLimit()} email reveals today</span>
       </div>`;
 
     const tooltipHtml = `
@@ -1182,6 +1295,11 @@
       selectLead(lead, job);
     });
 
+    // Open in email app — increment counter
+    document.getElementById('mailto-btn')?.addEventListener('click', () => {
+      if (!draftLocked) incrementReveal(lead.id);
+    });
+
     // Copy to clipboard — no counter increment (reveal is the gate)
     document.getElementById('copy-btn')?.addEventListener('click', () => {
       if (draftLocked) return;
@@ -1221,6 +1339,7 @@
             if (r.ok) {
               btn.textContent = 'Sent ✓';
               btn.style.background = '#1F4530';
+              incrementReveal(lead.id);
             } else {
               const d = await r.json().catch(() => ({}));
               btn.disabled = false;

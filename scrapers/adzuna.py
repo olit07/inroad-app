@@ -1,5 +1,5 @@
 """
-CCC Backend — Adzuna API Scraper
+inroad Backend — Adzuna API Scraper
 
 Free developer API (register at https://developer.adzuna.com):
   GET https://api.adzuna.com/v1/api/jobs/{country}/search/{page}?app_id=...&app_key=...
@@ -32,8 +32,6 @@ SEARCH_QUERIES = [
     ("graduate consultant",        "London",        "gb", ["Consulting"]),
     ("trainee solicitor",          "London",        "gb", ["Law"]),
     ("graduate marketing",         "London",        "gb", ["Marketing"]),
-    ("graduate ux designer",       "London",        "gb", ["Design & UX"]),
-    ("graduate venture capital",   "London",        "gb", ["Venture Capital"]),
     ("new grad software engineer", "New York",      "us", ["Software Engineering"]),
     ("entry level finance analyst", "New York",     "us", ["Finance"]),
     ("associate consultant",       "New York",      "us", ["Consulting"]),

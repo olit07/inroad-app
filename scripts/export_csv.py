@@ -110,7 +110,7 @@ def export(name: str, cfg: dict) -> int:
 if __name__ == "__main__":
     from db.database import USE_POSTGRES
     if not USE_POSTGRES:
-        print("WARNING: DATABASE_URL not set — reading from local SQLite (ccc.db)")
+        print("WARNING: DATABASE_URL not set — reading from local SQLite (inroad.db)")
     else:
         print("Connected to Postgres")
 

@@ -1,5 +1,5 @@
 """
-CCC Backend — Scheduler
+inroad Backend — Scheduler
 
 Runs the full ingestion pipeline daily at 06:00 UTC.
 Also runs closing-date expiry check.
@@ -68,7 +68,7 @@ def _seconds_until_next_run() -> float:
 
 def run_daemon():
     """Run the scheduler forever — sleep until next run time, then execute."""
-    logger.info("CCC Scheduler starting — will run daily at %02d:%02d UTC", RUN_HOUR, RUN_MINUTE)
+    logger.info("inroad Scheduler starting — will run daily at %02d:%02d UTC", RUN_HOUR, RUN_MINUTE)
 
     # Graceful shutdown on SIGTERM/SIGINT
     stop = {"flag": False}

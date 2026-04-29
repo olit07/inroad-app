@@ -32,8 +32,9 @@ ENTRY_LEVEL_KEYWORDS = {
 }
 
 def _is_entry_level(title: str) -> bool:
+    from scrapers.base import is_too_senior
     t = title.lower()
-    return any(k in t for k in ENTRY_LEVEL_KEYWORDS)
+    return any(k in t for k in ENTRY_LEVEL_KEYWORDS) and not is_too_senior(title)
 
 
 # Curated list of (company_name, ashby_slug) — all verified live boards
@@ -55,6 +56,10 @@ DEFAULT_TARGETS = [
     ("Notion",          "notion"),          # Productivity SaaS, US/global
     # ── Operations / UK ───────────────────────────────────────────────────────
     ("Deliveroo",       "deliveroo"),       # UK food delivery / operations
+    # ── UK Fintech / Tech ─────────────────────────────────────────────────────
+    ("Tractable",       "tractable"),       # AI for insurance, London
+    ("Faculty AI",      "faculty"),         # Applied AI consultancy, London
+    ("Multiverse",      "multiverse"),      # Apprenticeships/EdTech, London
 ]
 
 

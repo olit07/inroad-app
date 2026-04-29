@@ -1,5 +1,5 @@
 """
-CCC — Email Notification Layer (SMTP)
+inroad — Email Notification Layer (SMTP)
 
 Sends two types of emails:
 1. Magic link / verification email (on signup)
@@ -177,9 +177,9 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
     if not email:
         return False
 
-    # Generate a magic token that lands straight on the dashboard
+    # Generate a magic token that lands straight on the opportunities page
     token            = create_magic_token(email, purpose="login", db_path=db_path)
-    dash_link        = f"{APP_BASE_URL}/verify?token={token}&next=/dashboard"
+    dash_link        = f"{APP_BASE_URL}/verify?token={token}&next=/opportunities"
     unsub_token      = create_unsubscribe_token(email, db_path=db_path)
     unsub_link       = f"{APP_BASE_URL}/unsubscribe?token={unsub_token}"
     settings_link    = f"{APP_BASE_URL}/settings"
@@ -283,13 +283,22 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
 
     _cards_html = "".join(_card_html(i) for i in range(n_cards))
 
+    from datetime import datetime as _dt
+    _now       = _dt.utcnow()
+    _day_name  = _now.strftime("%a").upper()
+    _month_day = _now.strftime("%b %-d").upper()
+    _date_label = f"{_day_name} · {_month_day}"
+
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
-<body style="margin:0;padding:0;background:#F5F5F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#F5F5F2;font-family:'Lato',Helvetica,Arial,sans-serif;">
 <div style="background:#F5F5F2;padding:40px 20px;">
 <div style="background:#FFFFFF;border-radius:16px;max-width:580px;margin:0 auto;overflow:hidden;border:1px solid #E2DED8;">
 
@@ -297,21 +306,24 @@ def send_daily_matches_ready(student: dict, n_cards: int = 3, db_path=DB_PATH) -
   <div style="background:#1F4530;padding:32px 40px;">
     <div style="display:inline-flex;align-items:center;gap:12px;">
       <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="88" height="88" rx="22" fill="rgba(255,255,255,0.18)"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
-      <span style="font-family:Georgia,serif;font-weight:700;font-size:1.35rem;color:#FFFFFF;letter-spacing:-0.02em;">inroad</span>
+      <span style="font-family:'Lora',Georgia,serif;font-weight:700;font-size:1.35rem;color:#FFFFFF;letter-spacing:-0.02em;">inroad</span>
     </div>
   </div>
 
   <!-- Body -->
   <div style="padding:36px 40px 28px;">
-    <h2 style="margin:0 0 14px;font-size:1.15rem;font-weight:700;color:#1A1714;line-height:1.3;">
-      Your daily matches are ready, {first_name}.
+    <p style="margin:0 0 10px;font-family:'Lato',Helvetica,Arial,sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.1em;color:#ADA79F;text-transform:uppercase;">
+      {_date_label}
+    </p>
+    <h2 style="margin:0 0 6px;font-family:'Lora',Georgia,serif;font-size:1.45rem;font-weight:700;color:#1A1714;line-height:1.25;letter-spacing:-0.01em;">
+      Good morning, {first_name}.
     </h2>
-    <p style="margin:0 0 24px;color:#7A7068;line-height:1.65;font-size:0.92rem;">
-      We've found {n_cards} people connected to live openings that fit your profile, draft emails are written and waiting to be sent.
+    <p style="margin:0 0 28px;font-family:'Lato',Helvetica,Arial,sans-serif;color:#ADA79F;line-height:1.6;font-size:1rem;font-weight:300;">
+      Here are your {n_cards} <em>networking intros</em> for today.
     </p>
 
     <!-- CTA button -->
-    <a href="{dash_link}" style="display:inline-block;background:#1F4530;color:#FFFFFF;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.88rem;margin-bottom:28px;">
+    <a href="{dash_link}" style="display:inline-block;background:#1F4530;color:#FFFFFF;padding:13px 28px;border-radius:10px;text-decoration:none;font-family:'Lato',Helvetica,Arial,sans-serif;font-weight:700;font-size:0.88rem;margin-bottom:28px;">
       See today's matches →
     </a>
 

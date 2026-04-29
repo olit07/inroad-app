@@ -148,16 +148,22 @@
       return;
     }
 
-    // Store the access token in memory AND in sessionStorage so the next page
-    // (onboarding or dashboard) can restore it without an extra /auth/refresh round-trip.
+    // Store in sessionStorage for same-tab navigations, AND embed in URL as
+    // a fallback for email clients that open links in a fresh browser context
+    // (new tab / webview) where sessionStorage is isolated.
     if (data.access_token) {
       setAccessToken(data.access_token);
       sessionStorage.setItem('inroad_token', data.access_token);
     }
 
-    // Redirect to the destination returned by the server
-    const destination = data.redirect || '/dashboard';
-    window.location.href = destination;
+    // Redirect to the destination returned by the server, carrying the token
+    // in ?_t= so the destination page can seed sessionStorage even in a new context.
+    const destination = data.redirect || '/opportunities';
+    const sep = destination.includes('?') ? '&' : '?';
+    const finalUrl = data.access_token
+      ? `${destination}${sep}_t=${encodeURIComponent(data.access_token)}`
+      : destination;
+    window.location.href = finalUrl;
   })();
 
   function showError(title, body) {

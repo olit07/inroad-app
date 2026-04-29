@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>inroad — LinkedIn Banners & Icons</title>
+<style id="design-tokens">
+/* ══════════════════════════════════════════════════════
+   inroad — Design Tokens
+   Colour · Type · Spacing · Radii · Shadow · Motion
+   ══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+:root {
+  /* ── Brand greens ── */
+  --green:        #1F4530;  /* Forest — primary, CTAs */
+  --green-deep:   #122B1E;  /* Deep — hover on green */
+  --green-mid:    #A8C9B0;  /* Sage — borders, chips */
+  --green-mint:   #A8D8B8;  /* Mint — on-dark accent */
+  --green-lite:   #EBF4EE;  /* Foam — tinted surfaces */
+
+  /* ── Neutrals (warm) ── */
+  --bg:           #FFFFFF;
+  --white:        #FDFDFC;
+  --surface:      #F5F5F2;  /* Linen — page bg */
+  --surface-2:    #EEECEA;
+  --border:       #E2DED8;  /* Stone */
+  --border-md:    #C8C3BB;
+  --text:         #111110;  /* Ink — body text */
+  --text-mid:     #3A3733;
+  --muted:        #6E6860;  /* Smoke — secondary */
+  --subtle:       #A8A09A;  /* Placeholders */
+
+  /* ── Semantic ── */
+  --sent-bg:      #F0F7F2;
+  --sent-text:    #2D5A3D;
+  --error:        #B91C1C;
+  --error-bg:     #FEF2F2;
+  --error-border: #FECACA;
+
+  /* ── Typography ── */
+  --font-display: 'Lora', Georgia, serif;
+  --font-body:    'Lato', system-ui, -apple-system, sans-serif;
+
+  /* Base type scale (px) */
+  --fs-display:  64px;  /* hero */
+  --fs-h1:       40px;
+  --fs-h2:       26px;
+  --fs-h3:       16px;
+  --fs-body:     15px;
+  --fs-small:    12px;
+  --fs-eyebrow:  10px;
+
+  /* ── Radii ── */
+  --r-sm:    8px;
+  --r-btn:  10px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-icon: 22px;
+  --r-xl:   24px;
+
+  /* ── Spacing (4-base) ── */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-7: 28px; --s-8: 32px;
+  --s-10:40px; --s-12:48px; --s-16:64px; --s-20:80px;
+
+  /* ── Shadows ── */
+  --sh-sm:    0 1px 2px rgba(0,0,0,0.04);
+  --sh-md:    0 2px 10px rgba(31,69,48,0.08);
+  --sh-card:  0 2px 4px rgba(0,0,0,0.04), 0 10px 30px rgba(0,0,0,0.08), 0 24px 60px rgba(0,0,0,0.05);
+  --sh-lift:  0 8px 16px rgba(0,0,0,0.06), 0 20px 50px rgba(0,0,0,0.12);
+  --sh-focus: 0 0 0 3px rgba(31,69,48,0.08);
+
+  /* ── Motion ── */
+  --ease-out:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --t-fast: 0.15s;
+  --t-med:  0.45s;
+}
+
+/* ══════════════════════════════════════════════════════
+   SEMANTIC TYPE CLASSES
+   ══════════════════════════════════════════════════════ */
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Display — Lora serif italic accent. Brand voice is here. */
+.display,
+h1.hero {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.display em,
+h1.hero em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--green);
+}
+
+/* H1 — serif, emphasised italic accent */
+h1, .h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+h1 em, .h1 em { font-style: italic; font-weight: 400; color: var(--green); }
+
+/* H2 — sans heavy, workhorse heading in app UI */
+h2, .h2 {
+  font-family: var(--font-body);
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+/* H3 — subheads, card titles */
+h3, .h3 {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+p, .body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.7;
+  font-weight: 400;
+  color: var(--text-mid);
+}
+
+.small {
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+
+/* Eyebrow — green, 10px, tracked, uppercase. Used above every section title */
+.eyebrow {
+  font-size: var(--fs-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+/* Wordmark — always Lora 700 lowercase */
+.wordmark-text {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* Code / mono (rarely used — only tokens) */
+code, .mono {
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 0.88em;
+}
+
+</style>
+<style>
+  html,body{margin:0;background:#F5F5F2;font-family:'Lato',system-ui,sans-serif;color:#111110}
+
+  /* ─── Banner base (1584:396 = 4:1) ─── */
+  .banner{position:relative;width:100%;height:100%;overflow:hidden;display:flex;align-items:center;--safe-l:5%}
+  .banner-pad{padding:0 5% 0 var(--safe-l);width:100%;box-sizing:border-box}
+  /* In profile context, reserve left bottom for the avatar */
+  .li-banner .banner{--safe-l:18%}
+  .banner h1{font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;line-height:0.98;margin:0}
+  .banner h1 em{font-style:italic;font-weight:400}
+  .banner .lockup{display:flex;align-items:center;gap:14px}
+  .banner .mark{width:54px;height:54px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .banner .mark svg{width:62%;height:62%}
+  .banner .wm{font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:36px;line-height:1}
+  .banner .sub{font-size:16px;font-weight:700;letter-spacing:0.02em;opacity:0.78}
+  .banner .eyebrow{font-size:13px;letter-spacing:0.18em;text-transform:uppercase;font-weight:700;margin-bottom:14px}
+
+  /* ── Safe zone overlay (LinkedIn crops differently on mobile/desktop) ── */
+  .safe-zone{position:absolute;inset:0;pointer-events:none;display:none}
+  .show-safe .safe-zone{display:block}
+  .safe-zone .desk{position:absolute;left:0;right:0;top:0;bottom:0;border:1px dashed rgba(255,255,255,0.4)}
+  .safe-zone .mob{position:absolute;left:23%;right:23%;top:0;bottom:0;border:1px dashed rgba(255,255,255,0.6)}
+
+  /* ─── Icon base (square) ─── */
+  .icon{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .icon.sq{border-radius:24%}
+  .icon svg.brand{width:60%;height:60%}
+
+  /* Card frame */
+  .frame{padding:24px;background:#FDFDFC;height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
+  .frame .title{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6E6860;font-weight:700}
+  .frame .desc{font-size:12px;color:#3A3733;font-style:italic;font-family:'Lora',serif;line-height:1.5}
+  .frame .stage{flex:1;background:#EEECEA;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:20px}
+  .frame .stage .canvas{width:100%;aspect-ratio:1584/396;border-radius:6px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+  .frame .stage.icon-stage{padding:32px}
+  .frame .stage.icon-stage .canvas{aspect-ratio:1;width:auto;height:100%;max-height:280px;border-radius:50%}
+  .frame .stage.icon-stage .canvas.sq{border-radius:24%}
+
+  /* mock LinkedIn profile preview */
+  .li-preview{background:#fff;border-radius:8px;overflow:hidden;border:1px solid #E2DED8;width:100%}
+  .li-preview .li-banner{width:100%;aspect-ratio:1584/396}
+  .li-preview .li-prof{padding:0 24px 14px;position:relative;display:flex;flex-direction:column;gap:2px;margin-top:-44px;align-items:flex-start}
+  .li-preview .li-pfp{width:78px;height:78px;border-radius:50%;border:4px solid #fff;background:#1F4530;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+  .li-preview .li-pfp svg{width:60%;height:60%}
+  .li-preview .li-name{font-size:16px;font-weight:700;color:#000}
+  .li-preview .li-tag{font-size:12px;color:#6E6860}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+
+
+
+
+// DesignCanvas.jsx — Figma-ish design canvas wrapper
+// Warm gray grid bg + Sections + Artboards + PostIt notes.
+// Artboards are reorderable (grip-drag), labels/titles are inline-editable,
+// and any artboard can be opened in a fullscreen focus overlay (←/→/Esc).
+// State persists to a .design-canvas.state.json sidecar via the host
+// bridge. No assets, no deps.
+//
+// Usage:
+//   <DesignCanvas>
+//     <DCSection id="onboarding" title="Onboarding" subtitle="First-run variants">
+//       <DCArtboard id="a" label="A · Dusk" width={260} height={480}>…</DCArtboard>
+//       <DCArtboard id="b" label="B · Minimal" width={260} height={480}>…</DCArtboard>
+//     </DCSection>
+//   </DesignCanvas>
+
+const DC = {
+  bg: '#f0eee9',
+  grid: 'rgba(0,0,0,0.06)',
+  label: 'rgba(60,50,40,0.7)',
+  title: 'rgba(40,30,20,0.85)',
+  subtitle: 'rgba(60,50,40,0.6)',
+  postitBg: '#fef4a8',
+  postitText: '#5a4a2a',
+  font: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif'
+};
+
+// One-time CSS injection (classes are dc-prefixed so they don't collide with
+// the hosted design's own styles).
+if (typeof document !== 'undefined' && !document.getElementById('dc-styles')) {
+  const s = document.createElement('style');
+  s.id = 'dc-styles';
+  s.textContent = [
+  '.dc-editable{cursor:text;outline:none;white-space:nowrap;border-radius:3px;padding:0 2px;margin:0 -2px}',
+  '.dc-editable:focus{background:#fff;box-shadow:0 0 0 1.5px #c96442}',
+  '[data-dc-slot]{transition:transform .18s cubic-bezier(.2,.7,.3,1)}',
+  '[data-dc-slot].dc-dragging{transition:none;z-index:10;pointer-events:none}',
+  '[data-dc-slot].dc-dragging .dc-card{box-shadow:0 12px 40px rgba(0,0,0,.25),0 0 0 2px #c96442;transform:scale(1.02)}',
+  '.dc-card{transition:box-shadow .15s,transform .15s}',
+  '.dc-card *{scrollbar-width:none}',
+  '.dc-card *::-webkit-scrollbar{display:none}',
+  '.dc-labelrow{display:flex;align-items:center;gap:4px;height:24px}',
+  '.dc-grip{cursor:grab;display:flex;align-items:center;padding:5px 4px;border-radius:4px;transition:background .12s}',
+  '.dc-grip:hover{background:rgba(0,0,0,.08)}',
+  '.dc-grip:active{cursor:grabbing}',
+  '.dc-labeltext{cursor:pointer;border-radius:4px;padding:3px 6px;display:flex;align-items:center;transition:background .12s}',
+  '.dc-labeltext:hover{background:rgba(0,0,0,.05)}',
+  '.dc-expand{position:absolute;bottom:100%;right:0;margin-bottom:5px;z-index:2;opacity:0;transition:opacity .12s,background .12s;',
+  '  width:22px;height:22px;border-radius:5px;border:none;cursor:pointer;padding:0;',
+  '  background:transparent;color:rgba(60,50,40,.7);display:flex;align-items:center;justify-content:center}',
+  '.dc-expand:hover{background:rgba(0,0,0,.06);color:#2a251f}',
+  '[data-dc-slot]:hover .dc-expand{opacity:1}'].
+  join('\n');
+  document.head.appendChild(s);
+}
+
+const DCCtx = React.createContext(null);
+
+// ─────────────────────────────────────────────────────────────
+// DesignCanvas — stateful wrapper around the pan/zoom viewport.
+// Owns runtime state (per-section order, renamed titles/labels, focused
+// artboard). Order/titles/labels persist to a .design-canvas.state.json
+// sidecar next to the HTML. Reads go via plain fetch() so the saved
+// arrangement is visible anywhere the HTML + sidecar are served together
+// (omelette preview, direct link, downloaded zip). Writes go through the
+// host's window.omelette bridge — editing requires the omelette runtime.
+// Focus is ephemeral.
+// ─────────────────────────────────────────────────────────────
+const DC_STATE_FILE = '.design-canvas.state.json';
+
+function DesignCanvas({ children, minScale, maxScale, style }) {
+  const [state, setState] = React.useState({ sections: {}, focus: null });
+  // Hold rendering until the sidecar read settles so the saved order/titles
+  // appear on first paint (no source-order flash). didRead gates writes until
+  // the read settles so the empty initial state can't clobber a slow read;
+  // skipNextWrite suppresses the one echo-write that would otherwise follow
+  // hydration.
+  const [ready, setReady] = React.useState(false);
+  const didRead = React.useRef(false);
+  const skipNextWrite = React.useRef(false);
+
+  React.useEffect(() => {
+    let off = false;
+    fetch('./' + DC_STATE_FILE).
+    then((r) => r.ok ? r.json() : null).
+    then((saved) => {
+      if (off || !saved || !saved.sections) return;
+      skipNextWrite.current = true;
+      setState((s) => ({ ...s, sections: saved.sections }));
+    }).
+    catch(() => {}).
+    finally(() => {didRead.current = true;if (!off) setReady(true);});
+    const t = setTimeout(() => {if (!off) setReady(true);}, 150);
+    return () => {off = true;clearTimeout(t);};
+  }, []);
+
+  React.useEffect(() => {
+    if (!didRead.current) return;
+    if (skipNextWrite.current) {skipNextWrite.current = false;return;}
+    const t = setTimeout(() => {
+      window.omelette?.writeFile(DC_STATE_FILE, JSON.stringify({ sections: state.sections })).catch(() => {});
+    }, 250);
+    return () => clearTimeout(t);
+  }, [state.sections]);
+
+  // Build registries synchronously from children so FocusOverlay can read
+  // them in the same render. Only direct DCSection > DCArtboard children are
+  // walked — wrapping them in other elements opts out of focus/reorder.
+  const registry = {}; // slotId -> { sectionId, artboard }
+  const sectionMeta = {}; // sectionId -> { title, subtitle, slotIds[] }
+  const sectionOrder = [];
+  React.Children.forEach(children, (sec) => {
+    if (!sec || sec.type !== DCSection) return;
+    const sid = sec.props.id ?? sec.props.title;
+    if (!sid) return;
+    sectionOrder.push(sid);
+    const persisted = state.sections[sid] || {};
+    const srcIds = [];
+    React.Children.forEach(sec.props.children, (ab) => {
+      if (!ab || ab.type !== DCArtboard) return;
+      const aid = ab.props.id ?? ab.props.label;
+      if (!aid) return;
+      registry[`${sid}/${aid}`] = { sectionId: sid, artboard: ab };
+      srcIds.push(aid);
+    });
+    const kept = (persisted.order || []).filter((k) => srcIds.includes(k));
+    sectionMeta[sid] = {
+      title: persisted.title ?? sec.props.title,
+      subtitle: sec.props.subtitle,
+      slotIds: [...kept, ...srcIds.filter((k) => !kept.includes(k))]
+    };
+  });
+
+  const api = React.useMemo(() => ({
+    state,
+    section: (id) => state.sections[id] || {},
+    patchSection: (id, p) => setState((s) => ({
+      ...s,
+      sections: { ...s.sections, [id]: { ...s.sections[id], ...(typeof p === 'function' ? p(s.sections[id] || {}) : p) } }
+    })),
+    setFocus: (slotId) => setState((s) => ({ ...s, focus: slotId }))
+  }), [state]);
+
+  // Esc exits focus; any outside pointerdown commits an in-progress rename.
+  React.useEffect(() => {
+    const onKey = (e) => {if (e.key === 'Escape') api.setFocus(null);};
+    const onPd = (e) => {
+      const ae = document.activeElement;
+      if (ae && ae.isContentEditable && !ae.contains(e.target)) ae.blur();
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPd, true);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPd, true);
+    };
+  }, [api]);
+
+  return (
+    <DCCtx.Provider value={api}>
+      <DCViewport minScale={minScale} maxScale={maxScale} style={style}>{ready && children}</DCViewport>
+      {state.focus && registry[state.focus] &&
+      <DCFocusOverlay entry={registry[state.focus]} sectionMeta={sectionMeta} sectionOrder={sectionOrder} />
+      }
+    </DCCtx.Provider>);
+
+}
+
+// ─────────────────────────────────────────────────────────────
+// DCViewport — transform-based pan/zoom (internal)
+//
+// Input mapping (Figma-style):
+//   • trackpad pinch  → zoom   (ctrlKey wheel; Safari gesture* events)
+//   • trackpad scroll → pan    (two-finger)
+//   • mouse wheel     → zoom   (notched; distinguished from trackpad scroll)
+//   • middle-drag / primary-drag-on-bg → pan
+//
+// Transform state lives in a ref and is written straight to the DOM
+// (translate3d + will-change) so wheel ticks don't go through React —
+// keeps pans at 60fps on dense canvases.
+// ─────────────────────────────────────────────────────────────
+function DCViewport({ children, minScale = 0.1, maxScale = 8, style = {} }) {
+  const vpRef = React.useRef(null);
+  const worldRef = React.useRef(null);
+  const tf = React.useRef({ x: 0, y: 0, scale: 1 });
+
+  const apply = React.useCallback(() => {
+    const { x, y, scale } = tf.current;
+    const el = worldRef.current;
+    if (el) el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+  }, []);
+
+  React.useEffect(() => {
+    const vp = vpRef.current;
+    if (!vp) return;
+
+    const zoomAt = (cx, cy, factor) => {
+      const r = vp.getBoundingClientRect();
+      const px = cx - r.left,py = cy - r.top;
+      const t = tf.current;
+      const next = Math.min(maxScale, Math.max(minScale, t.scale * factor));
+      const k = next / t.scale;
+      // keep the world point under the cursor fixed
+      t.x = px - (px - t.x) * k;
+      t.y = py - (py - t.y) * k;
+      t.scale = next;
+      apply();
+    };
+
+    // Mouse-wheel vs trackpad-scroll heuristic. A physical wheel sends
+    // line-mode deltas (Firefox) or large integer pixel deltas with no X
+    // component (Chrome/Safari, typically multiples of 100/120). Trackpad
+    // two-finger scroll sends small/fractional pixel deltas, often with
+    // non-zero deltaX. ctrlKey is set by the browser for trackpad pinch.
+    const isMouseWheel = (e) =>
+    e.deltaMode !== 0 ||
+    e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 40;
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      if (isGesturing) return; // Safari: gesture* owns the pinch — discard concurrent wheels
+      if (e.ctrlKey) {
+        // trackpad pinch (or explicit ctrl+wheel)
+        zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.01));
+      } else if (isMouseWheel(e)) {
+        // notched mouse wheel — fixed-ratio step per click
+        zoomAt(e.clientX, e.clientY, Math.exp(-Math.sign(e.deltaY) * 0.18));
+      } else {
+        // trackpad two-finger scroll — pan
+        tf.current.x -= e.deltaX;
+        tf.current.y -= e.deltaY;
+        apply();
+      }
+    };
+
+    // Safari sends native gesture* events for trackpad pinch with a smooth
+    // e.scale; preferring these over the ctrl+wheel fallback gives a much
+    // better feel there. No-ops on other browsers. Safari also fires
+    // ctrlKey wheel events during the same pinch — isGesturing makes
+    // onWheel drop those entirely so they neither zoom nor pan.
+    let gsBase = 1;
+    let isGesturing = false;
+    const onGestureStart = (e) => {e.preventDefault();isGesturing = true;gsBase = tf.current.scale;};
+    const onGestureChange = (e) => {
+      e.preventDefault();
+      zoomAt(e.clientX, e.clientY, gsBase * e.scale / tf.current.scale);
+    };
+    const onGestureEnd = (e) => {e.preventDefault();isGesturing = false;};
+
+    // Drag-pan: middle button anywhere, or primary button on canvas
+    // background (anything that isn't an artboard or an inline editor).
+    let drag = null;
+    const onPointerDown = (e) => {
+      const onBg = !e.target.closest('[data-dc-slot], .dc-editable');
+      if (!(e.button === 1 || e.button === 0 && onBg)) return;
+      e.preventDefault();
+      vp.setPointerCapture(e.pointerId);
+      drag = { id: e.pointerId, lx: e.clientX, ly: e.clientY };
+      vp.style.cursor = 'grabbing';
+    };
+    const onPointerMove = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      tf.current.x += e.clientX - drag.lx;
+      tf.current.y += e.clientY - drag.ly;
+      drag.lx = e.clientX;drag.ly = e.clientY;
+      apply();
+    };
+    const onPointerUp = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      vp.releasePointerCapture(e.pointerId);
+      drag = null;
+      vp.style.cursor = '';
+    };
+
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    vp.addEventListener('gesturestart', onGestureStart, { passive: false });
+    vp.addEventListener('gesturechange', onGestureChange, { passive: false });
+    vp.addEventListener('gestureend', onGestureEnd, { passive: false });
+    vp.addEventListener('pointerdown', onPointerDown);
+    vp.addEventListener('pointermove', onPointerMove);
+    vp.addEventListener('pointerup', onPointerUp);
+    vp.addEventListener('pointercancel', onPointerUp);
+    return () => {
+      vp.removeEventListener('wheel', onWheel);
+      vp.removeEventListener('gesturestart', onGestureStart);
+      vp.removeEventListener('gesturechange', onGestureChange);
+      vp.removeEventListener('gestureend', onGestureEnd);
+      vp.removeEventListener('pointerdown', onPointerDown);
+      vp.removeEventListener('pointermove', onPointerMove);
+      vp.removeEventListener('pointerup', onPointerUp);
+      vp.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, [apply, minScale, maxScale]);
+
+  const gridSvg = `url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M120 0H0v120' fill='none' stroke='${encodeURIComponent(DC.grid)}' stroke-width='1'/%3E%3C/svg%3E")`;
+  return (
+    <div
+      ref={vpRef}
+      className="design-canvas"
+      style={{
+        height: '100vh', width: '100vw',
+        background: DC.bg,
+        overflow: 'hidden',
+        overscrollBehavior: 'none',
+        touchAction: 'none',
+        position: 'relative',
+        fontFamily: DC.font,
+        boxSizing: 'border-box',
+        ...style
+      }}>
+      
+      <div
+        ref={worldRef}
+        style={{
+          position: 'absolute', top: 0, left: 0,
+          transformOrigin: '0 0',
+          willChange: 'transform',
+          width: 'max-content', minWidth: '100%',
+          minHeight: '100%',
+          padding: '60px 0 80px'
+        }}>
+        
+        <div style={{ position: 'absolute', inset: -6000, backgroundImage: gridSvg, backgroundSize: '120px 120px', pointerEvents: 'none', zIndex: -1 }} />
+        {children}
+      </div>
+    </div>);
+
+}
+
+// ─────────────────────────────────────────────────────────────
+// DCSection — editable title + h-row of artboards in persisted order
+// ─────────────────────────────────────────────────────────────
+function DCSection({ id, title, subtitle, children, gap = 48 }) {
+  const ctx = React.useContext(DCCtx);
+  const sid = id ?? title;
+  const all = React.Children.toArray(children);
+  const artboards = all.filter((c) => c && c.type === DCArtboard);
+  const rest = all.filter((c) => !(c && c.type === DCArtboard));
+  const srcOrder = artboards.map((a) => a.props.id ?? a.props.label);
+  const sec = ctx && sid && ctx.section(sid) || {};
+
+  const order = React.useMemo(() => {
+    const kept = (sec.order || []).filter((k) => srcOrder.includes(k));
+    return [...kept, ...srcOrder.filter((k) => !kept.includes(k))];
+  }, [sec.order, srcOrder.join('|')]);
+
+  const byId = Object.fromEntries(artboards.map((a) => [a.props.id ?? a.props.label, a]));
+
+  return (
+    <div data-dc-section={sid} style={{ marginBottom: 80, position: 'relative' }}>
+      <div style={{ padding: '0 60px 56px' }}>
+        <DCEditable tag="div" value={sec.title ?? title}
+        onChange={(v) => ctx && sid && ctx.patchSection(sid, { title: v })}
+        style={{ fontSize: 28, fontWeight: 600, color: DC.title, letterSpacing: -0.4, marginBottom: 6, display: 'inline-block' }} />
+        {subtitle && <div style={{ fontSize: 16, color: DC.subtitle }}>{subtitle}</div>}
+      </div>
+      <div style={{ display: 'flex', gap, padding: '0 60px', alignItems: 'flex-start', width: 'max-content' }}>
+        {order.map((k) =>
+        <DCArtboardFrame key={k} sectionId={sid} artboard={byId[k]} order={order}
+        label={(sec.labels || {})[k] ?? byId[k].props.label}
+        onRename={(v) => ctx && ctx.patchSection(sid, (x) => ({ labels: { ...x.labels, [k]: v } }))}
+        onReorder={(next) => ctx && ctx.patchSection(sid, { order: next })}
+        onFocus={() => ctx && ctx.setFocus(`${sid}/${k}`)} />
+        )}
+      </div>
+      {rest}
+    </div>);
+
+}
+
+// DCArtboard — marker; rendered by DCArtboardFrame via DCSection.
+function DCArtboard() {return null;}
+
+function DCArtboardFrame({ sectionId, artboard, label, order, onRename, onReorder, onFocus }) {
+  const { id: rawId, label: rawLabel, width = 260, height = 480, children, style = {} } = artboard.props;
+  const id = rawId ?? rawLabel;
+  const ref = React.useRef(null);
+
+  // Live drag-reorder: dragged card sticks to cursor; siblings slide into
+  // their would-be slots in real time via transforms. DOM order only
+  // changes on drop.
+  const onGripDown = (e) => {
+    e.preventDefault();e.stopPropagation();
+    const me = ref.current;
+    // translateX is applied in local (pre-scale) space but pointer deltas and
+    // getBoundingClientRect().left are screen-space — divide by the viewport's
+    // current scale so the dragged card tracks the cursor at any zoom level.
+    const scale = me.getBoundingClientRect().width / me.offsetWidth || 1;
+    const peers = Array.from(document.querySelectorAll(`[data-dc-section="${sectionId}"] [data-dc-slot]`));
+    const homes = peers.map((el) => ({ el, id: el.dataset.dcSlot, x: el.getBoundingClientRect().left }));
+    const slotXs = homes.map((h) => h.x);
+    const startIdx = order.indexOf(id);
+    const startX = e.clientX;
+    let liveOrder = order.slice();
+    me.classList.add('dc-dragging');
+
+    const layout = () => {
+      for (const h of homes) {
+        if (h.id === id) continue;
+        const slot = liveOrder.indexOf(h.id);
+        h.el.style.transform = `translateX(${(slotXs[slot] - h.x) / scale}px)`;
+      }
+    };
+
+    const move = (ev) => {
+      const dx = ev.clientX - startX;
+      me.style.transform = `translateX(${dx / scale}px)`;
+      const cur = homes[startIdx].x + dx;
+      let nearest = 0,best = Infinity;
+      for (let i = 0; i < slotXs.length; i++) {
+        const d = Math.abs(slotXs[i] - cur);
+        if (d < best) {best = d;nearest = i;}
+      }
+      if (liveOrder.indexOf(id) !== nearest) {
+        liveOrder = order.filter((k) => k !== id);
+        liveOrder.splice(nearest, 0, id);
+        layout();
+      }
+    };
+
+    const up = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      const finalSlot = liveOrder.indexOf(id);
+      me.classList.remove('dc-dragging');
+      me.style.transform = `translateX(${(slotXs[finalSlot] - homes[startIdx].x) / scale}px)`;
+      // After the settle transition, kill transitions + clear transforms +
+      // commit the reorder in the same frame so there's no visual snap-back.
+      setTimeout(() => {
+        for (const h of homes) {h.el.style.transition = 'none';h.el.style.transform = '';}
+        if (liveOrder.join('|') !== order.join('|')) onReorder(liveOrder);
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          for (const h of homes) h.el.style.transition = '';
+        }));
+      }, 180);
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+  };
+
+  return (
+    <div ref={ref} data-dc-slot={id} style={{ position: 'relative', flexShrink: 0 }}>
+      <div className="dc-labelrow" style={{ position: 'absolute', bottom: '100%', left: -4, marginBottom: 4, color: DC.label }}>
+        <div className="dc-grip" onPointerDown={onGripDown} title="Drag to reorder">
+          <svg width="9" height="13" viewBox="0 0 9 13" fill="currentColor"><circle cx="2" cy="2" r="1.1" /><circle cx="7" cy="2" r="1.1" /><circle cx="2" cy="6.5" r="1.1" /><circle cx="7" cy="6.5" r="1.1" /><circle cx="2" cy="11" r="1.1" /><circle cx="7" cy="11" r="1.1" /></svg>
+        </div>
+        <div className="dc-labeltext" onClick={onFocus} title="Click to focus">
+          <DCEditable value={label} onChange={onRename} onClick={(e) => e.stopPropagation()}
+          style={{ fontSize: 15, fontWeight: 500, color: DC.label, lineHeight: 1 }} />
+        </div>
+      </div>
+      <button className="dc-expand" onClick={onFocus} onPointerDown={(e) => e.stopPropagation()} title="Focus">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M7 1h4v4M5 11H1V7M11 1L7.5 4.5M1 11l3.5-3.5" /></svg>
+      </button>
+      <div className="dc-card"
+      style={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06)', overflow: 'hidden', width, height, background: '#fff', ...style }}>
+        {children || <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 13, fontFamily: DC.font }}>{id}</div>}
+      </div>
+    </div>);
+
+}
+
+// Inline rename — commits on blur or Enter.
+function DCEditable({ value, onChange, style, tag = 'span', onClick }) {
+  const T = tag;
+  return (
+    <T className="dc-editable" contentEditable suppressContentEditableWarning
+    onClick={onClick}
+    onPointerDown={(e) => e.stopPropagation()}
+    onBlur={(e) => onChange && onChange(e.currentTarget.textContent)}
+    onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault();e.currentTarget.blur();}}}
+    style={style}>{value}</T>);
+
+}
+
+// ─────────────────────────────────────────────────────────────
+// Focus mode — overlay one artboard; ←/→ within section, ↑/↓ across
+// sections, Esc or backdrop click to exit.
+// ─────────────────────────────────────────────────────────────
+function DCFocusOverlay({ entry, sectionMeta, sectionOrder }) {
+  const ctx = React.useContext(DCCtx);
+  const { sectionId, artboard } = entry;
+  const sec = ctx.section(sectionId);
+  const meta = sectionMeta[sectionId];
+  const peers = meta.slotIds;
+  const aid = artboard.props.id ?? artboard.props.label;
+  const idx = peers.indexOf(aid);
+  const secIdx = sectionOrder.indexOf(sectionId);
+
+  const go = (d) => {const n = peers[(idx + d + peers.length) % peers.length];if (n) ctx.setFocus(`${sectionId}/${n}`);};
+  const goSection = (d) => {
+    const ns = sectionOrder[(secIdx + d + sectionOrder.length) % sectionOrder.length];
+    const first = sectionMeta[ns] && sectionMeta[ns].slotIds[0];
+    if (first) ctx.setFocus(`${ns}/${first}`);
+  };
+
+  React.useEffect(() => {
+    const k = (e) => {
+      if (e.key === 'ArrowLeft') {e.preventDefault();go(-1);}
+      if (e.key === 'ArrowRight') {e.preventDefault();go(1);}
+      if (e.key === 'ArrowUp') {e.preventDefault();goSection(-1);}
+      if (e.key === 'ArrowDown') {e.preventDefault();goSection(1);}
+    };
+    document.addEventListener('keydown', k);
+    return () => document.removeEventListener('keydown', k);
+  });
+
+  const { width = 260, height = 480, children } = artboard.props;
+  const [vp, setVp] = React.useState({ w: window.innerWidth, h: window.innerHeight });
+  React.useEffect(() => {const r = () => setVp({ w: window.innerWidth, h: window.innerHeight });window.addEventListener('resize', r);return () => window.removeEventListener('resize', r);}, []);
+  const scale = Math.max(0.1, Math.min((vp.w - 200) / width, (vp.h - 260) / height, 2));
+
+  const [ddOpen, setDd] = React.useState(false);
+  const Arrow = ({ dir, onClick }) =>
+  <button onClick={(e) => {e.stopPropagation();onClick();}}
+  style={{ position: 'absolute', top: '50%', [dir]: 28, transform: 'translateY(-50%)',
+    border: 'none', background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)',
+    width: 44, height: 44, borderRadius: 22, fontSize: 18, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,.18)'}
+  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,.08)'}>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d={dir === 'left' ? 'M11 3L5 9l6 6' : 'M7 3l6 6-6 6'} /></svg>
+    </button>;
+
+
+  // Portal to body so position:fixed is the real viewport regardless of any
+  // transform on DesignCanvas's ancestors (including the canvas zoom itself).
+  return ReactDOM.createPortal(
+    <div onClick={() => ctx.setFocus(null)}
+    onWheel={(e) => e.preventDefault()}
+    style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(24,20,16,.6)', backdropFilter: 'blur(14px)',
+      fontFamily: DC.font, color: '#fff' }}>
+
+      {/* top bar: section dropdown (left) · close (right) */}
+      <div onClick={(e) => e.stopPropagation()}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 72, display: 'flex', alignItems: 'flex-start', padding: '16px 20px 0', gap: 16 }}>
+        <div style={{ position: 'relative' }}>
+          <button onClick={() => setDd((o) => !o)}
+          style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', padding: '6px 8px',
+            borderRadius: 6, textAlign: 'left', fontFamily: 'inherit' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18, fontWeight: 600, letterSpacing: -0.3 }}>{meta.title}</span>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ opacity: .7 }}><path d="M2 4l3.5 3.5L9 4" /></svg>
+            </span>
+            {meta.subtitle && <span style={{ display: 'block', fontSize: 13, opacity: .6, fontWeight: 400, marginTop: 2 }}>{meta.subtitle}</span>}
+          </button>
+          {ddOpen &&
+          <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: '#2a251f', borderRadius: 8,
+            boxShadow: '0 8px 32px rgba(0,0,0,.4)', padding: 4, minWidth: 200, zIndex: 10 }}>
+              {sectionOrder.map((sid) =>
+            <button key={sid} onClick={() => {setDd(false);const f = sectionMeta[sid].slotIds[0];if (f) ctx.setFocus(`${sid}/${f}`);}}
+            style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer',
+              background: sid === sectionId ? 'rgba(255,255,255,.1)' : 'transparent', color: '#fff',
+              padding: '8px 12px', borderRadius: 5, fontSize: 14, fontWeight: sid === sectionId ? 600 : 400, fontFamily: 'inherit' }}>
+                  {sectionMeta[sid].title}
+                </button>
+            )}
+            </div>
+          }
+        </div>
+        <div style={{ flex: 1 }} />
+        <button onClick={() => ctx.setFocus(null)}
+        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,.12)'}
+        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+        style={{ border: 'none', background: 'transparent', color: 'rgba(255,255,255,.7)', width: 32, height: 32,
+          borderRadius: 16, fontSize: 20, cursor: 'pointer', lineHeight: 1, transition: 'background .12s' }}>×</button>
+      </div>
+
+      {/* card centered, label + index below — only the card itself stops
+                             propagation so any backdrop click (including the margins around
+                             the card) exits focus */}
+      <div
+        style={{ position: 'absolute', top: 64, bottom: 56, left: 100, right: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ width: width * scale, height: height * scale, position: 'relative' }}>
+          <div style={{ width, height, transform: `scale(${scale})`, transformOrigin: 'top left', background: '#fff', borderRadius: 2, overflow: 'hidden',
+            boxShadow: '0 20px 80px rgba(0,0,0,.4)' }}>
+            {children || <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb' }}>{aid}</div>}
+          </div>
+        </div>
+        <div onClick={(e) => e.stopPropagation()} style={{ fontSize: 14, fontWeight: 500, opacity: .85, textAlign: 'center' }}>
+          {(sec.labels || {})[aid] ?? artboard.props.label}
+          <span style={{ opacity: .5, marginLeft: 10, fontVariantNumeric: 'tabular-nums' }}>{idx + 1} / {peers.length}</span>
+        </div>
+      </div>
+
+      <Arrow dir="left" onClick={() => go(-1)} />
+      <Arrow dir="right" onClick={() => go(1)} />
+
+      {/* dots */}
+      <div onClick={(e) => e.stopPropagation()}
+      style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8 }}>
+        {peers.map((p, i) =>
+        <button key={p} onClick={() => ctx.setFocus(`${sectionId}/${p}`)}
+        style={{ border: 'none', padding: 0, cursor: 'pointer', width: 6, height: 6, borderRadius: 3,
+          background: i === idx ? '#fff' : 'rgba(255,255,255,.3)' }} />
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Post-it — absolute-positioned sticky note
+// ─────────────────────────────────────────────────────────────
+function DCPostIt({ children, top, left, right, bottom, rotate = -2, width = 180 }) {
+  return (
+    <div style={{
+      position: 'absolute', top, left, right, bottom, width,
+      background: DC.postitBg, padding: '14px 16px',
+      fontFamily: '"Comic Sans MS", "Marker Felt", "Segoe Print", cursive',
+      fontSize: 14, lineHeight: 1.4, color: DC.postitText,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)',
+      transform: `rotate(${rotate}deg)`,
+      zIndex: 5
+    }}>{children}</div>);
+
+}
+
+Object.assign(window, { DesignCanvas, DCSection, DCArtboard, DCPostIt });
+
+
+
+/* ─── App ─── */
+
+/* ─── Logo mark (current arrow + tick) ─── */
+const Mark = ({ c = 'white', stroke = 10 }) =>
+<svg viewBox="0 0 88 88" fill="none">
+    <path d={`M26 24 L54 44 L26 64`} stroke={c} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" />
+    <line x1="54" y1="44" x2="70" y2="44" stroke={c} strokeWidth={stroke} strokeLinecap="round" />
+  </svg>;
+
+
+const COLORS = {
+  green: '#1F4530', greenDeep: '#122B1E', mid: '#A8C9B0', mint: '#A8D8B8',
+  lite: '#EBF4EE', surface: '#F5F5F2', linen2: '#EEECEA',
+  white: '#FDFDFC', text: '#111110', textMid: '#3A3733', muted: '#6E6860', border: '#E2DED8'
+};
+
+/* ════════════════════════════════════════════════
+   BANNERS — 8 directions, all 1584×396 aspect
+   ════════════════════════════════════════════════ */
+
+/* 01 — Plaid-style: deep green, big confident type, single mint accent, generous space */
+const B_Statement = () =>
+<div className="banner" style={{
+  background: COLORS.greenDeep, color: '#fff',
+  backgroundImage: `radial-gradient(${COLORS.mint}14 1.5px, transparent 1.5px)`,
+  backgroundSize: '28px 28px'
+}}>
+    <div className="banner-pad" style={{ paddingLeft: '5%' }}>
+      <h1 style={{ fontSize: '5.6cqw', maxWidth: '70%' }}>Stop applying<br />into <em style={{ color: COLORS.mint }}>the void.</em></h1>
+    </div>
+  </div>;
+
+
+/* 02 — Linen with green accents + lockup right */
+const B_Linen = () =>
+<div className="banner" style={{ background: COLORS.surface }}>
+    <div className="banner-pad" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4%' }}>
+      <div style={{ flex: '1 1 60%', minWidth: 0 }}>
+        <div className="eyebrow" style={{ color: COLORS.green, fontSize: '1.4cqw', letterSpacing: '0.18em' }}>inroad · early access</div>
+        <h1 style={{ fontSize: '4.4cqw', color: COLORS.text, marginTop: '2cqw' }}>Three matched intros<br /><em style={{ color: COLORS.green }}>every day.</em></h1>
+      </div>
+      <div className="lockup" style={{ flex: '0 0 auto', gap: '1.5cqw' }}>
+        <div className="mark" style={{ background: COLORS.green, width: '7cqw', height: '7cqw', borderRadius: '1.6cqw' }}><Mark c="white" /></div>
+        <span className="wm" style={{ color: COLORS.text, fontSize: '4.6cqw' }}>inroad</span>
+      </div>
+    </div>
+  </div>;
+
+
+/* 03 — Split: deep green left, mint right */
+const B_Split = () =>
+<div className="banner" style={{ display: 'flex' }}>
+    <div style={{ flex: '0 0 60%', background: COLORS.green, color: '#fff', display: 'flex', alignItems: 'center', padding: '0 5%' }}>
+      <div>
+        <div className="eyebrow" style={{ color: COLORS.mint, marginBottom: '1cqw', fontSize: '1.5cqw' }}>Make your inroad</div>
+        <h1 style={{ fontSize: '4.6cqw' }}>Your next job<br />starts with <em style={{ color: COLORS.mint }}>an intro.</em></h1>
+      </div>
+    </div>
+    <div style={{ flex: 1, background: COLORS.mint, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <div className="lockup" style={{ flexDirection: 'column', gap: '2cqw', alignItems: 'center' }}>
+        <div className="mark" style={{ background: COLORS.greenDeep, width: '9cqw', height: '9cqw', borderRadius: '2.2cqw' }}><Mark c="white" stroke={9} /></div>
+        <span className="wm" style={{ color: COLORS.greenDeep, fontSize: '4.2cqw' }}>inroad</span>
+      </div>
+    </div>
+  </div>;
+
+
+/* 04 — Quote on deep green, italic serif, mint accent */
+const B_Quote = () =>
+<div className="banner" style={{ background: COLORS.greenDeep, color: '#fff' }}>
+    <div className="banner-pad">
+      <div style={{ maxWidth: '80%' }}>
+        <h1 style={{ fontSize: '3.8cqw', fontWeight: 400, fontStyle: 'italic', color: '#fff' }}>"Three coffee chats, two callbacks,<br />one offer — all in <em style={{ fontStyle: 'italic', fontWeight: 700, color: COLORS.mint }}>six weeks.</em>"</h1>
+        <div style={{ marginTop: '1.4cqw', fontSize: '1.4cqw', fontWeight: 700, color: COLORS.mid, letterSpacing: '0.05em' }}>— MAYA K. · STANFORD MSx '26</div>
+      </div>
+    </div>
+  </div>;
+
+
+/* 05 — Mark grid pattern (deep green) with centered wordmark */
+const B_Pattern = () => {
+  const cells = [];
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 16; c++) {
+      cells.push(
+        <div key={r + '-' + c} style={{ opacity: 0.10, transform: `translate(${r % 2 * 40}px, 0)` }}>
+          <Mark c={COLORS.mint} stroke={14} />
+        </div>
+      );
+    }
+  }
+  return (
+    <div className="banner" style={{ background: COLORS.greenDeep, position: 'relative', color: '#fff' }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: 'repeat(16,1fr)', gridAutoRows: '25%', padding: 0, overflow: 'hidden' }}>
+        {cells}
+      </div>
+      <div className="banner-pad" style={{ position: 'relative', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '4.6cqw', color: '#fff' }}>The graduate job market,<br /><em style={{ color: COLORS.mint }}>but warm.</em></h1>
+      </div>
+    </div>);
+
+};
+
+/* 06 — Founder hero on deep green */
+const B_HeroCard = () =>
+<div className="banner" style={{ background: COLORS.greenDeep, position: 'relative', color: '#fff' }}>
+    <svg viewBox="0 0 1584 396" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      <circle cx="1280" cy="80" r="240" fill={COLORS.mint} opacity="0.14" />
+      <circle cx="1380" cy="320" r="180" fill={COLORS.mid} opacity="0.10" />
+    </svg>
+    <div className="banner-pad" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4%' }}>
+      <div style={{ flex: '1 1 60%', minWidth: 0 }}>
+        <h1 style={{ fontSize: '4.2cqw' }}>Building <em style={{ color: COLORS.mint }}>inroad</em> for<br />students like me.</h1>
+      </div>
+      <div style={{ flex: '0 0 auto', background: 'rgba(168,216,184,0.10)', backdropFilter: 'blur(10px)', border: `1px solid ${COLORS.mint}33`, borderRadius: '1.4cqw', padding: '2cqw 2.4cqw' }}>
+        <div style={{ fontSize: '1.2cqw', letterSpacing: '0.12em', color: COLORS.mint, fontWeight: 700 }}>WORKING ON</div>
+        <div style={{ fontSize: '2cqw', fontWeight: 700, marginTop: '0.6cqw' }}>3 warm intros / day</div>
+        <div style={{ fontSize: '1.4cqw', color: COLORS.mid, marginTop: '0.3cqw' }}>Free for .edu / .ac.uk students</div>
+      </div>
+    </div>
+  </div>;
+
+
+/* 07 — Minimal: just lockup, lots of space, on white. Centred vertically + horizontally so avatar can't cover */
+const B_Minimal = () =>
+<div className="banner" style={{ background: COLORS.white, justifyContent: 'center' }}>
+    <div style={{ padding: '0 5%', textAlign: 'center' }}>
+      <div className="lockup" style={{ gap: '1.6cqw', justifyContent: 'center' }}>
+        <div className="mark" style={{ background: COLORS.greenDeep, width: '7cqw', height: '7cqw', borderRadius: '1.6cqw' }}><Mark c={COLORS.mint} /></div>
+        <div style={{ textAlign: 'left' }}>
+          <span className="wm" style={{ color: COLORS.text, fontSize: '5cqw', display: 'block', lineHeight: 0.95 }}>inroad</span>
+          <div className="sub" style={{ color: COLORS.muted, fontSize: '1.5cqw', marginTop: '0.6cqw', fontStyle: 'italic', fontFamily: 'Lora,serif', fontWeight: 400 }}>The smarter path into the workforce.</div>
+        </div>
+      </div>
+    </div>
+  </div>;
+
+
+/* 09 — Plaid-style: huge serif headline centred, deep green, mint full-stop accent */
+const B_Plaid = () =>
+<div className="banner" style={{ background: COLORS.greenDeep, color: '#fff', justifyContent: 'center' }}>
+    <div style={{ padding: '0 5%', width: '100%', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '5.4cqw', lineHeight: 1 }}>The warmest path<br />into the workforce.<em style={{ color: COLORS.mint, fontStyle: 'normal', fontWeight: 700 }}>.</em></h1>
+    </div>
+  </div>;
+
+
+/* 10 — Plaid-style: deep green, headline left, mint horizontal rule + tagline */
+const B_Rule = () =>
+<div className="banner" style={{ background: COLORS.greenDeep, color: '#fff' }}>
+    <div className="banner-pad" style={{ paddingTop: '4%', paddingBottom: '4%' }}>
+      <h1 style={{ fontSize: '4.6cqw', maxWidth: '78%' }}>An <em style={{ color: COLORS.mint }}>introduction</em><br />changes everything.</h1>
+      <div style={{ marginTop: '2.4cqw', display: 'flex', alignItems: 'center', gap: '1.4cqw', maxWidth: '78%' }}>
+        <div style={{ height: 2, width: '4cqw', background: COLORS.mint, flex: '0 0 auto' }} />
+        <div style={{ fontSize: '1.5cqw', color: COLORS.mid, fontWeight: 400, fontStyle: 'italic', fontFamily: 'Lora,serif' }}>Three matched intros every weekday morning.</div>
+      </div>
+    </div>
+  </div>;
+
+
+/* 11 — Plaid-style: deep green ground, mint diagonal stripe accent + headline kept top-right */
+const B_Stripe = () =>
+<div className="banner" style={{ background: COLORS.greenDeep, color: '#fff', position: 'relative', overflow: 'hidden' }}>
+    <svg viewBox="0 0 1584 396" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      <polygon points="0,396 320,396 480,0 160,0" fill={COLORS.mint} opacity="0.12" />
+      <polygon points="180,396 360,396 520,0 340,0" fill={COLORS.mint} opacity="0.18" />
+    </svg>
+    <div className="banner-pad" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+      <div style={{ textAlign: 'right', maxWidth: '62%' }}>
+        <h1 style={{ fontSize: '4.6cqw' }}>Your network,<br /><em style={{ color: COLORS.mint }}>warmed up.</em></h1>
+        <div style={{ marginTop: '1cqw', fontSize: '1.5cqw', color: COLORS.mid, fontStyle: 'italic', fontFamily: 'Lora,serif' }}>Three intros a day. Free for students.</div>
+      </div>
+    </div>
+  </div>;
+
+
+/* 12 — Plaid-style: deep green with oversized tilted mark + small tagline far right */
+const B_BigMark = () =>
+<div className="banner" style={{ background: COLORS.greenDeep, color: '#fff', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ position: 'absolute', right: '-4%', top: '-20%', width: '56%', height: '140%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.12 }}>
+      <Mark c={COLORS.mint} stroke={5} />
+    </div>
+    <div className="banner-pad" style={{ position: 'relative' }}>
+      <h1 style={{ fontSize: '4.8cqw', maxWidth: '66%', margin: "140px", letterSpacing: "-1.64512px", lineHeight: "1.2" }}>Make your<br /><em style={{ color: COLORS.mint }}>inroad.</em></h1>
+    </div>
+  </div>;
+
+
+/* 08 — Three cards layout (referencing the product) */
+const B_Product = () =>
+<div className="banner" style={{ background: COLORS.surface, padding: 0 }}>
+    <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center' }}>
+      <div style={{ flex: '0 0 36%', padding: '0 3% 0 5%' }}>
+        <div className="eyebrow" style={{ color: COLORS.green, marginBottom: '1cqw', fontSize: '1.4cqw' }}>Today's matches</div>
+        <h1 style={{ fontSize: '4.2cqw', color: COLORS.text }}>Three, <em style={{ color: COLORS.green }}>matched.</em></h1>
+        <div style={{ marginTop: '1cqw', fontSize: '1.4cqw', color: COLORS.muted }}>Every weekday at 8am.</div>
+      </div>
+      <div style={{ flex: 1, display: 'flex', gap: '1.4cqw', padding: '0 5% 0 0' }}>
+        {[
+      { n: 'Priya Shah', r: 'Stripe', sent: true },
+      { n: 'Marcus Lee', r: 'Linear', sent: false },
+      { n: 'Ana Duarte', r: 'Notion', sent: false }].
+      map((c) =>
+      <div key={c.n} style={{ flex: 1, background: c.sent ? '#F0F7F2' : '#fff', border: `1px solid ${c.sent ? COLORS.mid : COLORS.border}`, borderRadius: '1.4cqw', padding: '1.6cqw', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <div style={{ width: '3.6cqw', height: '3.6cqw', borderRadius: 50, background: `linear-gradient(135deg,${COLORS.mid},#6E8873)`, marginBottom: '1cqw' }} />
+            <div style={{ fontSize: '1.5cqw', fontWeight: 700, color: COLORS.text }}>{c.n}</div>
+            <div style={{ fontSize: '1.2cqw', color: COLORS.muted }}>{c.r}</div>
+            {c.sent && <div style={{ fontSize: '1.1cqw', fontWeight: 700, color: '#2D5A3D', marginTop: '0.6cqw' }}>✓ Sent</div>}
+          </div>
+      )}
+      </div>
+    </div>
+  </div>;
+
+
+/* ════════════════════════════════════════════════
+   ICONS — 6 directions (profile/company avatar)
+   ════════════════════════════════════════════════ */
+
+const I_Solid = () =>
+<div className="icon" style={{ background: COLORS.green }}>
+    <svg className="brand" viewBox="0 0 88 88" fill="none">
+      <path d="M26 24 L54 44 L26 64" stroke="white" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="54" y1="44" x2="70" y2="44" stroke="white" strokeWidth="9" strokeLinecap="round" />
+    </svg>
+  </div>;
+
+
+const I_Foam = () =>
+<div className="icon" style={{ background: COLORS.lite, border: `6px solid ${COLORS.mid}` }}>
+    <svg className="brand" viewBox="0 0 88 88" fill="none">
+      <path d="M26 24 L54 44 L26 64" stroke={COLORS.green} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="54" y1="44" x2="70" y2="44" stroke={COLORS.green} strokeWidth="9" strokeLinecap="round" />
+    </svg>
+  </div>;
+
+
+const I_Mint = () =>
+<div className="icon" style={{ background: COLORS.mint }}>
+    <svg className="brand" viewBox="0 0 88 88" fill="none">
+      <path d="M26 24 L54 44 L26 64" stroke={COLORS.greenDeep} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="54" y1="44" x2="70" y2="44" stroke={COLORS.greenDeep} strokeWidth="9" strokeLinecap="round" />
+    </svg>
+  </div>;
+
+
+const I_Wordmark = () =>
+<div className="icon" style={{ background: COLORS.green, color: '#fff', fontFamily: 'Lora,serif', fontWeight: 700, fontSize: '20cqw', letterSpacing: '-0.04em', lineHeight: 1 }}>in</div>;
+
+
+const I_Pattern = () =>
+<div className="icon" style={{ background: COLORS.greenDeep, position: 'relative', overflow: 'hidden' }}>
+    <div style={{ position: 'absolute', inset: 0, backgroundImage: `radial-gradient(${COLORS.mint}33 1.5px, transparent 1.5px)`, backgroundSize: '14px 14px', opacity: "0" }} />
+    <svg className="brand" viewBox="0 0 88 88" fill="none" style={{ position: 'relative' }}>
+      <path d="M26 24 L54 44 L26 64" stroke={COLORS.mint} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="54" y1="44" x2="70" y2="44" stroke={COLORS.mint} strokeWidth="9" strokeLinecap="round" />
+    </svg>
+  </div>;
+
+
+const I_Reverse = () =>
+<div className="icon" style={{ background: COLORS.white, border: `3px solid ${COLORS.border}` }}>
+    <svg className="brand" viewBox="0 0 88 88" fill="none">
+      <path d="M26 24 L54 44 L26 64" stroke={COLORS.green} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="54" y1="44" x2="70" y2="44" stroke={COLORS.green} strokeWidth="9" strokeLinecap="round" />
+    </svg>
+  </div>;
+
+
+/* ════════════════════════════════════════════════
+   APP
+   ════════════════════════════════════════════════ */
+
+function BannerCard({ name, desc, Banner, withProfile = false, profileIcon = null }) {
+  return (
+    <div className="frame">
+      <div className="title">{name}</div>
+      <div className="stage">
+        {withProfile ?
+        <div className="li-preview" style={{ containerType: 'inline-size' }}>
+            <div className="li-banner" style={{ containerType: 'inline-size' }}><Banner /></div>
+            <div className="li-prof">
+              <div className="li-pfp">{profileIcon || <Mark c="white" />}</div>
+              <div className="li-name">inroad</div>
+              <div className="li-tag">Smarter path into the workforce · @the-inroad</div>
+            </div>
+          </div> :
+
+        <div className="canvas" style={{ containerType: 'inline-size' }}><Banner /></div>
+        }
+      </div>
+      <div className="desc">"{desc}"</div>
+    </div>);
+
+}
+
+function IconCard({ name, desc, Icon, shape = 'circle' }) {
+  return (
+    <div className="frame">
+      <div className="title">{name}</div>
+      <div className="stage icon-stage">
+        <div className={`canvas ${shape === 'square' ? 'sq' : ''}`}>
+          <Icon />
+        </div>
+      </div>
+      <div className="desc">"{desc}"</div>
+    </div>);
+
+}
+
+const banners = [
+// Plaid-inspired deep-green / mint family — the "more like this" set
+{ id: 'B9', name: '01 · Plaid-style (signature)', Banner: B_Plaid, desc: 'Big confident serif headline, deep green ground, single mint full-stop accent. Centred so avatar never collides.' },
+{ id: 'B10', name: '02 · Mint rule + italic', Banner: B_Rule, desc: 'Headline anchored left, italic Lora kicker beneath a short mint rule. Plaid\'s structural device.' },
+{ id: 'B12', name: '03 · Oversized mark', Banner: B_BigMark, desc: 'Giant tinted mark fills the right two-thirds, headline stays in the safe zone. Most brand-forward.' },
+{ id: 'B11', name: '04 · Diagonal accent', Banner: B_Stripe, desc: 'Mint diagonal stripes from bottom-left, headline pushed top-right. The avatar lands on the stripes (which is the point).' },
+{ id: 'B3', name: '05 · Split panel', Banner: B_Split, desc: 'Deep green narrative left, mint lockup right. Strongest for company pages.' },
+{ id: 'B5', name: '06 · Mark pattern', Banner: B_Pattern, desc: 'Repeating mark texture in mint on deep green, centred headline.' },
+{ id: 'B4', name: '07 · Pull-quote (deep green)', Banner: B_Quote, desc: 'Italic serif testimonial on deep green, mint accent on the punchline.' },
+{ id: 'B6', name: '08 · Founder hero', Banner: B_HeroCard, desc: '"Building inroad for students like me." Mint status card on the right.' },
+// Lighter family
+{ id: 'B1', name: '09 · Deep-green statement', Banner: B_Statement, desc: 'Headline-only on deep green dot pattern. Headline kept right of avatar safe zone.' },
+{ id: 'B2', name: '10 · Linen with lockup', Banner: B_Linen, desc: 'Calmer linen background, lockup right.' },
+{ id: 'B7', name: '11 · Minimal lockup', Banner: B_Minimal, desc: 'Centred lockup on white. Avatar lands clear of it.' },
+{ id: 'B8', name: '12 · Product peek', Banner: B_Product, desc: 'Three matched cards, the product surface in miniature.' }];
+
+
+const icons = [
+{ id: 'I1', name: '01 · Solid forest', Icon: I_Solid, desc: 'The default. Forest mark on Forest. Reads at 32px.', shape: 'circle' },
+{ id: 'I2', name: '02 · Foam outlined', Icon: I_Foam, desc: 'Foam green tinted with sage outline. Lighter, softer feel.', shape: 'circle' },
+{ id: 'I3', name: '03 · Mint pop', Icon: I_Mint, desc: 'Mint background, deep green mark. The most attention-grabbing in a feed.', shape: 'circle' },
+{ id: 'I4', name: '04 · "in" wordmark', Icon: I_Wordmark, desc: 'Lora "in" instead of the mark. Personal-profile angle.', shape: 'circle' },
+{ id: 'I5', name: '05 · Patterned', Icon: I_Pattern, desc: 'Mint dot texture on deep green. More premium / nighttime feel.', shape: 'circle' },
+{ id: 'I6', name: '06 · White on white', Icon: I_Reverse, desc: 'For dark themes / dark mode profiles. Mark in green on near-white.', shape: 'circle' }];
+
+
+const iconsSquare = [
+{ id: 'IS1', name: '07 · Square solid (company logo)', Icon: I_Solid, desc: 'Company-page logo treatment — square (LinkedIn rounds it slightly itself).', shape: 'square' },
+{ id: 'IS2', name: '08 · Square foam', Icon: I_Foam, desc: 'Company-page softer alt.', shape: 'square' }];
+
+
+function App() {
+  return (
+    <DesignCanvas title="inroad — LinkedIn banners + icons" subtitle="Banners 1584×396 (4:1) · Icons displayed in real LinkedIn profile chrome">
+      <DCSection id="banners-context" title="Banners — in profile context" subtitle="Banner + profile-pic + name shown together so you can judge real-world fit">
+        {banners.slice(0, 6).map((b) =>
+        <DCArtboard key={b.id} id={b.id + 'ctx'} label={b.name} width={580} height={420}>
+            <BannerCard {...b} withProfile={true} profileIcon={<Mark c="white" />} />
+          </DCArtboard>
+        )}
+      </DCSection>
+
+      <DCSection id="banners-full" title="Banners — full width" subtitle="See the whole banner without the avatar overlapping">
+        {banners.map((b) =>
+        <DCArtboard key={b.id} id={b.id} label={b.name} width={760} height={300}>
+            <BannerCard {...b} />
+          </DCArtboard>
+        )}
+      </DCSection>
+
+      <DCSection id="icons" title="Profile icons (circular)" subtitle="LinkedIn renders profile photos as a circle — these are what your face would replace">
+        {icons.map((i) =>
+        <DCArtboard key={i.id} id={i.id} label={i.name} width={360} height={420}>
+            <IconCard {...i} />
+          </DCArtboard>
+        )}
+      </DCSection>
+
+      <DCSection id="icons-sq" title="Company-page icons (square)" subtitle="LinkedIn company pages render the logo as a rounded square">
+        {iconsSquare.map((i) =>
+        <DCArtboard key={i.id} id={i.id} label={i.name} width={360} height={420}>
+            <IconCard {...i} />
+          </DCArtboard>
+        )}
+      </DCSection>
+    </DesignCanvas>);
+
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

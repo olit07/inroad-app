@@ -86,5 +86,5 @@ def main():
 
 if __name__ == "__main__":
     if not USE_POSTGRES:
-        print("WARNING: DATABASE_URL not set — writing to local SQLite (ccc.db)")
+        print("WARNING: DATABASE_URL not set — writing to local SQLite (inroad.db)")
     main()

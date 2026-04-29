@@ -1,5 +1,5 @@
 """
-CCC Backend — LinkedIn Lead Matcher (Phase 3)
+inroad Backend — LinkedIn Lead Matcher (Phase 3)
 
 Strategy:
 1. For a given job (company + title + industry), build a search query
@@ -80,7 +80,7 @@ UNI_ALIASES: dict[str, list[str]] = {
     "newcastle":        ["newcastle university", "newcastle"],
     "st_andrews":       ["university of st andrews", "st andrews", "saint andrews"],
     "cardiff":          ["cardiff university", "cardiff"],
-    "york":             ["university of york", "york"],
+    "york":             ["university of york", "york university"],
     "lancaster":        ["lancaster university", "lancaster"],
     "leicester":        ["university of leicester", "leicester"],
     "reading":          ["university of reading", "reading"],
@@ -119,14 +119,13 @@ UNI_ALIASES: dict[str, list[str]] = {
     "cmu":              ["carnegie mellon university", "carnegie mellon", "cmu"],
     "vanderbilt":       ["vanderbilt university", "vanderbilt"],
     "uva":              ["university of virginia", "uva"],
-    "unc":              ["university of north carolina", "unc", "chapel hill"],
+    "unc":              ["university of north carolina", "unc chapel hill", "chapel hill"],
     "usc":              ["university of southern california", "usc"],
     "gatech":           ["georgia institute of technology", "georgia tech", "gatech"],
     "purdue":           ["purdue university", "purdue"],
     "tufts":            ["tufts university", "tufts"],
-    "boston_u":         ["boston university", "bu"],
+    "boston_u":         ["boston university"],
     "northeastern":     ["northeastern university", "northeastern"],
-    "bu":               ["boston university"],
     "umd":              ["university of maryland", "umd"],
     "ufl":              ["university of florida", "uf", "gators"],
     "ohio_state":       ["ohio state university", "osu"],
@@ -651,8 +650,22 @@ class LinkedInMatcher:
             req = _urlreq.Request(url, headers={"Accept": "application/json"})
             with _urlreq.urlopen(req, timeout=15) as r:
                 data = json.loads(r.read())
+        except _urlreq.HTTPError as e:
+            if e.code in (401, 402):
+                logger.warning("Hunter.io credits exhausted or unauthorised — disabling for this session")
+                self.hunter_key = ""
+            else:
+                logger.error(f"Hunter domain search failed for {domain}: {e}")
+            return []
         except Exception as e:
             logger.error(f"Hunter domain search failed for {domain}: {e}")
+            return []
+
+        # Detect out-of-credits in JSON response body
+        errors = data.get("errors") or []
+        if any(e.get("id") in ("no_credits_left", "payment_required") for e in errors):
+            logger.warning("Hunter.io credits exhausted — disabling for this session")
+            self.hunter_key = ""
             return []
 
         emails = data.get("data", {}).get("emails", [])
@@ -763,6 +776,10 @@ class LinkedInMatcher:
         try:
             with urllib.request.urlopen(req, timeout=15) as r:
                 data = json.loads(r.read().decode("utf-8", errors="replace"))
+            # Detect credit exhaustion in response body
+            if data.get("credits") == 0 or "insufficient credits" in str(data).lower():
+                logger.critical("🚨 SERPER CREDITS EXHAUSTED — stopping lead scrape")
+                raise RuntimeError("SERPER_CREDITS_EXHAUSTED")
             # Normalise Serper's organic results to the same shape _parse_snippet expects
             organic = data.get("organic", [])
             normalised = []
@@ -773,6 +790,14 @@ class LinkedInMatcher:
                     "snippet": item.get("snippet", ""),
                 })
             return normalised
+        except RuntimeError:
+            raise  # re-raise credit exhaustion so caller stops
+        except urllib.request.HTTPError as e:
+            if e.code in (402, 429):
+                logger.critical(f"🚨 SERPER CREDITS EXHAUSTED (HTTP {e.code}) — stopping lead scrape")
+                raise RuntimeError("SERPER_CREDITS_EXHAUSTED")
+            logger.error(f"Serper search failed (HTTP {e.code}): {e}")
+            return []
         except Exception as e:
             logger.error(f"Serper search failed: {e}")
             return []
@@ -885,7 +910,8 @@ def _extract_university(text: str) -> str:
     text_lower = text.lower()
     for canonical, aliases in UNI_ALIASES.items():
         for alias in aliases:
-            if alias in text_lower:
+            pattern = r'\b' + re.escape(alias) + r'\b'
+            if re.search(pattern, text_lower):
                 return alias.title()
     # Generic patterns: "University of X", "X University"
     m = re.search(

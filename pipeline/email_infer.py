@@ -1,5 +1,5 @@
 """
-CCC Backend — Email Inference Engine (Phase 4)
+inroad Backend — Email Inference Engine (Phase 4)
 
 Given a person's name + company domain, generate candidate emails
 using the 8 most common corporate patterns.
@@ -148,6 +148,23 @@ class EmailInferrer:
         "jobvite.com", "successfactors.com", "bamboohr.com",
         "workable.com", "recruitee.com",
         "linkedin.com", "indeed.com", "glassdoor.com",
+        # Job boards — never real employee email domains
+        "efinancialcareers.co.uk", "efinancialcareers.com",
+        "grnh.se",
+        "sanctuarygraduates.co.uk",
+        "ultipro.com", "recruiting2.ultipro.com",
+        "trackr.io",
+        "reed.co.uk",
+        "totaljobs.com",
+        "targetjobs.co.uk",
+        "prospects.ac.uk",
+        "milkround.com",
+        "teamtailor.com",
+        "hire.trakstar.com",
+        "applytojob.com",
+        "workablemail.com",
+        "breezy.hr",
+        "pinpointhq.com",
     )
 
     def _is_ats_domain(self, domain: str) -> bool:
@@ -188,9 +205,20 @@ class EmailInferrer:
                 key=self.hunter_key,
             )
             data = fetch_json(url)
+            # Detect out-of-credits response and disable for the rest of this session
+            errors = data.get("errors") or []
+            if any(e.get("id") in ("no_credits_left", "payment_required") for e in errors):
+                logger.warning("Hunter.io credits exhausted — disabling for this session")
+                self.hunter_key = ""
+                return None
             email = data.get("data", {}).get("email", "")
             if email:
                 return {"email": email}
         except Exception as e:
-            logger.debug(f"Hunter find failed: {e}")
+            err_str = str(e)
+            if "402" in err_str or "401" in err_str:
+                logger.warning("Hunter.io credits exhausted or unauthorised — disabling for this session")
+                self.hunter_key = ""
+            else:
+                logger.debug(f"Hunter find failed: {e}")
         return None

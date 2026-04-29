@@ -1,5 +1,5 @@
 """
-CCC Backend — Reed.co.uk API Scraper
+inroad Backend — Reed.co.uk API Scraper
 
 Reed has a free developer API (requires free registration):
   https://www.reed.co.uk/developers/jobseeker
@@ -32,29 +32,72 @@ SEARCH_QUERIES = [
     ("graduate finance analyst",          "London",     "Finance"),
     ("investment banking analyst intern",  "London",     "Investment Banking"),
     ("graduate quant researcher",          "London",     "Finance"),
-    ("venture capital analyst",            "London",     "Venture Capital"),
-    # Technology
+    # Technology / Software Engineering
     ("graduate software engineer",         "London",     "Software Engineering"),
     ("junior software developer",          "Manchester", "Software Engineering"),
     ("data analyst graduate",              "London",     "Data & Analytics"),
     ("data scientist graduate",            "London",     "Data & Analytics"),
+    ("data engineer graduate",             "London",     "Data & Analytics"),
+    ("business intelligence analyst",      "London",     "Data & Analytics"),
+    ("analytics consultant graduate",      "London",     "Data & Analytics"),
+    ("machine learning engineer graduate", "London",     "Data & Analytics"),
     ("product manager graduate",           "London",     "Product Management"),
     # Consulting
     ("management consultant graduate",     "London",     "Consulting"),
     ("strategy analyst graduate",          "London",     "Strategy"),
+    ("business analyst consultant",        "London",     "Consulting"),
+    ("junior consultant graduate",         "London",     "Consulting"),
+    ("advisory analyst graduate",          "London",     "Consulting"),
+    ("strategy consultant associate",      "London",     "Consulting"),
+    ("economic analyst graduate",          "London",     "Consulting"),
+    ("economic consultant graduate",       "London",     "Consulting"),
+    ("public sector consultant graduate",  "London",     "Consulting"),
+    ("policy consultant graduate",         "London",     "Consulting"),
+    ("actuarial analyst graduate",         "London",     "Consulting"),
+    ("transfer pricing analyst",           "London",     "Consulting"),
+    ("forensic accountant graduate",       "London",     "Consulting"),
+    ("due diligence analyst",              "London",     "Consulting"),
+    ("management consulting graduate",     "London",     "Consulting"),
+    ("strategy consulting analyst",        "London",     "Consulting"),
     # Marketing
     ("graduate marketing executive",       "London",     "Marketing"),
+    ("digital marketing graduate",         "London",     "Marketing"),
+    ("brand manager graduate",             "London",     "Marketing"),
+    ("marketing analyst graduate",         "London",     "Marketing"),
+    ("growth marketing associate",         "London",     "Marketing"),
+    ("content marketing graduate",         "London",     "Marketing"),
+    ("social media executive graduate",    "London",     "Marketing"),
     # Law
     ("trainee solicitor",                  "London",     "Law"),
     ("paralegal graduate",                 "London",     "Law"),
+    ("vacation scheme law firm",           "London",     "Law"),
+    ("training contract solicitor",        "London",     "Law"),
+    ("pupillage barrister",                "London",     "Law"),
+    ("legal graduate scheme",              "London",     "Law"),
     # Healthcare
     ("healthcare analyst graduate",        "London",     "Healthcare"),
-    # Design
-    ("UX designer graduate",               "London",     "Design & UX"),
-    ("product designer graduate",          "London",     "Design & UX"),
+    ("clinical research associate",        "London",     "Healthcare"),
+    ("healthcare consultant graduate",     "London",     "Healthcare"),
+    ("pharmaceutical analyst graduate",    "London",     "Healthcare"),
+    ("life sciences graduate",             "London",     "Healthcare"),
+    ("biotech analyst graduate",           "London",     "Healthcare"),
+    ("clinical data analyst",              "London",     "Healthcare"),
+    ("medical devices graduate",           "London",     "Healthcare"),
+    ("health economics analyst",           "London",     "Healthcare"),
+    ("pharmaceutical graduate scheme",     "London",     "Healthcare"),
+    ("clinical trials graduate",           "London",     "Healthcare"),
+    ("biomedical graduate programme",      "London",     "Healthcare"),
+    ("life sciences graduate scheme",      "London",     "Healthcare"),
+    ("regulatory affairs graduate",        "London",     "Healthcare"),
+    ("drug discovery analyst",             "London",     "Healthcare"),
+    ("pharmacovigilance associate",        "London",     "Healthcare"),
+    ("clinical data associate",            "London",     "Healthcare"),
+    ("pharmacy graduate programme",        "London",     "Healthcare"),
+    ("nursing graduate scheme",            "London",     "Healthcare"),
     # Non-profit / Policy
     ("policy analyst graduate",            "London",     "Non-profit & Policy"),
     ("charity programme officer",          "London",     "Non-profit & Policy"),
+    ("graduate fundraising officer",       "London",     "Non-profit & Policy"),
     # Real Estate
     ("real estate graduate programme",     "London",     "Real Estate"),
     # Media
@@ -141,6 +184,9 @@ class ReedUKScraper(BaseScraper):
         if hint_industry and hint_industry not in industries:
             industries = [hint_industry] + industries[:2]
 
+        from scrapers.base import is_too_senior
+        if is_too_senior(title):
+            return None
         seniority = infer_seniority(title)
         salary    = raw.get("minimumSalary")
         if salary and salary < 25000:

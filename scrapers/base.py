@@ -1,5 +1,5 @@
 """
-CCC Backend — Base scraper
+inroad Backend — Base scraper
 All source scrapers inherit from BaseScraper.
 """
 import re
@@ -41,17 +41,18 @@ def make_job(
 ) -> dict:
     """Construct a validated job dict."""
     return {
-        "company_name":   company_name.strip(),
-        "title":          title.strip(),
-        "url":            url.strip(),
-        "industries":     industries or [],
-        "seniority":      seniority,
+        "company_name":    company_name.strip(),
+        "title":           title.strip(),
+        "url":             url.strip(),
+        "industries":      industries or [],
+        "seniority":       seniority,
         "employment_type": employment_type,
-        "region":         region,
-        "posted_date":    posted_date,
-        "closing_date":   closing_date,
-        "source_id":      source_id,
-        "source_name":    source_name,
+        "role_type":       infer_role_type(title),
+        "region":          region,
+        "posted_date":     posted_date,
+        "closing_date":    closing_date,
+        "source_id":       source_id,
+        "source_name":     source_name,
     }
 
 
@@ -122,11 +123,56 @@ def infer_seniority(title: str) -> str:
     return "mid"  # default
 
 
+SENIOR_EXCLUDE_KEYWORDS = {
+    "senior", "director", "president", "vice president", " vp ",
+    "head of", "managing director", " md ", "chief", " partner",
+    "principal", " manager", " lead", "staff engineer",
+    "associate director", "associate vp",
+}
+
+
+def is_too_senior(title: str) -> bool:
+    """Return True if the title indicates a role too senior for entry-level targeting."""
+    t = title.lower()
+    return any(k in t for k in SENIOR_EXCLUDE_KEYWORDS)
+
+
+_INTERNSHIP_GRAD_KEYWORDS = {
+    "intern", "internship", "placement", "summer analyst", "summer intern",
+    "spring week", "spring intern", "spring analyst", "graduate", "grad",
+    "grad scheme", "graduate scheme", "training contract", "vacation scheme",
+    "insight programme", "insight program", "work experience", "sponsored degree",
+}
+
+
+def infer_role_type(title: str) -> str:
+    """
+    Classify a job that has already passed the entry-level gate as either:
+      'internship_grad' — explicitly programme-based (intern, placement, grad scheme, etc.)
+      'entry_level'     — permanent junior position (analyst, associate, junior, etc.)
+    """
+    t = title.lower()
+    if any(k in t for k in _INTERNSHIP_GRAD_KEYWORDS):
+        return "internship_grad"
+    return "entry_level"
+
+
 INDUSTRY_KEYWORD_MAP: dict[str, list[str]] = {
     "Finance":              ["finance", "financial", "treasury", "accounting", "asset management", "hedge fund", "quant"],
     "Investment Banking":   ["investment bank", "m&a", "mergers", "acquisition", "capital markets", "ipo", "equity research", "dcm", "ecm"],
-    "Technology":           ["technology", "tech", "saas", "platform", "digital", "cloud", "ai", "machine learning"],
-    "Software Engineering": ["software engineer", "developer", "swe", "backend", "frontend", "full stack", "devops", "sre", "mobile"],
+    # Software Engineering checked BEFORE Technology so coding roles aren't swallowed by the broader bucket
+    "Software Engineering": ["software engineer", "software developer", "developer", "swe",
+                             "backend", "front-end", "frontend", "full stack", "fullstack",
+                             "devops", "sre", "site reliability", "mobile engineer",
+                             "ml engineer", "machine learning engineer", "ai engineer",
+                             "platform engineer", "data engineer", "infrastructure engineer",
+                             "cloud engineer", "embedded", "firmware"],
+    # Technology = non-coding roles at tech companies (ops, analysts, consultants in tech context)
+    "Technology":           ["technology analyst", "it analyst", "digital analyst",
+                             "technical analyst", "tech operations", "it operations",
+                             "digital transformation", "solutions analyst", "systems analyst",
+                             "technology consultant", "tech consultant", "it consultant",
+                             "saas", "enterprise technology", "technology program"],
     "Product Management":   ["product manager", "product management", "pm ", "product owner", "product lead"],
     "Consulting":           ["consulting", "consultant", "advisory", "management consulting", "strategy consulting"],
     "Strategy":             ["strategy", "strategic", "corporate development", "business development", "biz dev"],
@@ -134,11 +180,9 @@ INDUSTRY_KEYWORD_MAP: dict[str, list[str]] = {
     "Law":                  ["law", "legal", "solicitor", "barrister", "paralegal", "compliance", "regulatory"],
     "Healthcare":           ["healthcare", "health", "medical", "clinical", "pharma", "biotech", "life sciences", "nhs"],
     "Media & Journalism":   ["media", "journalism", "journalist", "editorial", "publishing", "broadcast", "news"],
-    "Design & UX":          ["design", "ux", "ui", "user experience", "user interface", "product design", "graphic"],
     "Data & Analytics":     ["data", "analytics", "analyst", "data science", "data engineer", "bi ", "business intelligence", "sql", "python"],
     "Real Estate":          ["real estate", "property", "reits", "asset management", "facilities"],
     "Non-profit & Policy":  ["non-profit", "nonprofit", "ngo", "policy", "government", "public sector", "charity", "third sector"],
-    "Venture Capital":      ["venture capital", "vc ", "startup", "angel", "seed", "series a", "portfolio"],
 }
 
 

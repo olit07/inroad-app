@@ -1,5 +1,5 @@
 """
-CCC — Simple in-memory rate limiter for the Flask API.
+inroad — Simple in-memory rate limiter for the Flask API.
 
 Limits:
   - 60 requests/minute per IP for general endpoints

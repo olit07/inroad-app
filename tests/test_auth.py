@@ -241,7 +241,7 @@ class TestVerifyEndpoint:
 
         # Refresh cookie should be set
         cookie_header = resp.headers.get("Set-Cookie", "")
-        assert "ccc_refresh" in cookie_header
+        assert "inroad_refresh" in cookie_header
 
     def test_verify_expired_token_redirects(self, app):
         """GET /auth/verify with an expired magic token redirects to /signup?error=expired."""
@@ -264,12 +264,12 @@ class TestRefreshTokenRotation:
         resp = app.get(f"/auth/verify?token={raw_token}")
         assert resp.status_code == 200
         data = resp.get_json()
-        # Extract Set-Cookie value for ccc_refresh
+        # Extract Set-Cookie value for inroad_refresh
         cookies = resp.headers.getlist("Set-Cookie")
         refresh_cookie = None
         for c in cookies:
-            if "ccc_refresh" in c:
-                # "ccc_refresh=<value>; Path=..."
+            if "inroad_refresh" in c:
+                # "inroad_refresh=<value>; Path=..."
                 refresh_cookie = c.split(";")[0].split("=", 1)[1]
                 break
         return data["access_token"], refresh_cookie
@@ -282,7 +282,7 @@ class TestRefreshTokenRotation:
 
         resp = app.post(
             "/auth/refresh",
-            headers={"Cookie": f"ccc_refresh={refresh_cookie}"},
+            headers={"Cookie": f"inroad_refresh={refresh_cookie}"},
         )
         assert resp.status_code == 200
         data = resp.get_json()
@@ -299,7 +299,7 @@ class TestRefreshTokenRotation:
 
         # New refresh cookie should be set
         cookie_header = resp.headers.get("Set-Cookie", "")
-        assert "ccc_refresh" in cookie_header
+        assert "inroad_refresh" in cookie_header
 
     def test_refresh_with_revoked_token(self, app):
         """POST /auth/refresh with a revoked token returns 401."""
@@ -313,7 +313,7 @@ class TestRefreshTokenRotation:
 
         resp = app.post(
             "/auth/refresh",
-            headers={"Cookie": f"ccc_refresh={refresh_cookie}"},
+            headers={"Cookie": f"inroad_refresh={refresh_cookie}"},
         )
         assert resp.status_code == 401
         data = resp.get_json()
@@ -332,7 +332,7 @@ class TestLogout:
         cookies = verify_resp.headers.getlist("Set-Cookie")
         refresh_cookie = None
         for c in cookies:
-            if "ccc_refresh" in c:
+            if "inroad_refresh" in c:
                 refresh_cookie = c.split(";")[0].split("=", 1)[1]
                 break
 
@@ -340,7 +340,7 @@ class TestLogout:
 
         resp = app.post(
             "/auth/logout",
-            headers={"Cookie": f"ccc_refresh={refresh_cookie}"},
+            headers={"Cookie": f"inroad_refresh={refresh_cookie}"},
         )
         assert resp.status_code == 200
 

@@ -1,5 +1,5 @@
 """
-CCC — Handshake Scraper
+inroad — Handshake Scraper
 
 Handshake exposes a public job search API.
 Searches both UK and US endpoints for internships and full-time roles.

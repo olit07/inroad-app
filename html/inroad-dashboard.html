@@ -55,8 +55,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 52px;
-    border-bottom: 1px solid var(--border);
-    background: var(--white);
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    background: var(--green);
     position: sticky;
     top: 0;
     z-index: 50;
@@ -73,11 +73,11 @@
     font-family: 'Lato', sans-serif;
     font-size: 1rem;
     font-weight: 700;
-    color: var(--text);
+    color: #fff;
     letter-spacing: 0.01em;
   }
 
-  .wordmark-text em { font-style: normal; color: var(--green); }
+  .wordmark-text em { font-style: normal; color: rgba(255,255,255,0.65); }
 
   .nav-right {
     display: flex;
@@ -88,31 +88,31 @@
   .nav-profile {
     width: 32px; height: 32px;
     border-radius: 50%;
-    background: var(--green-lite);
-    border: 1.5px solid var(--green-mid);
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.35);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--green);
+    color: #fff;
     cursor: pointer;
   }
 
   .nav-settings {
     font-size: 0.82rem;
     font-weight: 500;
-    color: var(--muted);
+    color: rgba(255,255,255,0.75);
     text-decoration: none;
     transition: color 0.15s;
   }
 
-  .nav-settings:hover { color: var(--text); }
+  .nav-settings:hover { color: #fff; }
 
   .nav-refer-btn {
-    background: var(--green);
+    background: rgba(255,255,255,0.15);
     color: #fff;
-    border: 1px solid rgba(255,255,255,0.55);
+    border: 1px solid rgba(255,255,255,0.4);
     border-radius: 100px;
     padding: 6px 16px;
     font-size: 12px;
@@ -121,9 +121,9 @@
     cursor: pointer;
     white-space: nowrap;
     letter-spacing: 0.01em;
-    transition: border-color 0.15s, opacity 0.15s;
+    transition: background 0.15s, border-color 0.15s;
   }
-  .nav-refer-btn:hover { opacity: 0.85; border-color: rgba(255,255,255,0.8); }
+  .nav-refer-btn:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); }
 
   .refer-modal-backdrop {
     display: none;
@@ -478,10 +478,14 @@
     text-decoration: none;
     transition: border-color 0.15s, color 0.15s;
     max-width: 100%;
+    overflow: hidden;
     box-sizing: border-box;
   }
   .card-role-tag .role-text {
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 280px;
   }
 
   .card-role-tag:hover {
@@ -1104,6 +1108,88 @@
     font-weight: 600;
     color: var(--text-mid);
   }
+
+  /* ── View tabs ───────────────────────────────────────────── */
+  .view-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 28px 0 20px;
+  }
+  .view-tab {
+    padding: 7px 18px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .view-tab.active {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+  .view-tab:not(.active):hover {
+    border-color: var(--green);
+    color: var(--green);
+  }
+
+  /* ── Search view ─────────────────────────────────────────── */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px 4px 4px 14px;
+    margin-bottom: 16px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .search-bar:focus-within {
+    border-color: #b0bfb8;
+    box-shadow: 0 0 0 3px rgba(31,69,48,0.07);
+  }
+  .search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.88rem;
+    font-weight: 300;
+    color: var(--text);
+    outline: none;
+    font-family: 'Lato', sans-serif;
+    padding: 6px 0;
+  }
+  .search-input::placeholder { color: var(--muted); font-weight: 300; }
+  .search-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    font-weight: 300;
+    font-size: 0.8rem;
+    font-family: 'Lato', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+  }
+  .search-btn:hover { background: #163a26; }
+  .search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .search-results-empty {
+    color: var(--muted);
+    font-size: 0.88rem;
+    text-align: center;
+    padding: 48px 0;
+  }
 </style>
 </head>
 <body>
@@ -1117,7 +1203,7 @@
 <!-- NAV -->
 <nav>
   <a href="/" class="wordmark">
-    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;border-radius:7px;outline:1.5px solid rgba(255,255,255,0.6);"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:#fff;">inroad</span>
   </a>
   <div class="nav-right">
     <button class="nav-refer-btn" id="nav-refer-btn" onclick="openReferModal()" style="display:none">Get 5 daily matches</button>
@@ -1187,6 +1273,12 @@
       <strong>Outlook connected.</strong> Your emails will be sent directly from your account with one click.
     </div>
     <button class="outlook-box-btn outlook-box-btn--disconnect" onclick="disconnectOutlook()">Disconnect</button>
+  </div>
+
+  <!-- View tabs -->
+  <div class="view-tabs">
+    <button class="view-tab active" id="tab-daily" onclick="switchTab('daily')">Today's matches</button>
+    <button class="view-tab" id="tab-search" onclick="switchTab('search')" style="display:none">Search roles</button>
   </div>
 
   <!-- Section label -->
@@ -1276,6 +1368,23 @@
     </div>
 
   </div>
+
+  <!-- Search view -->
+  <div class="search-view" id="searchView" style="display:none">
+    <div class="search-bar">
+      <input
+        type="text"
+        id="searchInput"
+        class="search-input"
+        placeholder="e.g. Data Scientist Intern, Strategy Analyst…"
+        oninput="onSearchInput()"
+        onkeydown="if(event.key==='Enter') runSearch()"
+      />
+      <button class="search-btn" onclick="runSearch()">Search</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
 </div>
 
 <!-- EMAIL DRAFT MODAL -->
@@ -1511,6 +1620,9 @@
           updateGreeting(student);
           initQuotaUI(dailyQuota);
           _updateOutlookUI(!!student.outlook_connected);
+          if (student.search_roles_enabled) {
+            document.getElementById('tab-search').style.display = '';
+          }
         }
       }
     } catch (e) { /* ignore, show defaults */ }
@@ -1618,6 +1730,7 @@
         subject:     m.email_subject || `Student reaching out about the ${m.job_title || 'role'} at ${jobCompany}`,
         body:        _cleanBody(m.email_body) || `Hi ${(m.person_name||'').split(' ')[0]},\n\nI came across the ${m.job_title || 'role'} at ${jobCompany} and would love to hear more.\n\nWould you be open to a 20 minute chat?\n\nThanks`,
         // Extra context for regenerate
+        matchId:     m.id,
         personTitle: m.person_title || '',
         company:     jobCompany,
         jobTitle:    m.job_title || '',
@@ -1646,7 +1759,7 @@
               </div>
               <div class="card-bottom-row">
                 <div class="card-bottom-left">
-                  ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">${m.job_title || 'Open role'} ↗</span></a>` : ''}
+                  ${m.job_title ? (jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">${m.job_title} ↗</span></a>` : `<span class="card-role-tag"><div class="role-dot"></div><span class="role-text">${m.job_title}</span></span>`) : ''}
                   <div class="card-details-grid">
                     <div class="card-posted">${m.opening_date ? 'Opened on: ' + fmtDate(m.opening_date) : '—'}</div>
                     <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value">${linkedinUrl !== '#' ? `<a href="${linkedinUrl}" target="_blank" rel="noopener noreferrer">${linkedinUrl.replace('https://','').replace('http://','')}</a>` : '—'}</span></div>
@@ -1811,6 +1924,12 @@ Alex`
     if (markBtn && !markBtn.classList.contains('done')) {
       markBtn.disabled = false;
     }
+    // Restore all modal buttons hidden for search-card mode
+    document.getElementById('btn-mark-sent').style.display    = '';
+    document.getElementById('btn-copy').style.display         = '';
+    document.getElementById('btn-open-mail').style.display    = '';
+    document.querySelector('.btn-regenerate').style.display   = '';
+    document.getElementById('modal-to-input').readOnly        = false;
     activeCard = null;
   }
 
@@ -1848,6 +1967,7 @@ Alex`
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          match_id:     card.matchId || null,
           person_name:  card.name,
           person_title: card.personTitle || '',
           company:      card.company || '',
@@ -2072,6 +2192,146 @@ Alex`
       document.querySelector('.quota-card').classList.add('all-sent');
       document.getElementById('congrats-banner').classList.add('visible');
     }
+  }
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    const isDaily = tab === 'daily';
+    document.getElementById('tab-daily').classList.toggle('active', isDaily);
+    document.getElementById('tab-search').classList.toggle('active', !isDaily);
+    const label = document.querySelector('.section-label');
+    if (label) label.textContent = isDaily ? "Today's matches" : "Search results";
+    document.querySelector('.matches').style.display = isDaily ? '' : 'none';
+    document.getElementById('searchView').style.display = isDaily ? 'none' : '';
+    if (!isDaily) document.getElementById('searchInput').focus();
+  }
+
+  // ── Search ─────────────────────────────────────────────────────────────────
+  let _searchTimer = null;
+
+  function onSearchInput() {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(runSearch, 400);
+  }
+
+  async function runSearch() {
+    const q = (document.getElementById('searchInput').value || '').trim();
+    const container = document.getElementById('searchResults');
+    if (!q) { container.innerHTML = ''; return; }
+    container.innerHTML = '<p class="search-results-empty">Searching…</p>';
+    try {
+      const res  = await apiFetch('/api/jobs/search?q=' + encodeURIComponent(q) + '&limit=20');
+      const data = await res.json();
+      renderSearchResults(data.results || []);
+    } catch (e) {
+      container.innerHTML = '<p class="search-results-empty">Something went wrong. Try again.</p>';
+    }
+  }
+
+  function renderSearchResults(results) {
+    const container = document.getElementById('searchResults');
+    if (!results.length) {
+      container.innerHTML = '<p class="search-results-empty">No roles found. Try a different search term.</p>';
+      return;
+    }
+
+    // Register search cards in the global matches object so the modal works
+    container.innerHTML = '';
+    results.forEach((r, i) => {
+      const job     = r.job;
+      const lead    = r.lead;
+      const cardId  = `search-card-${i}`;
+      const jobUrl  = job.url || '#';
+      const avatarUrl = pickAvatar(lead ? lead.name : job.company);
+
+      const leadName    = lead ? lead.name  : '';
+      const leadTitle   = lead ? (lead.title || '') : '';
+      const leadLinkedin = lead ? (lead.linkedin_url || '') : '';
+      const leadEmail   = lead ? (lead.email || '') : '';
+      const company     = job.company || '';
+
+      const nameHtml = leadName
+        ? `<span class="card-name">${leadName}</span>${leadTitle ? `<span class="card-name-sep"> – </span><span class="card-name-title">${leadTitle} · ${company}</span>` : ''}`
+        : `<span class="card-name">${company}</span>`;
+
+      const linkedinDisplay = leadLinkedin ? leadLinkedin.replace(/^https?:\/\//,'') : '';
+
+      // Store in global matches for the modal
+      matches[cardId] = {
+        id:          null,
+        name:        leadName,
+        to:          leadEmail,
+        applyUrl:    jobUrl,
+        subject:     `Student reaching out about ${job.title} at ${company}`,
+        body:        `Hi ${leadName.split(' ')[0] || 'there'},\n\nI came across the ${job.title} role at ${company} and would love to find out more about the team.\n\nWould you be open to a 20-minute chat?\n\nMany thanks`,
+        matchId:     null,
+        personTitle: leadTitle,
+        company:     company,
+        jobTitle:    job.title || '',
+        isAlumni:    false,
+        isSearch:    true,
+      };
+
+      const atQuota = sentCount >= dailyQuota;
+      const actionHtml = atQuota
+        ? `<span style="font-size:0.75rem;color:var(--muted);font-weight:500">Daily limit reached</span>`
+        : `<button class="draft-btn" onclick="openSearchDraft('${cardId}')">Draft email →</button>`;
+
+      const openedOn = job.opening_date ? 'Opened on: ' + fmtDate(job.opening_date) : '—';
+      const linkedinHref = leadLinkedin ? (leadLinkedin.startsWith('http') ? leadLinkedin : 'https://' + leadLinkedin) : '';
+
+      const card = document.createElement('div');
+      card.className = 'match-card';
+      card.id = cardId;
+      card.style.cssText = `opacity:0;animation:rise 0.45s ease forwards;animation-delay:${i*0.06}s`;
+      card.innerHTML = `
+        <div class="card-main">
+          <div class="avatar"><img src="${avatarUrl}" alt="" loading="lazy"></div>
+          <div class="card-body">
+            <div class="card-header">
+              <div class="card-name-row">${nameHtml}</div>
+              <div class="card-action">${actionHtml}</div>
+            </div>
+            <div class="card-bottom-row">
+              <div class="card-bottom-left">
+                ${jobUrl !== '#' ? `<a class="card-role-tag has-link" href="${jobUrl}" target="_blank" rel="noopener noreferrer"><div class="role-dot"></div><span class="role-text">${job.title} ↗</span></a>` : `<span class="card-role-tag"><div class="role-dot"></div><span class="role-text">${job.title}</span></span>`}
+                <div class="card-details-grid">
+                  <div class="card-posted">${openedOn}</div>
+                  <div class="meta-item"><span class="meta-label">Profile:</span><span class="meta-value">${linkedinHref ? `<a href="${linkedinHref}" target="_blank" rel="noopener noreferrer">${linkedinDisplay}</a>` : '—'}</span></div>
+                  <div class="meta-item"><span class="meta-label">Industry:</span><span class="meta-value">${job.industry || '—'}</span></div>
+                  <div class="meta-item"><span class="meta-label">Expected email:</span><span class="meta-value" style="${atQuota && leadEmail ? 'filter:blur(4px);user-select:none;' : ''}">${leadEmail || '—'}</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      container.appendChild(card);
+    });
+  }
+
+  function openSearchDraft(cardId) {
+    if (sentCount >= dailyQuota) return;
+    const m = matches[cardId];
+    if (!m) return;
+
+    document.getElementById('modal-title').textContent = 'Draft email';
+    document.getElementById('modal-to-input').value = m.to || '';
+    document.getElementById('modal-to-input').readOnly = true;
+    document.getElementById('modal-subject-input').value = m.subject || '';
+    document.getElementById('email-body').value = m.body || '';
+    document.getElementById('modal-role-link').href = m.applyUrl || '#';
+
+    // Hide actions that require a DB match_id; show copy/open-in-mail only
+    document.getElementById('btn-mark-sent').style.display    = 'none';
+    document.getElementById('btn-send-outlook').style.display = 'none';
+    document.querySelector('.btn-regenerate').style.display   = 'none';
+    document.getElementById('btn-copy').style.display        = '';
+    document.getElementById('btn-open-mail').style.display   = '';
+
+    updateWordCount();
+    activeCard = cardId;
+    document.getElementById('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
   }
 </script>
 

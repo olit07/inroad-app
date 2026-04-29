@@ -1,5 +1,5 @@
 """
-CCC Backend — Welcome to the Jungle Scraper  (Gold Standard source #2)
+inroad Backend — Welcome to the Jungle Scraper  (Gold Standard source #2)
 
 Searches WTTJ's public API for V0 scope: internships, graduate programmes,
 and entry-level roles in Finance, Technology, and Law only.

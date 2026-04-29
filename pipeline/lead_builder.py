@@ -24,7 +24,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.settings   import (
-    DEPT_MAP, TITLE_DEPT_MAP, UNI_FULL_NAMES, REGION_LOCATION_FALLBACK,
+    DEPT_MAP, TITLE_DEPT_MAP, TITLE_SEARCH_KEYWORD_MAP,
+    UNI_FULL_NAMES, REGION_LOCATION_FALLBACK,
     COMPANY_EMAIL_FORMATS,
 )
 from db.database       import fetchall, upsert_lead, USE_POSTGRES, get_email_format, save_email_format
@@ -106,13 +107,26 @@ def _dept_from_title(title: str) -> str:
     """
     Map a job title to a single DEPT_MAP key by scanning title keywords.
     Returns the first matching dept_tag from TITLE_DEPT_MAP, or
-    'software_engineering' as a safe default.
+    'general' as a safe default (searches for 'analyst').
     """
     title_lower = title.lower()
     for keywords, dept_tag in TITLE_DEPT_MAP:
         if any(kw in title_lower for kw in keywords):
             return dept_tag
-    return "software_engineering"
+    return "general"
+
+
+def _search_keyword_from_title(title: str, dept_tag: str) -> str:
+    """
+    Return the most specific LinkedIn search keyword for a given job title.
+    Checks TITLE_SEARCH_KEYWORD_MAP first (title-specific), then falls back
+    to the first keyword in DEPT_MAP[dept_tag].
+    """
+    title_lower = title.lower()
+    for triggers, keyword in TITLE_SEARCH_KEYWORD_MAP:
+        if any(t in title_lower for t in triggers):
+            return keyword
+    return (DEPT_MAP.get(dept_tag) or ["consultant"])[0]
 
 
 def _guess_domain_fallback(company: str) -> str:
@@ -259,12 +273,30 @@ def _get_email_format(company: str) -> tuple[str, str]:
     return ("FL", domain)
 
 
+_CREDENTIAL_SUFFIXES = {
+    "cfa", "mba", "phd", "cpa", "ca", "acca", "frm", "cima",
+    "cfp", "caia", "msc", "bsc", "ba", "llb", "llm", "md",
+    "fca", "aca", "fcca", "cia", "cfe", "pmp", "esq",
+}
+
+
+def _strip_credentials(parts: list[str]) -> list[str]:
+    """Remove trailing credential tokens (CFA, MBA, PhD, etc.) from a split name."""
+    while parts:
+        token = re.sub(r"[^a-z]", "", parts[-1].lower())
+        if token in _CREDENTIAL_SUFFIXES:
+            parts = parts[:-1]
+        else:
+            break
+    return parts
+
+
 def _infer_email(name: str, company: str) -> str:
     """Build expected email from name + company using Claude-determined format."""
     fmt, domain = _get_email_format(company)
     if not domain:
         return ""
-    parts = name.strip().split()
+    parts = _strip_credentials(name.strip().split())
     if len(parts) < 2:
         return ""
     first = re.sub(r"[^a-z]", "", parts[0].lower())
@@ -457,51 +489,58 @@ def build_leads(
     dry_run:        bool = False,
     max_companies:  int = 0,
     days_back:      int = 0,
+    top_n:          int = 50,
+    force:          bool = False,
 ) -> int:
     """
-    Main entry point. Fetches leads for all active jobs (or filtered by company).
+    Main entry point. Fetches leads for the top_n most recently opened Trackr companies.
     Returns total leads upserted.
 
-    - Gets distinct (company, location, industry) from active jobs table.
-    - For each: runs Query A (alumni) → if < 2 leads, also runs Query B (broad).
-    - Parses snippets, stores in leads table, appends to training JSONL.
+    - Selects the top_n distinct companies ordered by most recent opening_date.
+    - For each company/dept pair: runs Query B (broad) + one query per Russell Group uni.
+    - Parses snippets, stores in leads table, deduplicates by linkedin_url.
 
-    days_back: if > 0, only include jobs with opening_date in the last N days.
+    top_n: number of most-recent companies to process (default 50).
+    days_back: if > 0, also filter to jobs opened in the last N days (additive).
     """
+    from config.settings import RUSSELL_GROUP_UNIS
+
     matcher = LinkedInMatcher()
     if not matcher.serper_key:
         logger.error("SERPER_API_KEY not set — cannot build leads")
         return 0
 
-    # Fetch one row per (company, title, location) — SQLite-compatible dedup
-    where_clauses = []
+    # Select top_n most recent distinct companies from trackr
+    where_clauses = ["source = 'trackr'", "lower(company) != 'trackr'", "company IS NOT NULL", "company != ''"]
     params: list = []
     if company_filter:
-        where_clauses.append("lower(company) = lower(?)")
+        where_clauses.append("lower(company) = lower(?)" if not USE_POSTGRES else "lower(company) = lower(%s)")
         params.append(company_filter)
     if days_back > 0:
         if USE_POSTGRES:
             where_clauses.append(f"opening_date <> '' AND opening_date::date >= CURRENT_DATE - INTERVAL '{days_back} days'")
         else:
             where_clauses.append(f"opening_date >= date('now', '-{days_back} days')")
-    where = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+    where = " WHERE " + " AND ".join(where_clauses)
 
     if USE_POSTGRES:
         rows = fetchall(
-            f"SELECT DISTINCT ON (company, title, location) company, title, location, url, opening_date "
+            f"SELECT DISTINCT ON (lower(company)) company, title, location, url, opening_date "
             f"FROM jobs{where} "
-            f"ORDER BY company, title, location, opening_date DESC NULLS LAST",
+            f"ORDER BY lower(company), opening_date DESC NULLS LAST",
             params or None,
         )
     else:
         rows = fetchall(
             f"SELECT company, title, location, url, MAX(opening_date) AS opening_date "
             f"FROM jobs{where} "
-            f"GROUP BY company, title, location "
+            f"GROUP BY lower(company) "
             f"ORDER BY MAX(opening_date) DESC",
             params or None,
         )
     rows = sorted(rows, key=lambda r: r.get("opening_date") or "", reverse=True)
+    if top_n > 0 and not company_filter:
+        rows = rows[:top_n]
 
     if not rows:
         logger.warning("No jobs found in DB — run scraper first")
@@ -529,9 +568,8 @@ def build_leads(
         # Translate region codes to cities for Serper query (needed for search quality)
         search_location = REGION_LOCATION_FALLBACK.get(location, location) or "London"
 
-        dept_name     = _dept_from_title(job_title)
-        dept_keywords = DEPT_MAP.get(dept_name, [dept_name])
-        dept_keyword  = dept_keywords[0]  # most specific / descriptive keyword
+        dept_name    = _dept_from_title(job_title)
+        dept_keyword = _search_keyword_from_title(job_title, dept_name)
 
         pair = (company.lower(), dept_name)
         if pair in seen_pairs:
@@ -539,7 +577,7 @@ def build_leads(
         seen_pairs.add(pair)
 
         # Skip if leads already exist in DB for this (company, dept) pair
-        if not dry_run:
+        if not dry_run and not force:
             existing = fetchall(
                 "SELECT 1 FROM leads WHERE lower(company)=lower(?) AND dept_tag=? LIMIT 1",
                 (company, dept_name),
@@ -582,11 +620,32 @@ def build_leads(
             _save_training_records(company, dept_name, location, query_b, "broad", 1, raw_b_p1, [_parse_snippet(r, university, dept_name) for r in raw_b_p1], university)
             _save_training_records(company, dept_name, location, query_b, "broad", 2, raw_b_p2, [_parse_snippet(r, university, dept_name) for r in raw_b_p2], university)
 
-        # Merge A + B, deduplicate by linkedin_url
+        # Query RG — one query per Russell Group university
+        leads_rg: list[dict] = []
+        for rg_uni in RUSSELL_GROUP_UNIS:
+            query_rg = _build_query_alumni(company, search_location, rg_uni, dept_keyword)
+            logger.debug(f"  Query RG ({rg_uni}): {query_rg[:100]}")
+            try:
+                raw_rg_p1 = matcher._serper_search(query_rg, count=10, page=1)
+                raw_rg_p2 = matcher._serper_search(query_rg, count=10, page=2)
+            except RuntimeError as e:
+                if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                    logger.critical("🚨 SERPER CREDITS EXHAUSTED during RG queries — stopping")
+                    logger.info(f"Lead build stopped early — {total_upserted} leads upserted so far")
+                    return total_upserted
+                raise
+            for i, r in enumerate(raw_rg_p1): r["_rank"] = i + 1
+            for i, r in enumerate(raw_rg_p2): r["_rank"] = i + 11
+            raw_rg = _dedup(raw_rg_p1 + raw_rg_p2)
+            parsed_rg = [_parse_snippet(r, university=rg_uni, dept_tag=dept_name) for r in raw_rg]
+            leads_rg.extend([l for l in parsed_rg if l])
+        logger.info(f"  {company} / {dept_name}: {len(leads_rg)} RG leads across {len(RUSSELL_GROUP_UNIS)} unis")
+
+        # Merge A + B + RG, deduplicate by linkedin_url
         # Stamp job metadata onto each lead — snippet parsing can't reliably extract these
         _REGION_COUNTRY = {"UK": "united kingdom", "US": "united states"}
         all_leads: dict[str, dict] = {}
-        for lead in leads_a + leads_b:
+        for lead in leads_a + leads_b + leads_rg:
             # Fix A: skip if the parsed company from the LinkedIn title doesn't match
             # the company we searched for (catches location/name collisions, e.g. Jonathan
             # Erbe at LSEG appearing in a Brookfield search because "Brookfield, WI" is
@@ -639,11 +698,104 @@ def build_leads(
             # (e.g. "London"); replacing with "UK" causes 0/25 pts in the scorer.
             if not lead.get("location_country") and location in _REGION_COUNTRY:
                 lead["location_country"] = _REGION_COUNTRY[location]
+            lead["lead_type"] = "relevant"
             url = lead.get("linkedin_url", "")
             if url and url not in all_leads:
                 all_leads[url] = lead
 
-        logger.info(f"  {company} / {dept_name}: {len(all_leads)} unique leads")
+        logger.info(f"  {company} / {dept_name}: {len(all_leads)} relevant leads (tier 1)")
+
+        # ── Tier 2: Senior / Exec ────────────────────────────────────────────────
+        for exec_kw in ["director", "partner"]:
+            q_exec = f'site:linkedin.com/in "{exec_kw}" "{company}" "{search_location}"'
+            for pg in [1, 2]:
+                try:
+                    raw_exec = matcher._serper_search(q_exec, count=10, page=pg)
+                except RuntimeError as e:
+                    if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                        logger.critical("🚨 SERPER CREDITS EXHAUSTED during exec queries — stopping")
+                        return total_upserted
+                    logger.warning(f"  Exec query failed: {e}")
+                    continue
+                for i, r in enumerate(raw_exec): r["_rank"] = i + 1
+                for r in _dedup(raw_exec):
+                    lead = _parse_snippet(r, university="", dept_tag=dept_name)
+                    if not lead: continue
+                    parsed_co = lead.get("company", "") or lead.get("title", "")
+                    if parsed_co and not _company_name_overlap(parsed_co, company): continue
+                    if _snippet_role_is_past(lead.get("snippet", "")): continue
+                    lead["company"] = company
+                    lead["job_title"] = job_title
+                    lead["job_expected_email"] = _infer_email(lead.get("name", ""), company)
+                    lead["job_opening_date"] = opening_date
+                    lead["lead_type"] = "exec"
+                    if not lead.get("location_country") and location in _REGION_COUNTRY:
+                        lead["location_country"] = _REGION_COUNTRY[location]
+                    url = lead.get("linkedin_url", "")
+                    if url and url not in all_leads:
+                        all_leads[url] = lead
+
+        # ── Tier 3: HR / Recruiter ───────────────────────────────────────────────
+        q_hr = f'site:linkedin.com/in "recruiter" "{company}" "{search_location}"'
+        for pg in [1, 2]:
+            try:
+                raw_hr = matcher._serper_search(q_hr, count=10, page=pg)
+            except RuntimeError as e:
+                if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                    logger.critical("🚨 SERPER CREDITS EXHAUSTED during HR queries — stopping")
+                    return total_upserted
+                logger.warning(f"  HR query failed: {e}")
+                continue
+            for i, r in enumerate(raw_hr): r["_rank"] = i + 1
+            for r in _dedup(raw_hr):
+                lead = _parse_snippet(r, university="", dept_tag="hr")
+                if not lead: continue
+                parsed_co = lead.get("company", "") or lead.get("title", "")
+                if parsed_co and not _company_name_overlap(parsed_co, company): continue
+                lead["company"] = company
+                lead["job_title"] = job_title
+                lead["job_expected_email"] = _infer_email(lead.get("name", ""), company)
+                lead["job_opening_date"] = opening_date
+                lead["lead_type"] = "hr"
+                if not lead.get("location_country") and location in _REGION_COUNTRY:
+                    lead["location_country"] = _REGION_COUNTRY[location]
+                url = lead.get("linkedin_url", "")
+                if url and url not in all_leads:
+                    all_leads[url] = lead
+
+        # ── Tier 4: General fallback (only if < 25 total leads) ─────────────────
+        if len(all_leads) < 25:
+            q_gen = f'site:linkedin.com/in "{company}" "{search_location}"'
+            for pg in [1, 2, 3]:
+                if len(all_leads) >= 25:
+                    break
+                try:
+                    raw_gen = matcher._serper_search(q_gen, count=10, page=pg)
+                except RuntimeError as e:
+                    if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                        logger.critical("🚨 SERPER CREDITS EXHAUSTED during general fallback — stopping")
+                        return total_upserted
+                    logger.warning(f"  General fallback query failed: {e}")
+                    continue
+                for i, r in enumerate(raw_gen): r["_rank"] = i + 1
+                for r in _dedup(raw_gen):
+                    lead = _parse_snippet(r, university="", dept_tag="general")
+                    if not lead: continue
+                    parsed_co = lead.get("company", "") or lead.get("title", "")
+                    if parsed_co and not _company_name_overlap(parsed_co, company): continue
+                    if _snippet_role_is_past(lead.get("snippet", "")): continue
+                    lead["company"] = company
+                    lead["job_title"] = job_title
+                    lead["job_expected_email"] = _infer_email(lead.get("name", ""), company)
+                    lead["job_opening_date"] = opening_date
+                    lead["lead_type"] = "general"
+                    if not lead.get("location_country") and location in _REGION_COUNTRY:
+                        lead["location_country"] = _REGION_COUNTRY[location]
+                    url = lead.get("linkedin_url", "")
+                    if url and url not in all_leads:
+                        all_leads[url] = lead
+
+        logger.info(f"  {company} / {dept_name}: {len(all_leads)} total leads (all tiers)")
 
         if not dry_run:
             for lead in all_leads.values():
@@ -655,6 +807,10 @@ def build_leads(
 
     logger.info(f"Lead build complete — {total_upserted} leads upserted")
     return total_upserted
+
+
+class SerperCreditsExhausted(Exception):
+    pass
 
 
 def _dedup(results: list[dict]) -> list[dict]:
@@ -704,6 +860,7 @@ if __name__ == "__main__":
     parser.add_argument("--max-companies",      type=int, default=0, help="Stop after N unique company/dept pairs")
     parser.add_argument("--days-back",          type=int, default=0, help="Only include jobs posted in the last N days")
     parser.add_argument("--cleanup-stale-leads", action="store_true", help="Mark existing leads with past-role snippets as stale")
+    parser.add_argument("--force", action="store_true", help="Re-scrape even if leads already exist for a company/dept pair")
     args = parser.parse_args()
 
     if args.cleanup_stale_leads:
@@ -718,5 +875,6 @@ if __name__ == "__main__":
             dry_run        = args.dry_run,
             max_companies  = args.max_companies,
             days_back      = args.days_back,
+            force          = args.force,
         )
         print(f"Done — {n} leads upserted")

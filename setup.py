@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CCC — First-run setup script
+inroad — First-run setup script
 
 Run this once after cloning the project:
   python3 setup.py
@@ -173,7 +173,7 @@ def check_env():
 
 
 def write_env_template():
-    template = """# CCC Environment Variables
+    template = """# inroad Environment Variables
 # Copy this to .env and fill in your keys
 # Then run: source .env
 
@@ -200,7 +200,7 @@ export BING_SEARCH_API_KEY=...              # LinkedIn profile search (Azure fre
 
 if __name__ == "__main__":
     print(f"\n{'═'*55}")
-    print(f"  CCC Setup")
+    print(f"  inroad Setup")
     print(f"{'═'*55}")
 
     hdr("1. Database")
@@ -242,4 +242,4 @@ if __name__ == "__main__":
     if not env_results["ANTHROPIC_API_KEY"]["set"]:
         print(f"  {Y}⚠  No ANTHROPIC_API_KEY — using template emails (still works).{RST}")
 
-    print(f"\n  {G}Setup complete.{RST} Open ccc-admin.html in your browser.\n")
+    print(f"\n  {G}Setup complete.{RST} Open inroad-admin.html in your browser.\n")

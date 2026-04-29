@@ -34,13 +34,19 @@ SEARCH_PAGES = [
     ("finance",              ["Finance"]),
     ("asset-management",     ["Finance"]),
     ("private-equity",       ["Finance", "Investment Banking"]),
-    ("venture-capital",      ["Venture Capital"]),
     ("quantitative-finance", ["Finance"]),
-    ("technology",           ["Technology", "Software Engineering"]),
+    ("technology",           ["Software Engineering"]),
     ("data-science",         ["Data & Analytics"]),
     ("risk-management",      ["Finance"]),
     ("consulting",           ["Consulting"]),
     ("compliance",           ["Finance", "Law"]),
+    # Healthcare / Life Sciences — confirmed working eFC sector slugs
+    ("healthcare",           ["Healthcare"]),
+    ("life-sciences",        ["Healthcare"]),
+    ("pharma",               ["Healthcare"]),
+    # Consulting / Strategy — additional coverage beyond generic "consulting"
+    ("management-consulting", ["Consulting"]),
+    ("strategy",             ["Consulting", "Strategy"]),
 ]
 
 # Only fetch jobs posted in the last N days
@@ -146,6 +152,9 @@ class EFinancialCareersScraper(BaseScraper):
         title = link_el.get("title", "").strip() or link_el.get_text(strip=True)
         href  = link_el.get("href", "")
         if not title or not href:
+            return None
+        from scrapers.base import is_too_senior
+        if is_too_senior(title):
             return None
         url = href if href.startswith("http") else BASE_URL + href
         if url in seen_urls:

@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<script src="/static/auth.js"></script>
 <style>
   :root {
     --bg:         #FFFFFF;
@@ -71,6 +72,7 @@
   }
   .nav-center a:hover { color: var(--text); }
   .nav-center a.active { color: var(--green); font-weight: 700; }
+  nav.nav-logged-in .wordmark span { color: #fff !important; }
   nav.nav-logged-in .nav-center a { color: rgba(255,255,255,0.7); }
   nav.nav-logged-in .nav-center a:hover { color: #fff; }
   nav.nav-logged-in .nav-center a.active { color: #fff; font-weight: 700; }
@@ -1020,39 +1022,57 @@
   })();
 
   // ── Auth nav ──────────────────────────────────────────────────────────────
-  (function updateNav() {
-    const token = sessionStorage.getItem('inroad_token') || localStorage.getItem('inroad_access_token') || localStorage.getItem('access_token') || '';
-    if (!token) return;
-    fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!d) return;
-        const navEl    = document.getElementById('main-nav');
-        const navRight = document.getElementById('nav-right');
-        if (!navRight) return;
-        const name     = d.name || '';
-        const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
-        if (navEl) {
-          navEl.classList.add('nav-logged-in');
-          const wm = document.getElementById('wordmark-text');
-          if (wm) wm.style.color = '#fff';
-        }
-        const navCenter = document.getElementById('nav-center');
-        if (navCenter) navCenter.innerHTML = `
-          <li><a href="/opportunities">Opportunities</a></li>
-          <li><a href="/pipeline" class="active">Pipeline</a></li>`;
-        if (d.referral_code) {
-          const inp = document.getElementById('refer-link-input');
-          if (inp) inp.value = `https://www.the-inroad.com/signup?ref=${d.referral_code}`;
-        }
-        navRight.innerHTML = `
-          <div class="nav-user">
-            ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
-            <a href="/settings" class="btn-settings">Settings</a>
-            <div class="nav-initials">${esc(initials || '?')}</div>
-          </div>`;
-      })
-      .catch(() => {});
+  (async function updateNav() {
+    const navEl    = document.getElementById('main-nav');
+    const navRight = document.getElementById('nav-right');
+
+    let token = getAccessToken();
+    if (!token) {
+      const ok = await _tryRefresh();
+      if (!ok) return;
+      token = getAccessToken();
+    }
+
+    // Go green immediately; only revert if auth actually fails
+    if (navEl) navEl.classList.add('nav-logged-in');
+    if (navRight) navRight.style.visibility = 'hidden';
+
+    let d = null;
+    try {
+      let resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      if (resp.status === 401) {
+        const ok = await _tryRefresh();
+        if (!ok) { if (navEl) navEl.classList.remove('nav-logged-in'); if (navRight) navRight.style.visibility = ''; return; }
+        token = getAccessToken();
+        resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      }
+      if (resp.ok) d = await resp.json();
+    } catch { /* network error */ }
+
+    if (!d) {
+      if (navEl) navEl.classList.remove('nav-logged-in');
+      if (navRight) navRight.style.visibility = '';
+      return;
+    }
+
+    // Auth confirmed — update DOM; errors here never revert the green nav
+    if (navRight) navRight.style.visibility = '';
+    const name     = d.name || '';
+    const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+    const navCenter = document.getElementById('nav-center');
+    if (navCenter) navCenter.innerHTML = `
+      <li><a href="/opportunities">Opportunities</a></li>
+      <li><a href="/pipeline" class="active">Pipeline</a></li>`;
+    if (d.referral_code) {
+      const inp = document.getElementById('refer-link-input');
+      if (inp) inp.value = `https://www.the-inroad.com/signup?ref=${d.referral_code}`;
+    }
+    if (navRight) navRight.innerHTML = `
+      <div class="nav-user">
+        ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
+        <a href="/settings" class="btn-settings">Settings</a>
+        <div class="nav-initials">${esc(initials || '?')}</div>
+      </div>`;
   })();
 
   // ── Referral modal ────────────────────────────────────────────────────────

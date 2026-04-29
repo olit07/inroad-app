@@ -1,5 +1,5 @@
 """
-CCC — Workday ATS Scraper
+inroad — Workday ATS Scraper
 
 Workday exposes a JSON API used by their frontend:
   POST https://{sub}.wd{n}.myworkdayjobs.com/wday/cxs/{sub}/{board}/jobs

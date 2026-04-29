@@ -820,7 +820,7 @@
 
       <div class="step-actions">
         <button class="btn-back" onclick="prevStep(6)">← Back</button>
-        <button class="btn-next green" onclick="nextStep(6)">Find my matches →</button>
+        <button class="btn-next green" onclick="nextStep(6)">Find my opportunities →</button>
       </div>
       <p class="step-counter">6 of 6</p>
     </div>
@@ -1064,12 +1064,14 @@
         });
       } catch (_) {}
 
-      // Pass the current access token to the dashboard via sessionStorage so it
-      // doesn't have to rely solely on the refresh-token cookie succeeding.
+      // Pass token via both sessionStorage and URL param so it survives any
+      // browser context boundary (email clients, webviews, new tabs).
       const tok = getAccessToken();
       if (tok) sessionStorage.setItem('inroad_token', tok);
 
-      window.location.href = '/opportunities';
+      window.location.href = tok
+        ? `/opportunities?_t=${encodeURIComponent(tok)}`
+        : '/opportunities';
     }
 
     saveAndGo();

@@ -1,8 +1,8 @@
 """
-CCC — LinkedIn Profile Cache
+inroad — LinkedIn Profile Cache
 
 Caches resolved LinkedIn profile data for 7 days to avoid re-fetching.
-Uses the main ccc.db database (separate profile_cache table).
+Uses the main inroad.db database (separate profile_cache table).
 """
 import json, logging
 from datetime import datetime, timedelta

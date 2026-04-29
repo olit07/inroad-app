@@ -147,6 +147,23 @@
     </div>
   </div>
 
+  <!-- Career stage -->
+  <div class="section">
+    <div class="section-label">Career stage</div>
+    <div class="section-card">
+      <div class="size-row">
+        <div class="size-card" data-stage="grad-program" onclick="selectStage(this)">
+          <div class="size-card-label">🎓 Grad / Internship</div>
+          <div class="size-card-desc">Currently studying</div>
+        </div>
+        <div class="size-card" data-stage="full-time" onclick="selectStage(this)">
+          <div class="size-card-label">💼 Full time search</div>
+          <div class="size-card-desc">Graduated, job hunting</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Company size -->
   <div class="section">
     <div class="section-label">Preferred company size</div>
@@ -234,6 +251,11 @@ function selectSize(el) {
   el.classList.add('selected');
 }
 
+function selectStage(el) {
+  document.querySelectorAll('[data-stage]').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
 async function loadSettings() {
   // Restore token from sessionStorage if coming from another page
   const _stored = sessionStorage.getItem('inroad_token');
@@ -260,6 +282,9 @@ async function loadSettings() {
       if (selInds.includes(pill.dataset.value)) pill.classList.add('selected');
     });
 
+    const stageEl = document.querySelector(`[data-stage="${data.status}"]`);
+    if (stageEl) selectStage(stageEl);
+
     const sizeEl = document.querySelector(`[data-value="${data.company_size}"]`);
     if (sizeEl) selectSize(sizeEl);
 
@@ -282,11 +307,14 @@ async function saveSettings() {
   const industries = [...document.querySelectorAll('.industry-pill.selected')].map(p => p.dataset.value);
   const size = document.querySelector('.size-card.selected')?.dataset.value || '';
 
+  const stage = document.querySelector('[data-stage].selected')?.dataset.stage || '';
+
   const payload = {
     name:        document.getElementById('name-input').value.trim(),
     bio:         document.getElementById('bio').value.trim(),
     industries,
     companySize: size,
+    status:      stage,
   };
 
   const btn = document.getElementById('save-btn');

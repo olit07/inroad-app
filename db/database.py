@@ -237,6 +237,7 @@ CREATE TABLE IF NOT EXISTS leads (
     tenure_months    INTEGER DEFAULT 0,
     is_alumni        BOOLEAN DEFAULT FALSE,
     dept_tag         TEXT,
+    lead_type        TEXT DEFAULT 'relevant',
     job_opening_date TEXT,
     fetched_at       TIMESTAMPTZ DEFAULT NOW(),
     stale_after      TIMESTAMPTZ
@@ -399,6 +400,7 @@ CREATE TABLE IF NOT EXISTS leads (
     tenure_months    INTEGER DEFAULT 0,
     is_alumni        INTEGER DEFAULT 0,
     dept_tag         TEXT,
+    lead_type        TEXT DEFAULT 'relevant',
     job_opening_date TEXT,
     fetched_at       TEXT DEFAULT (datetime('now')),
     stale_after      TEXT
@@ -512,6 +514,7 @@ def _run_migrations_postgres():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS scraped_rank INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS job_title TEXT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS job_expected_email TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS lead_type TEXT DEFAULT 'relevant'",
         """CREATE TABLE IF NOT EXISTS company_email_formats (
             company    TEXT PRIMARY KEY,
             fmt_code   TEXT NOT NULL,
@@ -625,6 +628,15 @@ def _run_migrations_sqlite():
                 cur.execute("ALTER TABLE card_queue ADD COLUMN score_breakdown TEXT")
             except Exception as e:
                 print(f"[db] Migration warning (card_queue.score_breakdown): {e}")
+
+        # Feature: lead_type tier tagging
+        cur.execute("PRAGMA table_info(leads)")
+        existing_leads_cols = {row[1] for row in cur.fetchall()}
+        if "lead_type" not in existing_leads_cols:
+            try:
+                cur.execute("ALTER TABLE leads ADD COLUMN lead_type TEXT DEFAULT 'relevant'")
+            except Exception as e:
+                print(f"[db] Migration warning (leads.lead_type): {e}")
 
         # Feature: role type screening (internship_grad vs entry_level)
         cur.execute("PRAGMA table_info(jobs)")
@@ -1134,8 +1146,8 @@ def upsert_lead(lead: dict) -> None:
             """INSERT INTO leads
                (job_title, name, title, company, university, linkedin_url, snippet,
                 location_city, location_country, tenure_months, is_alumni,
-                dept_tag, scraped_rank, job_expected_email, job_opening_date, fetched_at, stale_after)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?)
+                dept_tag, lead_type, scraped_rank, job_expected_email, job_opening_date, fetched_at, stale_after)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?)
                ON CONFLICT (linkedin_url) DO UPDATE SET
                  job_title=EXCLUDED.job_title,
                  name=EXCLUDED.name, title=EXCLUDED.title, company=EXCLUDED.company,
@@ -1143,7 +1155,8 @@ def upsert_lead(lead: dict) -> None:
                  location_city=EXCLUDED.location_city,
                  location_country=EXCLUDED.location_country,
                  tenure_months=EXCLUDED.tenure_months, is_alumni=EXCLUDED.is_alumni,
-                 dept_tag=EXCLUDED.dept_tag, scraped_rank=EXCLUDED.scraped_rank,
+                 dept_tag=EXCLUDED.dept_tag, lead_type=EXCLUDED.lead_type,
+                 scraped_rank=EXCLUDED.scraped_rank,
                  job_expected_email=EXCLUDED.job_expected_email,
                  job_opening_date=EXCLUDED.job_opening_date,
                  fetched_at=NOW(), stale_after=EXCLUDED.stale_after""",
@@ -1153,7 +1166,8 @@ def upsert_lead(lead: dict) -> None:
                 lead.get("university", ""), lead["linkedin_url"], lead.get("snippet", ""),
                 lead.get("location_city", ""), lead.get("location_country", ""),
                 lead.get("tenure_months", 0), bool(lead.get("is_alumni", False)),
-                lead.get("dept_tag", ""), lead.get("scraped_rank", 0),
+                lead.get("dept_tag", ""), lead.get("lead_type", "relevant"),
+                lead.get("scraped_rank", 0),
                 lead.get("job_expected_email", ""), lead.get("job_opening_date", ""), stale_after,
             ),
         )
@@ -1162,8 +1176,8 @@ def upsert_lead(lead: dict) -> None:
             """INSERT INTO leads
                (job_title, name, title, company, university, linkedin_url, snippet,
                 location_city, location_country, tenure_months, is_alumni,
-                dept_tag, scraped_rank, job_expected_email, job_opening_date, fetched_at, stale_after)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?)
+                dept_tag, lead_type, scraped_rank, job_expected_email, job_opening_date, fetched_at, stale_after)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?)
                ON CONFLICT (linkedin_url) DO UPDATE SET
                  job_title=excluded.job_title,
                  name=excluded.name, title=excluded.title, company=excluded.company,
@@ -1171,7 +1185,8 @@ def upsert_lead(lead: dict) -> None:
                  location_city=excluded.location_city,
                  location_country=excluded.location_country,
                  tenure_months=excluded.tenure_months, is_alumni=excluded.is_alumni,
-                 dept_tag=excluded.dept_tag, scraped_rank=excluded.scraped_rank,
+                 dept_tag=excluded.dept_tag, lead_type=excluded.lead_type,
+                 scraped_rank=excluded.scraped_rank,
                  job_expected_email=excluded.job_expected_email,
                  job_opening_date=excluded.job_opening_date,
                  fetched_at=datetime('now'), stale_after=excluded.stale_after""",
@@ -1181,7 +1196,8 @@ def upsert_lead(lead: dict) -> None:
                 lead.get("university", ""), lead["linkedin_url"], lead.get("snippet", ""),
                 lead.get("location_city", ""), lead.get("location_country", ""),
                 lead.get("tenure_months", 0), 1 if lead.get("is_alumni") else 0,
-                lead.get("dept_tag", ""), lead.get("scraped_rank", 0),
+                lead.get("dept_tag", ""), lead.get("lead_type", "relevant"),
+                lead.get("scraped_rank", 0),
                 lead.get("job_expected_email", ""), lead.get("job_opening_date", ""), stale_after,
             ),
         )

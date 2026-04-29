@@ -1,5 +1,5 @@
 """
-CCC Backend — Daily 3-card algorithm (Phase 5)
+inroad Backend — Daily 3-card algorithm (Phase 5)
 
 For each student, every morning at 07:00:
 1. Query active jobs matching student's preferences
@@ -27,7 +27,7 @@ from config.settings    import DAILY_MATCH_QUOTA, DB_PATH
 from db.database        import db_conn, get_active_jobs, get_card_count_today, USE_POSTGRES, \
                                fetchone as db_fetchone, fetchall as db_fetchall, \
                                execute as db_execute, get_leads_for_company, get_seen_linkedin_urls, \
-                               update_student_fields
+                               get_recently_matched_linkedin_urls, update_student_fields
 from pipeline.matcher   import LinkedInMatcher, score_lead, score_lead_v2
 from pipeline.email_infer import EmailInferrer
 
@@ -56,17 +56,17 @@ def _preference_score(job: dict, student: dict) -> float:
         if student["company_size"] == job["company_size"]:
             score += 30.0
 
-    # Seniority fit (use job title keywords)
-    student_status = student.get("status", "")  # "intern", "junior", "mid", "senior"
-    job_title = (job.get("title") or "").lower()
-    if student_status in ("intern", "junior"):
-        if any(kw in job_title for kw in ("junior", "graduate", "analyst", "associate", "entry")):
-            score += 20.0
-    elif student_status == "mid":
-        if any(kw in job_title for kw in ("senior", "lead", "manager", "principal")):
-            score += 20.0
+    # Role type alignment: +20 bonus when job type matches student's stated preference.
+    # No penalty here — mismatched jobs are already separated into a secondary pool
+    # in generate_daily_cards() and only used as a fallback when primary is exhausted.
+    student_status = student.get("status", "")
+    job_role_type  = job.get("role_type") or ""
+    if student_status == "grad-program" and job_role_type == "internship_grad":
+        score += 20.0   # strong match: grad/intern student → grad/intern role
+    elif student_status == "full-time" and job_role_type == "entry_level":
+        score += 20.0   # strong match: graduated student → permanent junior role
 
-    return min(score, 100.0)
+    return min(max(score, 0.0), 100.0)
 
 
 def _recency_score(job: dict) -> float:
@@ -163,6 +163,30 @@ def _lead_company_matches(lead_company: str, job_company: str) -> bool:
     return False
 
 
+def _role_type_matches(job: dict, student: dict) -> bool:
+    """
+    Return True if the job's role_type aligns with the student's status preference.
+
+    grad-program  → wants internship_grad roles (intern, placement, grad scheme)
+    full-time     → wants entry_level roles (analyst, associate, junior, etc.)
+    any other / unset status → no preference; all jobs are treated as matching.
+
+    Jobs with no/unknown role_type are always treated as primary (matching)
+    so they are never incorrectly relegated to the secondary fallback pool.
+    """
+    status    = student.get("status") or ""
+    role_type = job.get("role_type") or ""
+
+    if not role_type:
+        return True  # unknown type — keep in primary pool rather than discarding
+
+    if status == "grad-program":
+        return role_type == "internship_grad"
+    if status == "full-time":
+        return role_type == "entry_level"
+    return True  # unknown student status — treat everything as matching
+
+
 def get_seen_history(student_id: int) -> set:
     """Return set of job_ids already shown to this student."""
     rows = db_fetchall(
@@ -190,9 +214,7 @@ INDUSTRY_TONE_HINTS: dict[str, str] = {
     "Consulting":         "Be structured. Show you understand the problem-solving culture.",
     "Strategy":           "Be sharp and commercial. Reference market positioning if you can.",
     "Law":                "Be formal but warm. You can mention the firm's practice area.",
-    "Venture Capital":    "Show intellectual curiosity about their portfolio. Be specific not generic.",
     "Data & Analytics":   "Be analytical. Reference the role's data domain specifically.",
-    "Design & UX":        "Show taste. Mention you've used their product or a specific design decision.",
     "Marketing":          "Be creative but focused. Reference a campaign or channel you respect.",
     "Healthcare":         "Be earnest. Show genuine interest in the impact, not just the career.",
     "Non-profit & Policy":"Be values-led. Show you understand the mission.",
@@ -301,12 +323,81 @@ def _get_industry_tone(job: dict) -> str:
     return "Be genuine and concise."
 
 
+def _generate_with_claude(student: dict, lead: dict, job: dict) -> tuple[str, str] | None:
+    """
+    Generate a personalised cold-email draft via Claude API.
+    Returns (subject, body) or None if generation fails.
+    """
+    import os
+    import anthropic as _anthropic
+
+    api_key = os.environ.get("CLAUDE_API_KEY") or os.environ.get("CLAUDE2_API_KEY")
+    if not api_key:
+        return None
+
+    name_parts     = (lead.get("name") or "").split()
+    first_name     = name_parts[0] if name_parts else "there"
+    student_name   = (student.get("name") or "").strip()
+    university     = (student.get("university") or "").strip()
+    bio            = (student.get("bio") or "").strip()
+    company        = (lead.get("company") or job.get("company_name") or "the company").strip()
+    department     = _job_department(job.get("title", ""))
+    industry_hint  = _get_industry_tone(job)
+    is_alumni      = bool(lead.get("is_alumni"))
+
+    identity_line = f"I'm a{' ' + university if university else ''} student"
+    if bio:
+        identity_line = bio
+    alumni_note = f" (I noticed you also studied at {university})" if is_alumni and university else ""
+
+    prompt = f"""Write a short cold-email from a student to a professional at {company}{alumni_note}.
+
+Context:
+- Recipient: {first_name}, works in {department} at {company}
+- Sender: {student_name or 'a student'}. {identity_line}
+- Industry tone: {industry_hint}
+
+Rules:
+- Max 80 words in the body
+- 2–3 short paragraphs
+- No flattery, no "I hope this email finds you well"
+- End with a single specific question (not "can we chat?" — ask something about their work, team or how they got into the role)
+- Sign off with just the student's first name
+- Output JSON only: {{"subject": "...", "body": "..."}}
+- Body must use \\n for line breaks (no HTML)"""
+
+    try:
+        client = _anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = (msg.content[0].text or "").strip()
+        # Strip markdown fences if present
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        data = json.loads(raw)
+        subject = (data.get("subject") or "").strip()
+        body    = (data.get("body") or "").strip()
+        if subject and body and len(body.split()) <= 200:
+            return subject, body
+    except Exception as e:
+        logger.debug(f"Claude draft generation failed: {e}")
+    return None
+
+
 def generate_email_draft(
     student: dict,
     lead:    dict,
     job:     dict,
 ) -> tuple[str, str]:
-    """Generate subject + body using the standard template. Returns (subject, body)."""
+    """
+    Generate subject + body for a cold-email draft using the standard template.
+    Returns (subject, body).
+    """
     from pipeline.email_templates import template_standard
 
     name_parts = (lead.get("name") or "").split()
@@ -322,9 +413,35 @@ def generate_email_draft(
     return template_standard(ctx)
 
 
+# ── Industry → dept_tag mapping for lead filtering ────────────────────────────
+
+_INDUSTRY_DEPT_TAGS: dict[str, set[str]] = {
+    "Finance":            {"risk", "asset_management", "quant", "equity_research",
+                           "sales_trading", "investment_banking"},
+    "Investment Banking": {"investment_banking"},
+    "Software Engineering": {"software_engineering", "infrastructure", "data_ml"},
+    "Technology":         {"product", "data_ml", "infrastructure"},
+    "Data & Analytics":   {"data_ml"},
+    "Product Management": {"product"},
+    "Consulting":         {"consulting"},
+    "Law":                {"law_corporate"},
+    "Marketing":          {"marketing"},
+    "Healthcare":         {"healthcare"},
+}
+
+
+def _relevant_dept_tags(student_industries: list[str]) -> set[str]:
+    """Return the set of dept_tags that correspond to a student's chosen industries."""
+    tags: set[str] = set()
+    for ind in student_industries:
+        tags.update(_INDUSTRY_DEPT_TAGS.get(ind or "", set()))
+    return tags
+
+
 # ── Main daily card generation ────────────────────────────────────────────────
 
-def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
+def generate_daily_cards(student_id: int, db_path=DB_PATH,
+                         claimed_this_run: set | None = None) -> list[dict]:
     """
     Generate the 3 daily cards for a student and write to DB.
     Returns list of match dicts written.
@@ -359,18 +476,24 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         except Exception:
             student_industries = []
 
+    # Strip nulls introduced by frontend (JSON null → Python None)
+    student_industries = [i for i in student_industries if i is not None]
+
     with db_conn(db_path) as conn:
         jobs = get_active_jobs(
             conn,
             industries  = student_industries,
-            region      = student.get("region", "UK"),
-            days_fresh  = 60,
+            region      = student.get("region") or "UK",
+            days_fresh  = 14,
             limit       = 300,
         )
 
     # Post-query safety filter: enforce industry match even if DB filter was loose
     if student_industries:
         jobs = [j for j in jobs if j.get("industry") in student_industries]
+
+    # Exclude jobs with no URL — cards must have a linked role
+    jobs = [j for j in jobs if (j.get("url") or "").strip()]
 
     # Filter already seen
     jobs = [j for j in jobs if j["id"] not in seen_job_ids]
@@ -401,15 +524,38 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
 
     # All-time seen people — never show the same person twice to the same student
     seen_people = get_seen_linkedin_urls(student_id)
+    # Cross-student dedup — don't surface a lead already shown to another student in the last 3 days
+    recently_matched = get_recently_matched_linkedin_urls(days=3)
 
     cards_written: list[dict] = []
     industries_used: dict = {}
 
-    # Re-score and re-sort after each selection so the diversity component
-    # reflects the jobs already chosen this round.
-    remaining_jobs = list(jobs)
+    # Split jobs into primary (matching role_type) and secondary (fallback).
+    # Primary is exhausted first; secondary is only used when primary runs out
+    # and quota hasn't been filled.  This ensures a grad-seeking student always
+    # sees internship/grad jobs first, and a full-time student always sees
+    # entry-level jobs first — while still allowing leads from companies that
+    # only have the "wrong" type of job to surface as a last resort.
+    primary_jobs   = [j for j in jobs if _role_type_matches(j, student)]
+    secondary_jobs = [j for j in jobs if not _role_type_matches(j, student)]
 
-    while len(cards_written) < quota and remaining_jobs:
+    # Start with the primary pool.  The main loop extends to secondary after
+    # primary is exhausted (see the extend block inside the while loop below).
+    remaining_jobs = list(primary_jobs)
+    _secondary_added = False   # guard: extend to secondary at most once
+
+    while len(cards_written) < quota and (remaining_jobs or (not _secondary_added and secondary_jobs)):
+        # When primary pool is exhausted but quota not met, extend with secondary
+        # (wrong role_type) jobs — this preserves access to leads at companies
+        # that only have mismatched role types in the DB.
+        if not remaining_jobs and not _secondary_added:
+            remaining_jobs = list(secondary_jobs)
+            _secondary_added = True
+            logger.debug(
+                f"Student {student_id}: primary pool exhausted after "
+                f"{len(cards_written)}/{quota} cards — extending to "
+                f"{len(secondary_jobs)} secondary (mismatched role_type) jobs"
+            )
         scored_jobs = [
             (score_job(j, student, already_selected=cards_written), j)
             for j in remaining_jobs
@@ -439,6 +585,16 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
         leads = get_leads_for_company(company)
         leads = [l for l in leads if l.get("linkedin_url", "") not in seen_people]
         leads = [l for l in leads if l.get("linkedin_url", "") not in suppressed]
+        leads = [l for l in leads if l.get("linkedin_url", "") not in recently_matched]
+        # Also exclude leads claimed by other students earlier in this same scheduler run
+        if claimed_this_run:
+            leads = [l for l in leads if l.get("linkedin_url", "") not in claimed_this_run]
+
+        # Only surface leads whose dept_tag aligns with the student's industries.
+        # This prevents e.g. a law trainee at a finance firm appearing for a Finance student.
+        relevant_tags = _relevant_dept_tags(student_industries)
+        if relevant_tags:
+            leads = [l for l in leads if not l.get("dept_tag") or l["dept_tag"] in relevant_tags]
 
         if not leads:
             continue
@@ -558,13 +714,29 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH) -> list[dict]:
 
 
 def generate_all_students_cards(db_path=DB_PATH):
-    """Run daily card generation for every student."""
-    students = db_fetchall("SELECT id, name FROM students")
+    """Run daily card generation for every student.
+
+    Students are processed newest-first (ORDER BY id DESC) so recently-joined
+    students get first pick of leads.  A shared ``claimed_this_run`` set ensures
+    the same lead cannot be assigned to more than one student in a single
+    scheduler run — independent of what is already committed to the DB.
+    """
+    students = db_fetchall("SELECT id, name FROM students ORDER BY id DESC")
+
+    # Shared exclusion set: LinkedIn URLs claimed by earlier students this run.
+    # Complements get_recently_matched_linkedin_urls() which only covers URLs
+    # already committed to the DB from previous runs / earlier today.
+    claimed_this_run: set = set()
 
     logger.info(f"Generating daily cards for {len(students)} students")
     for s in students:
         try:
-            generate_daily_cards(s["id"], db_path)
+            cards = generate_daily_cards(s["id"], db_path, claimed_this_run=claimed_this_run)
+            # Register every lead selected this run so subsequent students skip them
+            for card in cards:
+                url = card.get("person_linkedin_url", "")
+                if url:
+                    claimed_this_run.add(url)
         except Exception as e:
             logger.error(f"Card gen failed for student {s['id']}: {e}", exc_info=True)
 

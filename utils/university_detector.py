@@ -1,5 +1,5 @@
 """
-CCC — University Detector
+inroad — University Detector
 
 Delegates to university_lookup.py which reads data/universities.csv dynamically.
 This ensures the domain → name mapping is always in sync with the CSV.

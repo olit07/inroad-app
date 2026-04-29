@@ -1,5 +1,5 @@
 """
-CCC — Company Enrichment
+inroad — Company Enrichment
 
 Enriches companies table with domain, size_band, sector, hq_city, hq_country.
 Sources:

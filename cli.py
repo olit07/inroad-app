@@ -1,5 +1,5 @@
 """
-CCC Backend — Admin CLI
+inroad Backend — Admin CLI
 
 Usage:
     python cli.py stats                         # database health summary
@@ -61,7 +61,7 @@ def stats():
         s = db_stats(conn)
 
     click.echo()
-    click.echo(bold("  CCC Database Stats"))
+    click.echo(bold("  inroad Database Stats"))
     click.echo("  " + "─" * 40)
     click.echo(f"  Total jobs       {bold(s['total_jobs'])}")
     click.echo(f"  Active jobs      {green(s['active_jobs'])}")

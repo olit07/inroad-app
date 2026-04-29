@@ -196,7 +196,7 @@ class TestDeleteMe:
         # Attempting to refresh should now return 401
         refresh_resp = app.post(
             "/auth/refresh",
-            headers={"Cookie": f"ccc_refresh={refresh_token_str}"},
+            headers={"Cookie": f"inroad_refresh={refresh_token_str}"},
         )
         assert refresh_resp.status_code == 401
 
