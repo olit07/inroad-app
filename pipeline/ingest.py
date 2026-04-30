@@ -29,11 +29,12 @@ def run_single_scraper(scraper, db_path=DB_PATH) -> dict:
 
     logger.info(f"[{source_id}] Starting scrape...")
 
-    jobs_found   = 0
-    jobs_new     = 0
-    jobs_updated = 0
-    status       = "ok"
-    error_msg    = ""
+    jobs_found    = 0
+    jobs_new      = 0
+    jobs_updated  = 0
+    new_companies: set = set()
+    status        = "ok"
+    error_msg     = ""
 
     try:
         raw_jobs = scraper.run()
@@ -57,6 +58,9 @@ def run_single_scraper(scraper, db_path=DB_PATH) -> dict:
                     _, is_new = upsert_job(conn, job)
                     if is_new:
                         jobs_new += 1
+                        company = (job.get("company_name") or "").strip()
+                        if company:
+                            new_companies.add(company)
                     else:
                         jobs_updated += 1
                 except Exception as e:
@@ -80,14 +84,15 @@ def run_single_scraper(scraper, db_path=DB_PATH) -> dict:
         )
 
     summary = {
-        "source_id":    source_id,
-        "source_name":  source_name,
-        "jobs_found":   jobs_found,
-        "jobs_new":     jobs_new,
-        "jobs_updated": jobs_updated,
-        "status":       status,
+        "source_id":     source_id,
+        "source_name":   source_name,
+        "jobs_found":    jobs_found,
+        "jobs_new":      jobs_new,
+        "jobs_updated":  jobs_updated,
+        "new_companies": new_companies,
+        "status":        status,
         "duration_secs": duration,
-        "error":        error_msg,
+        "error":         error_msg,
     }
 
     icon = "✓" if status == "ok" else ("⚠" if status == "empty" else "✗")
