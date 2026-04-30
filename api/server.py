@@ -1492,18 +1492,19 @@ def admin_fix_leads_apr2026():
 def admin_build_leads():
     data    = request.get_json(silent=True) or {}
     company = (data.get("company") or "").strip()
+    force   = bool(data.get("force", False))
 
     def _run():
         try:
             from pipeline.lead_builder import build_leads
-            build_leads(company_filter=company, top_n=0 if company else 50)
+            build_leads(company_filter=company, top_n=0 if company else 50, force=force)
         except Exception as exc:
             print(f"[admin/build-leads] error: {exc}")
 
     import threading
     threading.Thread(target=_run, daemon=True).start()
     label = company if company else "top-50 companies"
-    return jsonify({"status": "triggered", "company": label})
+    return jsonify({"status": "triggered", "company": label, "force": force})
 
 
 @app.route("/api/admin/leads/stats")
