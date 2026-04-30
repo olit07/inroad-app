@@ -1490,7 +1490,20 @@ def admin_fix_leads_apr2026():
 @app.route("/api/admin/build-leads", methods=["POST"])
 @require_admin
 def admin_build_leads():
-    return jsonify({"error": "Lead pool building is currently disabled"}), 503
+    data    = request.get_json(silent=True) or {}
+    company = (data.get("company") or "").strip()
+
+    def _run():
+        try:
+            from pipeline.lead_builder import build_leads
+            build_leads(company_filter=company, top_n=0 if company else 50)
+        except Exception as exc:
+            print(f"[admin/build-leads] error: {exc}")
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    label = company if company else "top-50 companies"
+    return jsonify({"status": "triggered", "company": label})
 
 
 @app.route("/api/admin/leads/stats")
