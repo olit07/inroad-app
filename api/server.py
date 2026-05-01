@@ -1779,6 +1779,11 @@ def pipeline_page():
     return _send_html("inroad-pipeline.html")
 
 
+@app.route("/listings")
+def listings_page():
+    return _send_html("inroad-listings.html")
+
+
 @app.route("/api/opportunities")
 def api_opportunities():
     """Return all jobs with insider leads, formatted for the opportunities page."""
@@ -2056,6 +2061,7 @@ def api_opportunities():
                 "verified":       False,
             })
 
+        _IND_LABEL = {"Finance": "Finance", "Law": "Law", "Technology": "Consulting"}
         jobs.append({
             "id":             r.get("id"),
             "company":        company,
@@ -2065,6 +2071,7 @@ def api_opportunities():
             "opening_date":   r.get("opening_date") or "",
             "closing_date":   r.get("closing_date") or "",
             "apply_url":      r.get("url") or "",
+            "industry_label": _IND_LABEL.get(r.get("industry") or "", ""),
             "leads":          leads,
         })
 

@@ -506,6 +506,7 @@
     <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);" id="wordmark-text">inroad</span>
   </a>
   <ul class="nav-center" id="nav-center">
+    <li><a href="/listings">Listings</a></li>
     <li><a href="/opportunities">Opportunities</a></li>
     <li><a href="/pipeline" class="active">Pipeline</a></li>
   </ul>
@@ -1061,6 +1062,7 @@
     const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
     const navCenter = document.getElementById('nav-center');
     if (navCenter) navCenter.innerHTML = `
+      <li><a href="/listings">Listings</a></li>
       <li><a href="/opportunities">Opportunities</a></li>
       <li><a href="/pipeline" class="active">Pipeline</a></li>`;
     if (d.referral_code) {

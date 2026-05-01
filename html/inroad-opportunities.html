@@ -89,10 +89,10 @@
   }
   .btn-nav-cta:hover { background: var(--green-deep); transform: translateY(-1px); }
 
-  /* ── 3-COLUMN LAYOUT ── */
+  /* ── LAYOUT ── */
   .app-layout {
     display: grid;
-    grid-template-columns: 35% 1fr 1fr;
+    grid-template-columns: 50% 50%;
     height: calc(100vh - 62px);
     margin-top: 62px;
   }
@@ -104,7 +104,66 @@
     display: flex;
     flex-direction: column;
   }
-  .panel:last-child { border-right: none; }
+
+  /* Mode B (default): 50/50 with stacked right panels */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border-left: none;
+  }
+  .right-col .panel {
+    border-right: none;
+    min-height: 0;
+  }
+  #leads-panel { flex: 2; border-bottom: 1px solid var(--border); }
+  #draft-panel { flex: 3; }
+
+  /* ── Mode A: 3 equal columns — restore all original prod styles ── */
+  .app-layout.mode-3col { grid-template-columns: 1fr 1fr 1fr; }
+  .app-layout.mode-3col .right-col { display: contents; }
+  .app-layout.mode-3col #leads-panel {
+    flex: 1; height: 100%;
+    border-bottom: none; border-right: 1px solid var(--border);
+  }
+  .app-layout.mode-3col #draft-panel { flex: 1; height: 100%; border-right: none; }
+
+  /* Listing cards: stacked company + programme */
+  .app-layout.mode-3col .card-left { display: block; }
+  .app-layout.mode-3col .card-company { display: block; }
+  .app-layout.mode-3col .card-programme { display: block; margin-top: 1px; }
+  .app-layout.mode-3col .card-programme::before { content: none; }
+
+  /* Contact cards: original sizing, stacked name/title, badges on new row */
+  .app-layout.mode-3col .lead-card { padding: 9px 12px; column-gap: 10px; row-gap: 0; margin-bottom: 5px; flex-wrap: wrap; align-items: flex-start; }
+  .app-layout.mode-3col .lead-avatar { width: 36px; height: 36px; }
+  .app-layout.mode-3col .lead-name-row { flex-direction: column; gap: 0; }
+  .app-layout.mode-3col .lead-name { font-size: 0.8rem; }
+  .app-layout.mode-3col .lead-title-text { font-size: 0.72rem; margin-top: 1px; }
+  .app-layout.mode-3col .lead-title-text::before { content: none; }
+  .app-layout.mode-3col .lead-badges { order: 10; width: 100%; padding-left: calc(36px + 10px); margin-top: 2px; flex-shrink: unset; }
+
+  /* Draft: subject below email, original field spacing */
+  .app-layout.mode-3col .draft-fields-row { flex-direction: column; }
+  .app-layout.mode-3col .draft-field { margin-bottom: 12px; }
+
+  /* Layout toggle switch */
+  .layout-switch { display: inline-flex; align-items: center; cursor: pointer; flex-shrink: 0; }
+  .layout-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .layout-switch-track {
+    position: relative; width: 28px; height: 16px;
+    background: var(--border-md); border-radius: 8px;
+    transition: background 0.2s;
+  }
+  .layout-switch-thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+    transition: transform 0.2s;
+  }
+  .layout-switch input:checked + .layout-switch-track { background: var(--green); }
+  .layout-switch input:checked + .layout-switch-track .layout-switch-thumb { transform: translateX(12px); }
 
   .panel-header {
     position: sticky;
@@ -273,25 +332,33 @@
     gap: 6px;
   }
 
-  .card-left { min-width: 0; }
+  .card-left {
+    min-width: 0; overflow: hidden;
+    display: flex; align-items: baseline; gap: 5px;
+  }
 
   .card-company {
     font-size: 0.74rem; font-weight: 700; color: var(--text);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .job-card.selected .card-company { color: var(--green-deep); }
 
   .card-programme {
     font-size: 0.67rem; color: var(--muted);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    margin-top: 1px;
   }
+  .card-programme:not(:empty)::before { content: '·'; margin-right: 5px; color: var(--border-md); }
 
   .card-date {
     font-size: 0.64rem; color: var(--subtle);
     white-space: nowrap; font-variant-numeric: tabular-nums;
   }
   .card-date.fresh { color: var(--green); font-weight: 700; }
+
+  .card-industry-tag {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); opacity: 0.7; white-space: nowrap; flex-shrink: 0;
+  }
 
   .apply-btn-inline {
     font-size: 0.63rem; font-weight: 700;
@@ -315,22 +382,22 @@
   .empty-label { font-size: 0.8rem; color: var(--subtle); line-height: 1.5; }
 
   .lead-card {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 8px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 7px;
-    padding: 9px 12px;
+    padding: 5px 10px;
     cursor: pointer;
     transition: border-color 0.12s, background 0.12s;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
   }
   .lead-card:hover { border-color: var(--border-md); background: var(--surface); }
   .lead-card.selected { border-color: var(--green); background: var(--green-lite); }
 
   .lead-avatar {
-    width: 36px; height: 36px; border-radius: 50%;
+    width: 28px; height: 28px; border-radius: 50%;
     background: var(--surface); color: var(--muted);
-    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; border: 1.5px solid var(--border);
     overflow: hidden;
@@ -343,9 +410,14 @@
   .lead-card.selected .lead-avatar { border-color: var(--green-mid); }
 
   .lead-info { flex: 1; min-width: 0; }
-  .lead-name { font-size: 0.8rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lead-title-text { font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-  .lead-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .lead-name-row {
+    min-width: 0; overflow: hidden;
+    display: flex; align-items: baseline; gap: 5px;
+  }
+  .lead-name { font-size: 0.78rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lead-title-text { font-size: 0.7rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lead-title-text:not(:empty)::before { content: '·'; margin-right: 5px; color: var(--border-md); }
+  .lead-badges { display: flex; gap: 4px; flex-shrink: 0; }
 
   .badge {
     font-size: 0.68rem; font-weight: 600; letter-spacing: 0.01em;
@@ -378,7 +450,10 @@
   /* ── RIGHT PANEL — EMAIL DRAFT ── */
   .draft-panel { display: flex; flex-direction: column; height: 100%; }
 
-  .draft-field { margin-bottom: 12px; }
+  /* Split-view only: tighter draft header */
+  .app-layout:not(.mode-3col) #draft-panel .panel-header { padding: 8px 16px 6px; }
+  .app-layout:not(.mode-3col) #draft-panel .panel-title { margin-bottom: 0; }
+  .draft-field { margin-bottom: 8px; }
   .draft-label {
     font-size: 0.63rem; font-weight: 700; letter-spacing: 0.07em;
     text-transform: uppercase; color: var(--subtle); margin-bottom: 4px;
@@ -399,10 +474,12 @@
     background: var(--bg); outline: none; resize: none;
     line-height: 1.65;
     transition: border-color 0.15s, box-shadow 0.15s;
-    flex: 1; min-height: 80px;
+    flex: 1; min-height: 140px;
   }
   .draft-textarea:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(31,69,48,0.07); }
 
+  .draft-fields-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .draft-fields-row .draft-field { flex: 1; margin-bottom: 0; }
   .draft-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
   .btn-copy {
@@ -489,8 +566,9 @@
   /* ── SEND PROGRESS BAR ── */
   .send-counter {
     display: flex; flex-direction: column; gap: 5px;
-    margin-bottom: 16px;
+    margin-bottom: 16px; /* restored default; split-view tightens below */
   }
+  .app-layout:not(.mode-3col) .send-counter { margin-bottom: 6px; }
   .send-progress-bar { display: flex; gap: 3px; }
   .send-progress-seg {
     flex: 1; height: 4px; border-radius: 2px;
@@ -559,6 +637,13 @@
     transition: color 0.15s;
   }
   .btn-settings:hover { color: #fff; }
+  .btn-logout {
+    font-size: 0.82rem; font-weight: 500; font-family: var(--sans);
+    color: rgba(255,255,255,0.75); background: transparent;
+    border: none; padding: 0; cursor: pointer;
+    transition: color 0.15s;
+  }
+  .btn-logout:hover { color: #fff; }
 
   /* ── REFERRAL BUTTON ── */
   .nav-refer-btn {
@@ -610,6 +695,8 @@
   @media (max-width: 860px) {
     html, body { overflow: auto; }
     .app-layout { grid-template-columns: 1fr; height: auto; }
+    .right-col { height: auto; }
+    .right-col .panel { height: auto; flex: none; }
     .panel { height: auto; overflow-y: visible; border-right: none; border-bottom: 1px solid var(--border); }
     .nav-center { display: none; }
   }
@@ -622,6 +709,7 @@
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
   </a>
   <ul class="nav-center" id="nav-center">
+    <li><a href="/listings">Listings</a></li>
     <li><a href="/opportunities" class="active">Opportunities</a></li>
     <li><a href="/login">Pipeline</a></li>
   </ul>
@@ -656,7 +744,16 @@
   <!-- LEFT: Job listings -->
   <div class="panel" id="jobs-panel">
     <div class="panel-header">
-      <div class="panel-title">Listings &nbsp;<span id="listing-count" style="font-weight:400;color:var(--subtle)"></span></div>
+      <div class="panel-title" style="display:flex;align-items:center;">
+        Listings <span id="listing-count" style="font-weight:400;color:var(--subtle);margin-left:4px;"></span>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:10px;">
+          <span id="layout-label" style="display:inline-flex;align-items:center;color:var(--muted);"></span>
+          <label class="layout-switch" title="Toggle layout">
+            <input type="checkbox" id="layout-toggle-input">
+            <span class="layout-switch-track"><span class="layout-switch-thumb"></span></span>
+          </label>
+        </div>
+      </div>
       <div class="toolbar">
         <div class="search-wrap">
           <span class="search-icon">⌕</span>
@@ -684,34 +781,37 @@
     </div>
   </div>
 
-  <!-- MIDDLE: Leads for selected job -->
-  <div class="panel" id="leads-panel">
-    <div class="panel-header">
-      <div class="panel-title" id="leads-panel-title">Contacts</div>
-      <div class="search-wrap" style="margin-top:8px;">
-        <span class="search-icon">⌕</span>
-        <input type="text" class="search-input" id="leads-search" placeholder="Search by name or university…" autocomplete="off">
-      </div>
-    </div>
-    <div class="panel-body" id="leads-body">
-      <div class="empty-state">
-        <div class="empty-icon">👤</div>
-        <p class="empty-label">Select a listing on the left<br>to see insider contacts</p>
-      </div>
-    </div>
-  </div>
+  <!-- RIGHT: Contacts + Email draft stacked -->
+  <div class="right-col">
 
-  <!-- RIGHT: Email draft -->
-  <div class="panel" id="draft-panel">
-    <div class="panel-header">
-      <div class="panel-title" id="draft-panel-title">Email draft</div>
-    </div>
-    <div class="panel-body" id="draft-body">
-      <div class="empty-state">
-        <div class="empty-icon">✉️</div>
-        <p class="empty-label">Select a contact in the middle<br>to generate a personalised draft</p>
+    <div class="panel" id="leads-panel">
+      <div class="panel-header">
+        <div class="panel-title" id="leads-panel-title">Contacts</div>
+        <div class="search-wrap" style="margin-top:8px;">
+          <span class="search-icon">⌕</span>
+          <input type="text" class="search-input" id="leads-search" placeholder="Search by name or university…" autocomplete="off">
+        </div>
+      </div>
+      <div class="panel-body" id="leads-body">
+        <div class="empty-state">
+          <div class="empty-icon">👤</div>
+          <p class="empty-label">Select a listing on the left<br>to see insider contacts</p>
+        </div>
       </div>
     </div>
+
+    <div class="panel" id="draft-panel">
+      <div class="panel-header">
+        <div class="panel-title" id="draft-panel-title">Email draft</div>
+      </div>
+      <div class="panel-body" id="draft-body">
+        <div class="empty-state">
+          <div class="empty-icon">✉️</div>
+          <p class="empty-label">Select a contact above<br>to generate a personalised draft</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 </div>
@@ -813,6 +913,7 @@
     const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
     const navCenter = document.getElementById('nav-center');
     if (navCenter) navCenter.innerHTML = `
+      <li><a href="/listings">Listings</a></li>
       <li><a href="/opportunities" class="active">Opportunities</a></li>
       <li><a href="/pipeline">Pipeline</a></li>`;
     if (d.referral_code) {
@@ -823,6 +924,7 @@
       <div class="nav-user">
         ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
         <a href="/settings" class="btn-settings">Settings</a>
+        <button class="btn-logout" onclick="authLogout()">Log out</button>
         <div class="nav-initials">${esc(initials || '?')}</div>
       </div>`;
     try {
@@ -856,6 +958,21 @@
   const leadsPanelTitle = document.getElementById('leads-panel-title');
   const draftBody       = document.getElementById('draft-body');
   const draftPanelTitle = document.getElementById('draft-panel-title');
+
+  // ── Layout toggle ──
+  const appLayout         = document.querySelector('.app-layout');
+  const layoutToggleInput = document.getElementById('layout-toggle-input');
+  const layoutLabel       = document.getElementById('layout-label');
+
+  const ICON_SPLIT = `<svg width="18" height="13" viewBox="0 0 18 13" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><rect x=".6" y=".6" width="7.4" height="11.8" rx="1.2"/><rect x="9.6" y=".6" width="7.8" height="5.3" rx="1.2"/><rect x="9.6" y="7.1" width="7.8" height="5.3" rx="1.2"/></svg>`;
+  const ICON_3COL  = `<svg width="18" height="13" viewBox="0 0 18 13" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><rect x=".6" y=".6" width="4.8" height="11.8" rx="1.2"/><rect x="6.6" y=".6" width="4.8" height="11.8" rx="1.2"/><rect x="12.6" y=".6" width="4.8" height="11.8" rx="1.2"/></svg>`;
+
+  layoutLabel.innerHTML = ICON_SPLIT;
+  layoutToggleInput.addEventListener('change', () => {
+    const is3col = layoutToggleInput.checked;
+    appLayout.classList.toggle('mode-3col', is3col);
+    layoutLabel.innerHTML = is3col ? ICON_3COL : ICON_SPLIT;
+  });
 
   // ── Daily send counter (v3 key resets any existing locks) ──
   const SENDS_KEY = 'inroad_daily_sends_v4';
@@ -1094,8 +1211,9 @@
       <div class="job-card${sel ? ' selected' : ''}" data-id="${job.id}">
         <div class="card-row">
           <div class="card-left">
-            <div class="card-company">${esc(job.company)}</div>
-            <div class="card-programme">${esc(job.programme)}</div>
+            <span class="card-company">${esc(job.company)}</span>
+            <span class="card-programme">${esc(job.programme)}</span>
+            ${job.industry_label ? `<span class="card-industry-tag">${esc(job.industry_label)}</span>` : ''}
           </div>
           <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
           ${job.apply_url ? `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>` : '<span></span>'}
@@ -1179,10 +1297,12 @@
       <div class="lead-card${sel ? ' selected' : ''}" data-lead-id="${lead.id}">
         <div class="lead-avatar"><img src="${esc(avatarUrl)}" alt="" loading="lazy"></div>
         <div class="lead-info">
-          <div class="lead-name">${esc(lead.name)}</div>
-          <div class="lead-title-text">${esc(lead.title || '')}</div>
-          ${badges ? `<div class="lead-badges">${badges}</div>` : ''}
+          <div class="lead-name-row">
+            <span class="lead-name">${esc(lead.name)}</span>
+            ${lead.title ? `<span class="lead-title-text">${esc(lead.title)}</span>` : ''}
+          </div>
         </div>
+        ${badges ? `<div class="lead-badges">${badges}</div>` : ''}
         <div class="lead-actions">${liBtn}</div>
       </div>`;
   }
@@ -1198,10 +1318,11 @@
     const to          = lead.expected_email || '';
     const userUni     = currentUser?.university || '';
     const roleIndustry = (job.division && job.division !== 'Miscellaneous') ? job.division : 'finance';
+    const bio         = (currentUser?.bio || '').trim();
 
-    const msgBodyA = `Hi ${firstName},\n\nI hope you don't mind the message. I came across your profile while researching opportunities at ${job.company} and was impressed by your background in ${lead.title || 'the industry'}.\n\nI'm currently applying for the ${job.programme} role and would love any insight you could share about the team or application process, even a 15-minute call would be incredibly helpful.\n\nThanks so much`;
+    const msgBodyA = `Hi ${firstName},\n\nI hope you don't mind the message. I came across your profile while researching opportunities at ${job.company} and was impressed by your background in ${lead.title || 'the industry'}.\n\n${bio ? bio + '\n\n' : ''}I'm currently applying for the ${job.programme} role and would love any insight you could share about the team or application process, even a 15-minute call would be incredibly helpful.\n\nThanks so much`;
 
-    const msgBodyB = `Dear ${firstName},\n\nI know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.\n\nI'm a student${userUni ? ` at ${userUni}` : ''} with a keen interest in ${roleIndustry}.\n\nWhat do you think are the most critical skills or qualities that an aspiring researcher should possess, given the current market dynamics? Specifically, what attributes do you look for in your team?\n\nI totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.\n\nAll the best`;
+    const msgBodyB = `Dear ${firstName},\nI know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.\n${bio || `I'm a student with a keen interest in ${job.company}.`}\n\nWhat do you think are the most critical skills or qualities that an aspiring researcher should possess, given the current market dynamics? Specifically, what attributes do you look for in your team?\n\nI totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.\nAll the best`;
 
     const msgBody = ((lead.id || 0) % 2 === 0) ? msgBodyA : msgBodyB;
 
@@ -1263,10 +1384,12 @@
         ${counterHtml}
         <div class="draft-lockable">
           <div class="draft-content-wrap${draftLocked ? ' is-locked' : ''}">
-            ${toFieldHtml}
-            <div class="draft-field">
-              <div class="draft-label">Subject</div>
-              <input class="draft-input" id="draft-subject" value="${esc(subject)}">
+            <div class="draft-fields-row">
+              ${toFieldHtml}
+              <div class="draft-field">
+                <div class="draft-label">Subject</div>
+                <input class="draft-input" id="draft-subject" value="${esc(subject)}">
+              </div>
             </div>
             <div class="draft-label">Message</div>
             <textarea class="draft-textarea" id="draft-body-text">${esc(msgBody)}</textarea>

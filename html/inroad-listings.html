@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listings — inroad</title>
+<meta name="description" content="Browse all open UK finance internships and graduate programmes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<script src="/static/auth.js"></script>
+<style>
+  :root {
+    --bg:         #FFFFFF;
+    --surface:    #F3F1EE;
+    --surface-2:  #EEECEA;
+    --border:     #E6E2DB;
+    --border-md:  #CEC8BF;
+    --green:      #1F4530;
+    --green-lite: #EAF2EC;
+    --green-mid:  #A8C9B0;
+    --green-deep: #122B1E;
+    --text:       #1A1714;
+    --text-mid:   #3D3831;
+    --muted:      #7A7068;
+    --subtle:     #ADA79F;
+    --serif: 'Lora', Georgia, serif;
+    --sans:  'Lato', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+
+  .nav-center {
+    display: flex; align-items: center; gap: 32px; list-style: none;
+    position: absolute; left: 50%; transform: translateX(-50%);
+  }
+  .nav-center a {
+    font-size: 0.85rem; font-weight: 400;
+    color: var(--muted); text-decoration: none; transition: color 0.15s;
+  }
+  .nav-center a:hover { color: var(--text); }
+  .nav-center a.active { color: var(--green); font-weight: 700; }
+
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+
+  .btn-login {
+    font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    color: var(--text); background: transparent;
+    border: 1.5px solid var(--border-md);
+    padding: 7px 18px; border-radius: 8px; text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-login:hover { border-color: var(--green); color: var(--green); }
+
+  .btn-nav-cta {
+    font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    color: #fff; background: var(--green);
+    border: none; padding: 8px 18px;
+    border-radius: 8px; text-decoration: none;
+    transition: background 0.15s, transform 0.1s; white-space: nowrap;
+  }
+  .btn-nav-cta:hover { background: var(--green-deep); transform: translateY(-1px); }
+
+  /* ── LAYOUT ── */
+  .app-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    height: calc(100vh - 62px);
+    margin-top: 62px;
+  }
+
+  .panel {
+    height: 100%;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    overflow: visible;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px 10px;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    margin-bottom: 10px;
+  }
+
+  .panel-body { padding: 12px 16px 40px; flex: 1; }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .search-wrap { position: relative; flex: 1; min-width: 120px; }
+
+  .search-icon {
+    position: absolute; left: 9px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--subtle); font-size: 13px;
+    pointer-events: none; line-height: 1;
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 10px 6px 28px;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .search-input::placeholder { color: var(--subtle); }
+  .search-input:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(31,69,48,0.07); }
+
+  .filter-wrap {
+    display: flex; gap: 4px;
+    overflow-x: auto; padding-bottom: 2px;
+    scrollbar-width: none;
+    flex-wrap: nowrap; width: 100%;
+  }
+  .filter-wrap::-webkit-scrollbar { display: none; }
+
+  .filter-btn {
+    font-size: 0.68rem; font-weight: 700;
+    background: var(--bg); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 100px;
+    padding: 4px 9px; cursor: pointer; white-space: nowrap;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .filter-btn:hover { border-color: var(--border-md); color: var(--text-mid); }
+  .filter-btn.on { background: var(--green-lite); border-color: var(--green); color: var(--green-deep); }
+
+  .shown-count { font-size: 0.7rem; color: var(--subtle); white-space: nowrap; }
+
+  /* ── NEW SECTION PANEL ── */
+  .new-section {
+    background: var(--green-lite);
+    border: 1.5px solid var(--green-mid);
+    border-radius: 8px;
+    padding: 10px 12px 8px;
+    margin-bottom: 20px;
+  }
+  .new-section .col-header { color: var(--green-deep); opacity: 0.55; }
+  .new-section .job-card { border-color: rgba(31,69,48,0.14); background: rgba(255,255,255,0.6); }
+  .new-section .job-card:hover { border-color: var(--green-mid); background: rgba(255,255,255,0.85); }
+  .new-section .job-card.selected { border-color: var(--green); background: #fff; }
+
+  /* ── SECTION HEADERS ── */
+  .section-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 20px; margin-bottom: 10px;
+  }
+  .new-section .section-row { margin-top: 0; margin-bottom: 10px; }
+  .new-section .section-row.collapsible { margin-top: 16px; margin-bottom: 4px; }
+  .new-section .section-row.collapsible.collapsed { margin-top: 8px; }
+
+  .section-row.collapsible { cursor: pointer; user-select: none; }
+  .section-row.collapsible:hover .section-pill.all-pill { border-color: var(--border-md); color: var(--text-mid); }
+
+  .section-pill {
+    font-size: 0.63rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 100px;
+    white-space: nowrap; display: flex; align-items: center; gap: 5px;
+  }
+  .section-pill.new-pill { background: var(--green); color: #fff; font-size: 0.65rem; padding: 3px 10px; }
+  .pill-dot {
+    width: 5px; height: 5px; background: #6ee29a;
+    border-radius: 50%; flex-shrink: 0;
+    animation: blink 2s ease infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+  .section-pill.all-pill {
+    background: var(--surface); color: var(--muted);
+    border: 1px solid var(--border); transition: border-color 0.15s, color 0.15s;
+  }
+  .pill-count {
+    font-size: 0.58rem; font-weight: 700;
+    background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 100px;
+  }
+  .new-pill .pill-count { background: rgba(255,255,255,0.25); }
+  .section-chevron { font-size: 10px; color: var(--subtle); transition: transform 0.2s; flex-shrink: 0; }
+  .section-row.collapsed .section-chevron { transform: rotate(-90deg); }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+  .new-section .section-line { background: var(--green-mid); opacity: 0.4; }
+
+  .section-body { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease; max-height: 9999px; opacity: 1; }
+  .section-body.collapsed { max-height: 0 !important; opacity: 0; }
+
+  /* ── COLUMN HEADER ── */
+  .col-header {
+    display: grid;
+    grid-template-columns: 1fr 70px 56px;
+    padding: 3px 8px;
+    font-size: 0.6rem; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--subtle);
+  }
+
+  /* ── JOB CARDS ── */
+  .card-list { display: flex; flex-direction: column; gap: 2px; }
+
+  .card-empty {
+    font-size: 0.76rem; color: var(--subtle);
+    padding: 10px; border: 1px solid var(--border);
+    border-radius: 7px; background: var(--surface);
+  }
+
+  .job-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .job-card:hover { border-color: var(--border-md); background: var(--surface); }
+  .job-card.selected { border-color: var(--green); background: var(--green-lite); }
+
+  .card-row {
+    display: grid;
+    grid-template-columns: 1fr 70px 56px;
+    align-items: center;
+    padding: 5px 8px;
+    min-height: 28px;
+    gap: 6px;
+  }
+
+  .card-left {
+    min-width: 0; overflow: hidden;
+    display: flex; align-items: baseline; gap: 5px;
+  }
+
+  .card-company {
+    font-size: 0.74rem; font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .job-card.selected .card-company { color: var(--green-deep); }
+
+  .card-programme {
+    font-size: 0.67rem; color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .card-programme:not(:empty)::before { content: '·'; margin-right: 5px; color: var(--border-md); }
+
+  .card-date {
+    font-size: 0.64rem; color: var(--subtle);
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .card-date.fresh { color: var(--green); font-weight: 700; }
+
+  .card-industry-tag {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); opacity: 0.7; white-space: nowrap; flex-shrink: 0;
+  }
+
+  .apply-btn-inline {
+    font-size: 0.63rem; font-weight: 700;
+    background: var(--green); color: #fff;
+    border: none; border-radius: 4px;
+    padding: 3px 8px; cursor: pointer;
+    text-decoration: none; white-space: nowrap;
+    transition: background 0.12s;
+    justify-self: start;
+  }
+  .apply-btn-inline:hover { background: var(--green-deep); }
+
+  /* ── AUTH NAV ── */
+  .nav-user { display: flex; align-items: center; gap: 12px; }
+  nav.nav-logged-in {
+    background: var(--green);
+    border-bottom-color: transparent;
+  }
+  nav.nav-logged-in .wordmark span { color: #fff !important; }
+  nav.nav-logged-in .nav-center a { color: rgba(255,255,255,0.7); }
+  nav.nav-logged-in .nav-center a:hover { color: #fff; }
+  nav.nav-logged-in .nav-center a.active { color: #fff; font-weight: 700; }
+  .nav-initials {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .btn-settings {
+    font-size: 0.82rem; font-weight: 500; font-family: var(--sans);
+    color: rgba(255,255,255,0.75); background: transparent;
+    border: none; padding: 0; text-decoration: none; cursor: pointer;
+    transition: color 0.15s;
+  }
+  .btn-settings:hover { color: #fff; }
+  .btn-logout {
+    font-size: 0.82rem; font-weight: 500; font-family: var(--sans);
+    color: rgba(255,255,255,0.75); background: transparent;
+    border: none; padding: 0; cursor: pointer;
+    transition: color 0.15s;
+  }
+  .btn-logout:hover { color: #fff; }
+
+  /* ── REFERRAL BUTTON ── */
+  .nav-refer-btn {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 12px; font-weight: 700; font-family: var(--sans);
+    cursor: pointer; white-space: nowrap; letter-spacing: 0.01em;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .nav-refer-btn:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); }
+
+  /* ── REFERRAL MODAL ── */
+  .refer-modal-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(26,23,20,0.45); backdrop-filter: blur(4px);
+    z-index: 200; align-items: center; justify-content: center; padding: 24px;
+  }
+  .refer-modal-backdrop.open { display: flex; }
+  .refer-modal {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 20px; width: 100%; max-width: 420px;
+    box-shadow: 0 24px 80px rgba(26,23,20,0.18);
+    overflow: hidden;
+  }
+  .refer-modal-header {
+    padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .refer-modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+  .refer-modal-close {
+    background: none; border: none; cursor: pointer;
+    font-size: 1.2rem; color: var(--subtle); padding: 2px; line-height: 1;
+    transition: color 0.15s;
+  }
+  .refer-modal-close:hover { color: var(--text); }
+  .refer-modal-body { padding: 20px 24px; }
+  .btn-refer-copy {
+    background: #fff; color: var(--text-mid);
+    border: 1.5px solid var(--border); border-radius: 9px;
+    padding: 8px 16px; font-size: 0.8rem; font-weight: 600; font-family: var(--sans);
+    cursor: pointer; transition: border-color 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0;
+  }
+  .btn-refer-copy:hover { border-color: var(--green); color: var(--green); }
+
+  /* ── MOBILE ── */
+  @media (max-width: 860px) {
+    html, body { overflow: auto; }
+    .app-layout { grid-template-columns: 1fr; height: auto; }
+    .panel { height: auto; overflow-y: visible; border-right: none; border-bottom: 1px solid var(--border); }
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
+  </a>
+  <ul class="nav-center" id="nav-center">
+    <li><a href="/listings" class="active">Listings</a></li>
+    <li><a href="/opportunities">Opportunities</a></li>
+    <li><a href="/login">Pipeline</a></li>
+  </ul>
+  <div class="nav-right" id="nav-right">
+    <a href="/login" class="btn-login">Login / Sign up</a>
+    <a href="/opportunities" class="btn-nav-cta">Get started free →</a>
+  </div>
+</nav>
+
+<!-- Referral modal -->
+<div class="refer-modal-backdrop" id="refer-modal-overlay" onclick="if(event.target===this)closeReferModal()">
+  <div class="refer-modal">
+    <div class="refer-modal-header">
+      <div class="refer-modal-title">Get 5 daily emails</div>
+      <button class="refer-modal-close" onclick="closeReferModal()">✕</button>
+    </div>
+    <div class="refer-modal-body">
+      <p style="font-size:0.88rem;color:var(--text-mid);line-height:1.65;margin:0 0 16px">Share your link. When a friend signs up, you unlock <strong style="color:var(--text)">5 daily emails</strong> instead of 3.</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="refer-link-input" type="text" readonly style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.8rem;font-family:var(--sans);color:var(--text-mid);background:var(--surface);outline:none;">
+        <button class="btn-refer-copy" onclick="copyReferLink()" id="copy-refer-btn">Copy link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;background:#1A1714;color:#fff;font-size:0.8rem;font-weight:600;padding:10px 20px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);white-space:nowrap;transition:opacity 0.3s;"></div>
+
+<div class="app-layout">
+
+  <div class="panel" id="jobs-panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        Listings <span id="listing-count" style="font-weight:400;color:var(--subtle);margin-left:4px;"></span>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
+        </div>
+        <div class="filter-wrap" id="filter-wrap">
+          <button class="filter-btn" data-div="Bulge Bracket">Bulge Bracket</button>
+          <button class="filter-btn" data-div="Elite Boutique">Elite Boutique</button>
+          <button class="filter-btn" data-div="Middle Market">Middle Market</button>
+          <button class="filter-btn" data-div="Buy-Side">Buy-Side</button>
+          <button class="filter-btn" data-div="Asset Management">Asset Management</button>
+          <button class="filter-btn" data-div="Big 4">Big 4</button>
+          <button class="filter-btn" data-div="Consulting">Consulting</button>
+          <button class="filter-btn" data-div="Trading and Quant">Trading and Quant</button>
+          <button class="filter-btn" data-div="Real Estate">Real Estate</button>
+          <button class="filter-btn" data-div="Pensions and Insurance">Pensions and Insurance</button>
+          <button class="filter-btn" data-div="Accounting and Audit">Accounting and Audit</button>
+          <button class="filter-btn" data-div="Miscellaneous">Miscellaneous</button>
+        </div>
+        <span class="shown-count" id="shown-count" style="display:none"></span>
+      </div>
+    </div>
+    <div class="panel-body" id="listings">
+      <p style="font-size:0.78rem;color:var(--subtle);padding:20px 0;">Loading listings…</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  let allJobs = [];
+  let activeFilters  = new Set();
+  let searchQuery    = '';
+  let selectedJobId  = null;
+  let userStatus     = null;
+  let currentUser    = null;
+  const collapsedSections = new Set([
+    'Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement',
+    'Graduate Programme', 'Pre-Uni', 'Events', 'other',
+  ]);
+
+  const listingsEl   = document.getElementById('listings');
+  const listingCount = document.getElementById('listing-count');
+  const searchEl     = document.getElementById('search');
+  const shownCountEl = document.getElementById('shown-count');
+
+  // ── Auth init ──
+  const navEl    = document.querySelector('nav');
+  const navRight = document.getElementById('nav-right');
+  if (navRight) navRight.style.visibility = 'hidden';
+
+  ;(async () => {
+    let d = null;
+    try {
+      const token = sessionStorage.getItem('inroad_token') || localStorage.getItem('inroad_access_token') || localStorage.getItem('access_token') || '';
+      if (token) {
+        const r = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+        if (r.ok) d = await r.json();
+      }
+    } catch { /* network error */ }
+
+    if (!d) {
+      if (navEl) navEl.classList.remove('nav-logged-in');
+      if (navRight) navRight.style.visibility = '';
+      return;
+    }
+
+    currentUser = d;
+    if (navRight) navRight.style.visibility = '';
+    const name     = d.name || '';
+    const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+    const navCenter = document.getElementById('nav-center');
+    if (navCenter) navCenter.innerHTML = `
+      <li><a href="/listings" class="active">Listings</a></li>
+      <li><a href="/opportunities">Opportunities</a></li>
+      <li><a href="/pipeline">Pipeline</a></li>`;
+    if (d.referral_code) {
+      const inp = document.getElementById('refer-link-input');
+      if (inp) inp.value = `https://www.the-inroad.com/signup?ref=${d.referral_code}`;
+    }
+    if (navRight) navRight.innerHTML = `
+      <div class="nav-user">
+        ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
+        <a href="/settings" class="btn-settings">Settings</a>
+        <button class="btn-logout" onclick="authLogout()">Log out</button>
+        <div class="nav-initials">${esc(initials || '?')}</div>
+      </div>`;
+    try {
+      if (d.status && userStatus !== d.status) { userStatus = d.status; applyStatusCollapse(); }
+    } catch { /* non-fatal */ }
+  })();
+
+  function applyStatusCollapse() {
+    const INTERNSHIP_ONLY = ['Graduate Programme'];
+    const FULLTIME_ONLY   = ['Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement', 'Events'];
+    const toCollapse = userStatus === 'full-time' ? FULLTIME_ONLY
+                     : userStatus === 'grad-program' ? INTERNSHIP_ONLY
+                     : [];
+    toCollapse.forEach(pt => {
+      collapsedSections.add(pt);
+      collapsedSections.add('new-' + pt);
+    });
+    render();
+  }
+
+  // ── Filter buttons ──
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const div = btn.dataset.div;
+      if (activeFilters.has(div)) { activeFilters.delete(div); btn.classList.remove('on'); }
+      else                        { activeFilters.add(div);    btn.classList.add('on'); }
+      render();
+    });
+  });
+
+  searchEl.addEventListener('input', () => {
+    searchQuery = searchEl.value.trim().toLowerCase();
+    render();
+  });
+
+  // ── Load data ──
+  fetch('/api/opportunities')
+    .then(r => r.json())
+    .then(data => {
+      allJobs = data.jobs || [];
+      listingCount.textContent = allJobs.length;
+      render();
+    })
+    .catch(() => {
+      listingsEl.innerHTML = '<p style="font-size:0.78rem;color:var(--subtle);padding:20px 0;">Failed to load — please refresh.</p>';
+    });
+
+  // ── Helpers ──
+  function isNew(d) {
+    if (!d) return false;
+    const dt = new Date(d);
+    return !isNaN(dt) && (Date.now() - dt.getTime()) <= 72 * 3600 * 1000;
+  }
+
+  function filtered() {
+    return allJobs.filter(j => {
+      if (activeFilters.size > 0 && !activeFilters.has(j.division)) return false;
+      if (searchQuery) {
+        if (!(j.company + ' ' + j.programme).toLowerCase().includes(searchQuery)) return false;
+      }
+      return true;
+    });
+  }
+
+  // ── Render ──
+  const PROG_ORDER = ['Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement', 'Graduate Programme', 'Pre-Uni', 'Events'];
+
+  function render() {
+    const jobs    = filtered();
+    const newJobs = jobs.filter(j =>  isNew(j.opening_date));
+    const oldJobs = jobs.filter(j => !isNew(j.opening_date));
+
+    const filtering = activeFilters.size > 0 || searchQuery;
+    shownCountEl.style.display = filtering ? '' : 'none';
+    if (filtering) shownCountEl.textContent = jobs.length + ' shown';
+
+    const byProg = {}, noProg = [];
+    for (const j of oldJobs) {
+      const pt = j.programme_type;
+      if (pt && PROG_ORDER.includes(pt)) (byProg[pt] = byProg[pt] || []).push(j);
+      else noProg.push(j);
+    }
+
+    const newByProg = {}, newNoProg = [];
+    for (const j of newJobs) {
+      const pt = j.programme_type;
+      if (pt && PROG_ORDER.includes(pt)) (newByProg[pt] = newByProg[pt] || []).push(j);
+      else newNoProg.push(j);
+    }
+    const newSubsections = [];
+    for (const pt of PROG_ORDER) {
+      const g = newByProg[pt];
+      if (!g || !g.length) continue;
+      newSubsections.push(collapsibleSection('new-' + pt, pt, g));
+    }
+    if (newNoProg.length) newSubsections.push(collapsibleSection('new-other', 'Other', newNoProg));
+
+    const newSubKeys = ['new-Summer Internship','new-Spring Week','new-Off-Cycle Internship','new-Industrial Placement','new-Graduate Programme','new-Pre-Uni','new-Events','new-other'];
+    const allNewCollapsed = newSubKeys.every(k => !document.querySelector(`[data-key="${k}"]`) || collapsedSections.has(k));
+    const newSection = `
+      <div class="new-section">
+        <div class="section-row new-collapse-toggle" style="cursor:pointer;user-select:none">
+          <span class="section-pill new-pill"><span class="pill-dot"></span>New — last 72h<span class="pill-count">${newJobs.length}</span></span>
+          <span class="section-line"></span>
+          <span class="section-chevron new-collapse-chevron" style="${allNewCollapsed ? 'transform:rotate(-90deg)' : ''}">▾</span>
+        </div>
+        ${newJobs.length === 0
+          ? '<p class="card-empty">No new listings in the last 72 hours.</p>'
+          : newSubsections.join('')}
+      </div>`;
+
+    const divParts = [];
+    if (oldJobs.length === 0) {
+      divParts.push(`<p class="card-empty">No listings match your filters.</p>`);
+    } else {
+      for (const pt of PROG_ORDER) {
+        const g = byProg[pt];
+        if (!g || !g.length) continue;
+        divParts.push(collapsibleSection(pt, pt, g));
+      }
+      if (noProg.length) divParts.push(collapsibleSection('other', 'Other', noProg));
+    }
+
+    listingsEl.innerHTML = newSection + divParts.join('');
+
+    listingsEl.querySelectorAll('.job-card').forEach(card => {
+      card.addEventListener('click', () => selectJob(+card.dataset.id));
+    });
+    listingsEl.querySelectorAll('.apply-btn-inline').forEach(btn => {
+      btn.addEventListener('click', e => e.stopPropagation());
+    });
+    listingsEl.querySelectorAll('.section-row.collapsible').forEach(row => {
+      const key = row.dataset.key;
+      row.addEventListener('click', () => {
+        collapsedSections.has(key) ? collapsedSections.delete(key) : collapsedSections.add(key);
+        row.classList.toggle('collapsed', collapsedSections.has(key));
+        const body = row.nextElementSibling;
+        if (body && body.classList.contains('section-body'))
+          body.classList.toggle('collapsed', collapsedSections.has(key));
+      });
+    });
+
+    const newToggle = listingsEl.querySelector('.new-collapse-toggle');
+    if (newToggle) {
+      newToggle.addEventListener('click', () => {
+        const newRows = listingsEl.querySelectorAll('.new-section .section-row.collapsible');
+        const anyOpen = [...newRows].some(r => !collapsedSections.has(r.dataset.key));
+        newRows.forEach(r => {
+          const k = r.dataset.key;
+          if (anyOpen) collapsedSections.add(k); else collapsedSections.delete(k);
+          r.classList.toggle('collapsed', anyOpen);
+          const body = r.nextElementSibling;
+          if (body && body.classList.contains('section-body')) body.classList.toggle('collapsed', anyOpen);
+        });
+        const chevron = newToggle.querySelector('.new-collapse-chevron');
+        if (chevron) chevron.style.transform = anyOpen ? 'rotate(-90deg)' : '';
+      });
+    }
+
+    if (selectedJobId) {
+      const el = listingsEl.querySelector(`.job-card[data-id="${selectedJobId}"]`);
+      if (el) el.classList.add('selected');
+    }
+  }
+
+  function collapsibleSection(key, label, jobs) {
+    const collapsed = collapsedSections.has(key);
+    const colHdr = `<div class="col-header"><span>Company / Programme</span><span>Opened</span><span></span></div>`;
+    return `
+      <div class="section-row collapsible${collapsed ? ' collapsed' : ''}" data-key="${key}">
+        <span class="section-pill all-pill">${label}<span class="pill-count">${jobs.length}</span></span>
+        <span class="section-line"></span>
+        <span class="section-chevron">▾</span>
+      </div>
+      <div class="section-body${collapsed ? ' collapsed' : ''}">
+        ${colHdr}<div class="card-list">${jobs.map(cardHtml).join('')}</div>
+      </div>`;
+  }
+
+  function cardHtml(job) {
+    const fresh   = isNew(job.opening_date);
+    const dateStr = fmtDate(job.opening_date);
+    const sel     = selectedJobId === job.id;
+    return `
+      <div class="job-card${sel ? ' selected' : ''}" data-id="${job.id}">
+        <div class="card-row">
+          <div class="card-left">
+            <span class="card-company">${esc(job.company)}</span>
+            <span class="card-programme">${esc(job.programme)}</span>
+            ${job.industry_label ? `<span class="card-industry-tag">${esc(job.industry_label)}</span>` : ''}
+          </div>
+          <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
+          ${job.apply_url ? `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>` : '<span></span>'}
+        </div>
+      </div>`;
+  }
+
+  function selectJob(id) {
+    selectedJobId = selectedJobId === id ? null : id;
+    listingsEl.querySelectorAll('.job-card').forEach(c =>
+      c.classList.toggle('selected', +c.dataset.id === selectedJobId));
+  }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    if (isNaN(dt)) return '—';
+    return dt.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+  }
+
+  function esc(s) {
+    return String(s ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+})();
+
+function openReferModal() {
+  document.getElementById('refer-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeReferModal() {
+  document.getElementById('refer-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function copyReferLink() {
+  const val = document.getElementById('refer-link-input').value;
+  navigator.clipboard.writeText(val).then(() => {
+    const btn = document.getElementById('copy-refer-btn');
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>
