@@ -718,7 +718,6 @@
           <div class="card-left">
             <span class="card-company">${esc(job.company)}</span>
             <span class="card-programme">${esc(job.programme)}</span>
-            ${job.industry_label ? `<span class="card-industry-tag">${esc(job.industry_label)}</span>` : ''}
           </div>
           <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
           ${job.apply_url ? `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>` : '<span></span>'}
