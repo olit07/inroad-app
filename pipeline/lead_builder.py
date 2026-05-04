@@ -48,13 +48,41 @@ _CO_STOPWORDS = {
 
 
 def _company_name_overlap(a: str, b: str) -> bool:
-    """True if a and b share at least one significant word (>3 chars, not a stopword)."""
+    """True if a and b refer to the same company.
+
+    For long names uses significant-word overlap.  For short / hyphenated names
+    (acronyms like 'G-P', 'UBS') where word overlap is unreliable, strips
+    hyphens and requires an exact token match — preventing e.g. 'NHS' from
+    being accepted as a match for 'G-P'.
+    """
     if not a or not b:
-        return True  # can't validate — allow through
+        return True  # no data to validate — allow through
+
+    def _norm(s: str) -> str:
+        return re.sub(r"\s+", "", s.lower())
+
     words_a = {w for w in a.lower().split() if len(w) > 3 and w not in _CO_STOPWORDS}
     words_b = {w for w in b.lower().split() if len(w) > 3 and w not in _CO_STOPWORDS}
-    if not words_a or not words_b:
-        return True  # name too generic to validate
+
+    if not words_b:
+        # Company being searched is short (e.g. "G-P", "UBS") or all words are stopwords.
+        # First try: normalised form appears as a whole token in the parsed company.
+        b_norm = _norm(b)
+        a_tokens = {_norm(t) for t in a.split()}
+        if b_norm in a_tokens:
+            return True
+        # Multi-word short names like "BDA Partners": check each individual non-stopword
+        # word of b (length > 1) against a_tokens so "BDA" matches "bda" in the title.
+        b_parts = [_norm(w) for w in b.split() if w.lower() not in _CO_STOPWORDS and len(w) > 1]
+        return bool(b_parts and any(p in a_tokens for p in b_parts))
+
+    if not words_a:
+        # Parsed company is short; accept only if it appears as a token in the
+        # searched company name.
+        a_norm = _norm(a)
+        b_tokens = {_norm(t) for t in b.split()}
+        return a_norm in b_tokens
+
     return bool(words_a & words_b)
 
 
@@ -101,6 +129,40 @@ def _full_uni_name(university: str) -> str:
         return university.strip()
     # No match — return as-is (better than silently dropping it)
     return university.strip()
+
+
+_NON_RELEVANT_KW = {
+    "software", "engineer", "developer", "devops", "sre", "backend", "frontend",
+    "full stack", "fullstack", "data scientist", "machine learning", "data engineer",
+    "infrastructure", "platform engineer", "cloud engineer", "mobile engineer",
+    "it ", "information technology", "cybersecurity", "cyber security",
+    "security engineer", "network engineer",
+}
+_FINANCE_RELEVANT_KW = {
+    "analyst", "associate", "banker", "trader", "portfolio manager",
+    "investment", "equity research", "fixed income", "derivatives", "credit",
+    "quant", "quantitative", "strategist", "vice president", "managing director",
+    "director", "principal", "partner", "fund manager",
+    "capital markets", "m&a", "mergers", "acquisitions", "hedge fund",
+    "private equity", "venture capital", "asset management", "wealth management",
+}
+_FINANCE_DEPT_TAGS = {
+    "investment_banking", "sales_trading", "equity_research", "quant",
+    "risk", "asset_management", "consulting", "healthcare", "law_corporate",
+    "law_finance", "law_disputes", "law_tech", "marketing",
+}
+
+
+def _classify_lead_type(lead_title: str, dept_tag: str) -> str:
+    """Return 'relevant' only for clearly finance-appropriate titles.
+    Tech roles are always 'general'. For finance dept tags, require an
+    explicit finance keyword — everything else defaults to 'general'."""
+    t = lead_title.lower()
+    if any(kw in t for kw in _NON_RELEVANT_KW):
+        return "general"
+    if dept_tag in _FINANCE_DEPT_TAGS:
+        return "relevant" if any(kw in t for kw in _FINANCE_RELEVANT_KW) else "general"
+    return "relevant"
 
 
 def _dept_from_title(title: str) -> str:
@@ -483,6 +545,39 @@ def _save_training_records(
 # ── Main build loop ───────────────────────────────────────────────────────────
 
 
+_FINANCE_SOURCES = {
+    "trackr_summer_internships", "trackr_spring_weeks", "trackr_off_cycle",
+    "trackr_industrial_placements", "trackr_grad_programmes", "trackr_events",
+}
+
+
+def _resolve_vertical(company: str) -> str | None:
+    """Return 'UK Finance', 'UK Consulting', 'UK Technology', or 'UK Law' based on the company's Trackr jobs."""
+    import json as _json
+    rows = fetchall(
+        "SELECT source, industry, raw FROM jobs WHERE lower(company) = lower(%s) AND source LIKE 'trackr%%' LIMIT 10"
+        if USE_POSTGRES else
+        "SELECT source, industry, raw FROM jobs WHERE lower(company) = lower(?) AND source LIKE 'trackr%' LIMIT 10",
+        (company,),
+    )
+    for r in rows:
+        src = r.get("source") or ""
+        ind = (r.get("industry") or "").lower()
+        try:
+            cats = _json.loads(r.get("raw") or "{}").get("trackr_categories") or []
+        except Exception:
+            cats = []
+        if "Consulting" in cats:
+            return "UK Consulting"
+        if src in _FINANCE_SOURCES or (src == "trackr" and "finance" in ind):
+            return "UK Finance"
+        if src == "trackr" and "technology" in ind:
+            return "UK Tech"
+        if src == "trackr" and "law" in ind:
+            return "UK Law"
+    return None
+
+
 def build_leads(
     company_filter: str = "",
     university:     str = "",
@@ -609,8 +704,15 @@ def build_leads(
         # Query B — broad (dept + company + city, no university)
         query_b = _build_query_broad(company, search_location, dept_keyword)
         logger.info(f"  Query B: {query_b[:100]}")
-        raw_b_p1 = matcher._serper_search(query_b, count=10, page=1)
-        raw_b_p2 = matcher._serper_search(query_b, count=10, page=2)
+        try:
+            raw_b_p1 = matcher._serper_search(query_b, count=10, page=1)
+            raw_b_p2 = matcher._serper_search(query_b, count=10, page=2)
+        except RuntimeError as e:
+            if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                logger.critical("🚨 SERPER CREDITS EXHAUSTED during Query B — stopping")
+                logger.info(f"Lead build stopped early — {total_upserted} leads upserted so far")
+                return total_upserted
+            raise
         for i, r in enumerate(raw_b_p1): r["_rank"] = i + 1
         for i, r in enumerate(raw_b_p2): r["_rank"] = i + 11
         raw_b    = _dedup(raw_b_p1 + raw_b_p2)
@@ -698,7 +800,7 @@ def build_leads(
             # (e.g. "London"); replacing with "UK" causes 0/25 pts in the scorer.
             if not lead.get("location_country") and location in _REGION_COUNTRY:
                 lead["location_country"] = _REGION_COUNTRY[location]
-            lead["lead_type"] = "relevant"
+            lead["lead_type"] = _classify_lead_type(lead.get("title", ""), dept_name)
             url = lead.get("linkedin_url", "")
             if url and url not in all_leads:
                 all_leads[url] = lead
@@ -795,10 +897,82 @@ def build_leads(
                     if url and url not in all_leads:
                         all_leads[url] = lead
 
+        # ── Tier 5: No-location fallback (small/niche companies with 0 leads) ────
+        if len(all_leads) < 5:
+            q_noloc = f'site:linkedin.com/in "{dept_keyword}" "{company}"'
+            logger.info(f"  Tier 5 (no-location fallback): {q_noloc[:100]}")
+            for pg in [1, 2, 3]:
+                if len(all_leads) >= 25:
+                    break
+                try:
+                    raw_noloc = matcher._serper_search(q_noloc, count=10, page=pg)
+                except RuntimeError as e:
+                    if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                        logger.critical("🚨 SERPER CREDITS EXHAUSTED during no-location fallback — stopping")
+                        return total_upserted
+                    logger.warning(f"  No-location fallback query failed: {e}")
+                    break
+                for i, r in enumerate(raw_noloc): r["_rank"] = i + 1
+                for r in _dedup(raw_noloc):
+                    lead = _parse_snippet(r, university="", dept_tag=dept_name)
+                    if not lead: continue
+                    parsed_co = lead.get("company", "") or lead.get("title", "")
+                    if parsed_co and not _company_name_overlap(parsed_co, company): continue
+                    if _snippet_role_is_past(lead.get("snippet", "")): continue
+                    lead["company"] = company
+                    lead["job_title"] = job_title
+                    lead["job_expected_email"] = _infer_email(lead.get("name", ""), company)
+                    lead["job_opening_date"] = opening_date
+                    lead["lead_type"] = _classify_lead_type(lead.get("title", ""), dept_name)
+                    url = lead.get("linkedin_url", "")
+                    if url and url not in all_leads:
+                        all_leads[url] = lead
+            # Also try pure company name with no keywords
+            if len(all_leads) < 5:
+                q_bare = f'site:linkedin.com/in "{company}"'
+                logger.info(f"  Tier 5b (bare company): {q_bare}")
+                for pg in [1, 2]:
+                    if len(all_leads) >= 25:
+                        break
+                    try:
+                        raw_bare = matcher._serper_search(q_bare, count=10, page=pg)
+                    except RuntimeError as e:
+                        if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                            return total_upserted
+                        break
+                    for i, r in enumerate(raw_bare): r["_rank"] = i + 1
+                    for r in _dedup(raw_bare):
+                        lead = _parse_snippet(r, university="", dept_tag="general")
+                        if not lead: continue
+                        parsed_co = lead.get("company", "") or lead.get("title", "")
+                        if parsed_co and not _company_name_overlap(parsed_co, company): continue
+                        if _snippet_role_is_past(lead.get("snippet", "")): continue
+                        lead["company"] = company
+                        lead["job_title"] = job_title
+                        lead["job_expected_email"] = _infer_email(lead.get("name", ""), company)
+                        lead["job_opening_date"] = opening_date
+                        lead["lead_type"] = _classify_lead_type(lead.get("title", ""), dept_name)
+                        url = lead.get("linkedin_url", "")
+                        if url and url not in all_leads:
+                            all_leads[url] = lead
+
         logger.info(f"  {company} / {dept_name}: {len(all_leads)} total leads (all tiers)")
+
+        # Cap "relevant" leads at 20% of total — demote excess to "general"
+        all_leads_list = list(all_leads.values())
+        relevant_leads = [l for l in all_leads_list if l.get("lead_type") == "relevant"]
+        max_relevant   = max(1, round(len(all_leads_list) * 0.20))
+        if len(relevant_leads) > max_relevant:
+            for lead in relevant_leads[max_relevant:]:
+                lead["lead_type"] = "general"
+            logger.info(f"  {company}: capped relevant leads {len(relevant_leads)} → {max_relevant} (20% of {len(all_leads_list)})")
+
+        # Resolve vertical for this company from its Trackr job sources
+        vertical = _resolve_vertical(company)
 
         if not dry_run:
             for lead in all_leads.values():
+                lead["vertical"] = vertical
                 try:
                     upsert_lead(lead)
                     total_upserted += 1

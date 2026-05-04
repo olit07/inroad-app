@@ -102,80 +102,52 @@ def run_trackr_scrape_job() -> tuple[int, set]:
     return new_total, all_new_companies
 
 
-def run_trackr_leads_check_job(companies: set | None = None):
+def run_trackr_leads_check_job(companies: set | None = None, max_per_run: int = 50):
     """
-    For each company in `companies` that has fewer than 25 leads, run the lead builder.
-    When called without arguments (e.g. manual --trackr run), falls back to checking
-    all active Trackr companies in the DB that are short on leads.
+    For each Trackr company with fewer than TRACKR_LEADS_THRESHOLD leads, run the
+    lead builder. Always sweeps all Trackr companies (not just new ones) so that
+    underserved companies are topped up across repeated runs.
+
+    max_per_run: cap companies processed per call to limit API usage (default 50).
     """
     logger.info("─" * 60)
     logger.info("TRACKR LEADS CHECK starting")
     from db.database import fetchall, USE_POSTGRES
     from pipeline.lead_builder import build_leads
 
-    if companies is not None and len(companies) == 0:
-        logger.info("TRACKR LEADS CHECK — no new companies this run, skipping")
-        return
+    limit_clause = f"LIMIT {max_per_run}" if max_per_run > 0 else ""
 
-    if companies:
-        # Check only the specific companies added in this scrape
-        company_list = [c for c in companies if c]
-        if USE_POSTGRES:
-            placeholders = ", ".join(["%s"] * len(company_list))
-            sql = f"""
-                SELECT j.company, COUNT(DISTINCT l.id) AS lead_count
-                FROM jobs j
-                LEFT JOIN leads l ON lower(l.company) = lower(j.company)
-                WHERE lower(j.company) IN ({placeholders})
-                  AND j.company IS NOT NULL AND j.company != ''
-                GROUP BY j.company
-                HAVING COUNT(DISTINCT l.id) < {TRACKR_LEADS_THRESHOLD}
-                ORDER BY COUNT(DISTINCT l.id) ASC
-            """
-        else:
-            placeholders = ", ".join(["?"] * len(company_list))
-            sql = f"""
-                SELECT j.company, COUNT(DISTINCT l.id) AS lead_count
-                FROM jobs j
-                LEFT JOIN leads l ON lower(l.company) = lower(j.company)
-                WHERE lower(j.company) IN ({placeholders})
-                  AND j.company IS NOT NULL AND j.company != ''
-                GROUP BY lower(j.company)
-                HAVING COUNT(DISTINCT l.id) < {TRACKR_LEADS_THRESHOLD}
-                ORDER BY COUNT(DISTINCT l.id) ASC
-            """
-        rows = fetchall(sql, [c.lower() for c in company_list])
+    if USE_POSTGRES:
+        sql = f"""
+            SELECT j.company, COUNT(DISTINCT l.id) AS lead_count
+            FROM jobs j
+            LEFT JOIN leads l ON lower(l.company) = lower(j.company)
+            WHERE j.source LIKE 'trackr%%'
+              AND j.company IS NOT NULL AND j.company != ''
+            GROUP BY j.company
+            HAVING COUNT(DISTINCT l.id) < {TRACKR_LEADS_THRESHOLD}
+            ORDER BY COUNT(DISTINCT l.id) ASC
+            {limit_clause}
+        """
     else:
-        # Manual / fallback: check all active Trackr companies
-        if USE_POSTGRES:
-            sql = f"""
-                SELECT j.company, COUNT(DISTINCT l.id) AS lead_count
-                FROM jobs j
-                LEFT JOIN leads l ON lower(l.company) = lower(j.company)
-                WHERE j.source LIKE 'trackr%%'
-                  AND j.company IS NOT NULL AND j.company != ''
-                GROUP BY j.company
-                HAVING COUNT(DISTINCT l.id) < {TRACKR_LEADS_THRESHOLD}
-                ORDER BY COUNT(DISTINCT l.id) ASC
-            """
-        else:
-            sql = f"""
-                SELECT j.company, COUNT(DISTINCT l.id) AS lead_count
-                FROM jobs j
-                LEFT JOIN leads l ON lower(l.company) = lower(j.company)
-                WHERE j.source LIKE 'trackr%'
-                  AND j.company IS NOT NULL AND j.company != ''
-                GROUP BY lower(j.company)
-                HAVING COUNT(DISTINCT l.id) < {TRACKR_LEADS_THRESHOLD}
-                ORDER BY COUNT(DISTINCT l.id) ASC
-            """
-        rows = fetchall(sql)
+        sql = f"""
+            SELECT j.company, COUNT(DISTINCT l.id) AS lead_count
+            FROM jobs j
+            LEFT JOIN leads l ON lower(l.company) = lower(j.company)
+            WHERE j.source LIKE 'trackr%'
+              AND j.company IS NOT NULL AND j.company != ''
+            GROUP BY lower(j.company)
+            HAVING COUNT(DISTINCT l.id) < {TRACKR_LEADS_THRESHOLD}
+            ORDER BY COUNT(DISTINCT l.id) ASC
+            {limit_clause}
+        """
+    rows = fetchall(sql)
 
     if not rows:
         logger.info("TRACKR LEADS CHECK — all companies have >= 25 leads")
         return
 
-    logger.info(f"TRACKR LEADS CHECK — {len(rows)} companies need more leads")
+    logger.info(f"TRACKR LEADS CHECK — building leads for {len(rows)} companies (capped at {max_per_run})")
     for row in rows:
         company = (row.get("company") or "").strip()
         if not company:
@@ -185,22 +157,24 @@ def run_trackr_leads_check_job(companies: set | None = None):
         try:
             build_leads(company_filter=company, top_n=0)
         except Exception as e:
+            if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                logger.critical("🚨 SERPER CREDITS EXHAUSTED — stopping leads check early")
+                break
             logger.error(f"Lead builder failed for {company}: {e}", exc_info=True)
     logger.info("TRACKR LEADS CHECK done")
 
 
 def run_trackr_pipeline():
-    """Scrape Trackr, then ensure every newly added company has >= 25 leads."""
+    """Scrape Trackr, then build leads for the 50 most underserved companies."""
     logger.info("=" * 60)
     logger.info("TRACKR PIPELINE starting")
     start = time.time()
-    new_companies: set = set()
     try:
-        _, new_companies = run_trackr_scrape_job()
+        run_trackr_scrape_job()
     except Exception as e:
         logger.error(f"Trackr scrape crashed: {e}", exc_info=True)
     try:
-        run_trackr_leads_check_job(companies=new_companies)
+        run_trackr_leads_check_job(max_per_run=50)
     except Exception as e:
         logger.error(f"Trackr leads check crashed: {e}", exc_info=True)
     elapsed = round((time.time() - start) / 60, 1)
