@@ -131,41 +131,78 @@ def _full_uni_name(university: str) -> str:
     return university.strip()
 
 
-_NON_RELEVANT_KW = {
-    "software", "engineer", "developer", "devops", "sre", "backend", "frontend",
-    "full stack", "fullstack", "data scientist", "machine learning", "data engineer",
-    "infrastructure", "platform engineer", "cloud engineer", "mobile engineer",
-    "it ", "information technology", "cybersecurity", "cyber security",
-    "security engineer", "network engineer",
-    # Tech titles at finance firms that slip through via "analyst"/"associate"
-    "technology analyst", "technology associate", "technology manager",
-    "data analyst", "systems analyst", "technical analyst",
-}
-_FINANCE_RELEVANT_KW = {
-    "analyst", "associate", "banker", "trader", "portfolio manager",
-    "investment", "equity research", "fixed income", "derivatives", "credit",
-    "quant", "quantitative", "strategist", "vice president", "managing director",
-    "director", "principal", "partner", "fund manager",
-    "capital markets", "m&a", "mergers", "acquisitions", "hedge fund",
-    "private equity", "venture capital", "asset management", "wealth management",
-}
-_FINANCE_DEPT_TAGS = {
-    "investment_banking", "sales_trading", "equity_research", "quant",
-    "risk", "asset_management", "consulting", "healthcare", "law_corporate",
-    "law_finance", "law_disputes", "law_tech", "marketing",
+# Per-dept positive keywords: a lead is only "Relevant Team" if their title
+# contains at least one of these for the programme's dept_tag.
+# Titles that don't match any keyword → "general" regardless of dept.
+_DEPT_RELEVANT_KW: dict[str, set[str]] = {
+    "investment_banking": {
+        "investment banking", "m&a", "mergers", "advisory", "corporate finance",
+        "capital markets", "dcm", "ecm", "leveraged finance", "restructuring",
+        "analyst", "associate", "vice president", "director", "managing director",
+        "banker",
+    },
+    "sales_trading": {
+        "trader", "trading", "sales", "markets", "fixed income", "fx",
+        "derivatives", "flow", "structured products", "analyst", "associate",
+    },
+    "asset_management": {
+        "portfolio manager", "portfolio analyst", "fund manager", "investment manager",
+        "private equity", "venture capital", "private credit", "direct lending",
+        "credit analyst", "credit associate", "asset management", "wealth management",
+        "investor relations", "capital formation", "infrastructure analyst",
+        "real estate", "private markets", "investment analyst", "investment associate",
+        "analyst", "associate",
+    },
+    "equity_research": {
+        "equity research", "research analyst", "sell-side", "analyst", "associate",
+    },
+    "risk": {
+        "risk analyst", "risk manager", "risk associate", "credit risk",
+        "market risk", "operational risk", "actuary", "actuarial",
+    },
+    "quant": {
+        "quantitative", "quant", "structurer", "strat",
+    },
+    "consulting": {
+        "consultant", "consulting", "strategy", "advisory", "business analyst",
+        "associate consultant", "management consultant",
+    },
+    "law_corporate": {"solicitor", "lawyer", "trainee", "partner", "legal", "counsel"},
+    "law_finance":   {"solicitor", "lawyer", "trainee", "partner", "legal", "counsel"},
+    "law_disputes":  {"solicitor", "lawyer", "trainee", "partner", "legal", "counsel"},
+    "law_tech":      {"solicitor", "lawyer", "trainee", "partner", "legal", "counsel"},
+    "healthcare": {
+        "clinical", "pharmaceutical", "pharma", "biotech", "health economist",
+        "life sciences", "medical", "healthcare analyst",
+    },
+    "software_engineering": {
+        "software engineer", "software developer", "backend", "frontend",
+        "full stack", "fullstack", "swe", "programmer",
+    },
+    "data_ml": {
+        "data scientist", "machine learning", "ml engineer", "ai researcher",
+        "ai engineer", "data analyst", "analytics engineer", "nlp", "computer vision",
+    },
+    "product": {"product manager", "product analyst", "product owner", "pm"},
+    "infrastructure": {
+        "devops", "infrastructure engineer", "platform engineer", "sre",
+        "site reliability", "cloud engineer",
+    },
+    "design": {"designer", "ux", "ui designer", "product designer", "ux researcher"},
+    "marketing": {
+        "marketing", "brand manager", "growth", "content", "communications",
+        "digital marketing", "pr manager",
+    },
+    "general": {"analyst", "associate", "consultant", "advisor"},
 }
 
 
 def _classify_lead_type(lead_title: str, dept_tag: str) -> str:
-    """Return 'relevant' only for clearly finance-appropriate titles.
-    Tech roles are always 'general'. For finance dept tags, require an
-    explicit finance keyword — everything else defaults to 'general'."""
+    """Return 'relevant' only if the lead's title matches the programme's field.
+    Uses dept-specific positive keyword matching — no title → 'general'."""
     t = lead_title.lower()
-    if any(kw in t for kw in _NON_RELEVANT_KW):
-        return "general"
-    if dept_tag in _FINANCE_DEPT_TAGS:
-        return "relevant" if any(kw in t for kw in _FINANCE_RELEVANT_KW) else "general"
-    return "relevant"
+    relevant_kw = _DEPT_RELEVANT_KW.get(dept_tag, _DEPT_RELEVANT_KW["general"])
+    return "relevant" if any(kw in t for kw in relevant_kw) else "general"
 
 
 def _dept_from_title(title: str) -> str:
