@@ -599,7 +599,6 @@ RUSSELL_GROUP_UNIS = [
     "Queen's University Belfast",
     "University of Liverpool",
     "Newcastle University",
-    "University of York",
     "Queen Mary University of London",
 ]
 

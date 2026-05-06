@@ -70,11 +70,15 @@ IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
 
 def _start_background_scheduler():
     """
-    Start the daily pipeline (cards + notify) in a background thread.
+    Start all scheduled jobs in a background thread.
     Uses a non-blocking file lock so only one gunicorn worker runs the loop.
-    The lock is process-safe: whichever worker acquires it becomes the sole scheduler.
+
+    Schedule:
+      - Trackr scrape + leads check: 05:45, 10:45, 16:45 UTC daily
+      - Cards + notify: 06:00 UTC daily
     """
     import threading, time, fcntl, logging as _log
+    from datetime import datetime, timedelta
 
     try:
         _lock_fh = open("/tmp/inroad_scheduler.lock", "w")
@@ -82,19 +86,65 @@ def _start_background_scheduler():
     except (IOError, OSError):
         return  # another worker already holds the lock
 
+    TRACKR_SLOTS = [(5, 45), (10, 45), (16, 45)]
+    PIPELINE_HOUR = 6
+
+    def _next_slot(slots):
+        now = datetime.utcnow()
+        candidates = []
+        for h, m in slots:
+            t = now.replace(hour=h, minute=m, second=0, microsecond=0)
+            if t <= now:
+                t += timedelta(days=1)
+            candidates.append(t)
+        return min(candidates)
+
+    def _next_hour(hour):
+        now = datetime.utcnow()
+        t = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if t <= now:
+            t += timedelta(days=1)
+        return t
+
     def _loop():
-        from scheduler.run import run_full_pipeline, seconds_until, PIPELINE_HOUR
-        _log.getLogger("scheduler").info("Background scheduler started (embedded in web process)")
+        from scheduler.run import run_trackr_pipeline, run_cards_job, run_notify_job
+        log = _log.getLogger("scheduler")
+        log.info("Background scheduler started — Trackr at 05:45/10:45/16:45 UTC, pipeline at 06:00 UTC")
+
+        next_trackr  = _next_slot(TRACKR_SLOTS)
+        next_pipeline = _next_hour(PIPELINE_HOUR)
+        log.info(f"First Trackr run: {next_trackr.strftime('%Y-%m-%d %H:%M')} UTC")
+        log.info(f"First pipeline run: {next_pipeline.strftime('%Y-%m-%d %H:%M')} UTC")
+
         while True:
-            wait = seconds_until(PIPELINE_HOUR)
-            _log.getLogger("scheduler").info(
-                f"Next pipeline run in {wait/3600:.1f}h (at {PIPELINE_HOUR:02d}:00 UTC)"
+            now = datetime.utcnow()
+            wait = min(
+                max((next_trackr - now).total_seconds(), 0),
+                max((next_pipeline - now).total_seconds(), 0),
             )
-            time.sleep(wait)
-            try:
-                run_full_pipeline()
-            except Exception as exc:
-                _log.getLogger("scheduler").error(f"Pipeline crashed: {exc}", exc_info=True)
+            time.sleep(max(wait, 30))
+
+            now = datetime.utcnow()
+
+            if now >= next_trackr:
+                try:
+                    run_trackr_pipeline()
+                except Exception as exc:
+                    log.error(f"Trackr pipeline crashed: {exc}", exc_info=True)
+                next_trackr = _next_slot(TRACKR_SLOTS)
+                log.info(f"Next Trackr run: {next_trackr.strftime('%Y-%m-%d %H:%M')} UTC")
+
+            if now >= next_pipeline:
+                try:
+                    run_cards_job()
+                except Exception as exc:
+                    log.error(f"Cards job crashed: {exc}", exc_info=True)
+                try:
+                    run_notify_job()
+                except Exception as exc:
+                    log.error(f"Notify job crashed: {exc}", exc_info=True)
+                next_pipeline = _next_hour(PIPELINE_HOUR)
+                log.info(f"Next pipeline run: {next_pipeline.strftime('%Y-%m-%d %H:%M')} UTC")
 
     threading.Thread(target=_loop, daemon=True, name="scheduler").start()
 
@@ -593,14 +643,17 @@ def refresh():
     if token_row.get("revoked_at"):
         return jsonify({"error": "refresh token revoked"}), 401
 
-    # Check expiry — expires_at is stored as an ISO string
-    expires_at_str = token_row["expires_at"]
+    # Check expiry — Postgres returns a datetime object, SQLite returns an ISO string
+    raw_expiry = token_row["expires_at"]
     try:
-        # Handle both offset-aware and offset-naive ISO strings from the DB
-        if expires_at_str.endswith("+00:00") or expires_at_str.endswith("Z"):
-            expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
+        if isinstance(raw_expiry, datetime):
+            expires_at = raw_expiry if raw_expiry.tzinfo else raw_expiry.replace(tzinfo=timezone.utc)
         else:
-            expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=timezone.utc)
+            expires_at_str = str(raw_expiry)
+            if expires_at_str.endswith("+00:00") or expires_at_str.endswith("Z"):
+                expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
+            else:
+                expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=timezone.utc)
     except Exception:
         return jsonify({"error": "invalid refresh token"}), 401
 
@@ -653,6 +706,13 @@ def _sanitise_student(student: dict) -> dict:
     s.pop("outlook_token_expiry", None)
     s["outlook_connected"]    = connected
     s["search_roles_enabled"] = SEARCH_ROLES_ENABLED
+    # Normalise company_size to a list (handles legacy plain-string values)
+    cs = s.get("company_size") or "[]"
+    try:
+        parsed = json.loads(cs)
+        s["company_size"] = parsed if isinstance(parsed, list) else ([parsed] if parsed else [])
+    except (json.JSONDecodeError, TypeError):
+        s["company_size"] = [cs] if cs else []
     return s
 
 
@@ -775,7 +835,7 @@ def register_student():
         age=data.get("age"),
         status=data.get("status", ""),
         industries=json.dumps(data.get("industries", [])),
-        company_size=data.get("companySize", ""),
+        company_size=json.dumps(data.get("companySize", [])) if isinstance(data.get("companySize"), list) else json.dumps([data["companySize"]] if data.get("companySize") else []),
         bio=data.get("bio", ""),
         university=data.get("university", student.get("university", "")),
     )
@@ -1487,6 +1547,50 @@ def admin_fix_leads_apr2026():
     return jsonify({"status": "ok", **results})
 
 
+@app.route("/api/admin/fix-leads-may2026", methods=["POST"])
+@require_admin
+def admin_fix_leads_may2026():
+    """May 2026 lead cleanup: remove NY-misidentified Goldman leads, fix Avis uni tag, fix Lazard lead type."""
+    from db.database import execute as _execute
+    results = {}
+
+    # Delete specific Goldman Sachs leads that are NY-based engineers tagged with York uni
+    goldman_names = [
+        'Begüm Emirsoy', 'Moshe Malka', 'Jimmy Lu', 'Vikti Desai', 'Crystal Wu',
+        'Sahib Singh', 'Andre Chow', 'Mohammed Ibrahim', 'Hunter Sevcik', 'Hao Zheng',
+        'Jade Chen', 'Maitri Shah', 'Ricky Estrada', 'Nana Nimako', 'Sandeep Chaudhary',
+        'Brian Wong', 'Jason Xie', 'Tejas Gururaja', 'Timothy Wing', 'Amber Wang',
+    ]
+    deleted = 0
+    for name in goldman_names:
+        _execute("DELETE FROM leads WHERE name ILIKE %s AND lower(company) = 'goldman sachs'", (name,))
+        deleted += 1
+    results["deleted_goldman_leads"] = deleted
+
+    # Broader cleanup: clear York uni tag for any lead where location suggests New York
+    _execute(
+        "UPDATE leads SET university = '' WHERE lower(university) = 'york' "
+        "AND (lower(location_country) LIKE '%%united states%%' OR lower(location_city) LIKE '%%new york%%')"
+    )
+    results["cleared_york_us"] = True
+
+    # Fix Avis Budget Group university tag being set to company name
+    _execute(
+        "UPDATE leads SET university = '' WHERE lower(company) = 'avis budget group' "
+        "AND lower(university) LIKE '%%avis%%'"
+    )
+    results["fixed_avis_university"] = True
+
+    # Fix Nadine Chouari marked Relevant Team for Lazard (software engineer, not finance)
+    _execute(
+        "UPDATE leads SET lead_type = 'general' WHERE name ILIKE 'Nadine Chouari' "
+        "AND lower(company) = 'lazard'"
+    )
+    results["fixed_nadine_chouari"] = True
+
+    return jsonify({"status": "ok", **results})
+
+
 @app.route("/api/admin/build-leads", methods=["POST"])
 @require_admin
 def admin_build_leads():
@@ -1535,6 +1639,47 @@ def admin_scrape():
     import threading
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"status": "triggered"})
+
+
+@app.route("/api/admin/trackr-pipeline", methods=["POST"])
+@require_admin
+def admin_trackr_pipeline():
+    """Run full Trackr pipeline: scrape + lead builder for underserved companies."""
+    def _run():
+        try:
+            from scheduler.run import run_trackr_pipeline
+            run_trackr_pipeline()
+        except Exception as exc:
+            print(f"[admin/trackr-pipeline] error: {exc}")
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "triggered"})
+
+
+@app.route("/api/admin/build-leads-sequential", methods=["POST"])
+@require_admin
+def admin_build_leads_sequential():
+    """Build leads for a list of companies sequentially (avoids Serper rate limits)."""
+    data      = request.get_json(silent=True) or {}
+    companies = data.get("companies") or []
+    force     = bool(data.get("force", True))
+
+    def _run():
+        import time as _t
+        from pipeline.lead_builder import build_leads
+        for company in companies:
+            try:
+                logger.info(f"[sequential leads] starting: {company}")
+                build_leads(company_filter=company, top_n=0, force=force)
+                logger.info(f"[sequential leads] done: {company}")
+            except Exception as exc:
+                logger.error(f"[sequential leads] error for {company}: {exc}")
+            _t.sleep(5)  # brief pause between companies
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "triggered", "companies": companies, "count": len(companies)})
 
 
 @app.route("/api/admin/fix-email-formats", methods=["POST"])
@@ -1791,158 +1936,22 @@ def api_opportunities():
     from db.database import USE_POSTGRES
 
     # Firm type lookup by company name (used as section headers)
-    FIRM_TYPE_MAP = {
-        # Bulge Bracket
-        'goldman sachs': 'Bulge Bracket', 'goldman': 'Bulge Bracket',
-        'jp morgan': 'Bulge Bracket', 'jpmorgan': 'Bulge Bracket', 'j.p. morgan': 'Bulge Bracket',
-        'morgan stanley': 'Bulge Bracket',
-        'barclays': 'Bulge Bracket',
-        'deutsche bank': 'Bulge Bracket',
-        'ubs': 'Bulge Bracket',
-        'citi': 'Bulge Bracket', 'citigroup': 'Bulge Bracket', 'citibank': 'Bulge Bracket',
-        'bank of america': 'Bulge Bracket', 'bofa': 'Bulge Bracket', 'merrill lynch': 'Bulge Bracket',
-        'credit suisse': 'Bulge Bracket',
-        'hsbc': 'Bulge Bracket',
-        'bnp paribas': 'Bulge Bracket',
-        'société générale': 'Bulge Bracket', 'societe generale': 'Bulge Bracket',
-        'nomura': 'Bulge Bracket',
-        'mizuho': 'Bulge Bracket',
-        'mufg': 'Bulge Bracket', 'mitsubishi': 'Bulge Bracket',
-        'wells fargo': 'Bulge Bracket',
-        # Elite Boutique
-        'lazard': 'Elite Boutique',
-        'rothschild': 'Elite Boutique',
-        'evercore': 'Elite Boutique',
-        'moelis': 'Elite Boutique',
-        'centerview': 'Elite Boutique',
-        'houlihan lokey': 'Elite Boutique',
-        'greenhill': 'Elite Boutique',
-        'pjt partners': 'Elite Boutique',
-        'perella weinberg': 'Elite Boutique',
-        'liontrust': 'Elite Boutique',
-        # Middle Market
-        'jefferies': 'Middle Market',
-        'baird': 'Middle Market',
-        'william blair': 'Middle Market',
-        'piper sandler': 'Middle Market',
-        'stifel': 'Middle Market',
-        'raymond james': 'Middle Market',
-        'dc advisory': 'Middle Market',
-        'harris williams': 'Middle Market',
-        'lincoln international': 'Middle Market',
-        'numis': 'Middle Market',
-        'investec': 'Middle Market',
-        'shore capital': 'Middle Market',
-        'liberum': 'Middle Market',
-        'canaccord': 'Middle Market',
-        # Buy-Side
-        'blackstone': 'Buy-Side',
-        'kkr': 'Buy-Side',
-        'carlyle': 'Buy-Side',
-        'apollo': 'Buy-Side',
-        'tpg': 'Buy-Side',
-        'warburg pincus': 'Buy-Side',
-        'cvc capital': 'Buy-Side', 'cvc': 'Buy-Side',
-        'permira': 'Buy-Side',
-        'apax': 'Buy-Side',
-        'cinven': 'Buy-Side',
-        'bain capital': 'Buy-Side',
-        'bc partners': 'Buy-Side',
-        'bridgepoint': 'Buy-Side',
-        'advent international': 'Buy-Side',
-        'man group': 'Buy-Side',
-        'bridgewater': 'Buy-Side',
-        'two sigma': 'Buy-Side',
-        'citadel': 'Buy-Side',
-        'de shaw': 'Buy-Side', 'd.e. shaw': 'Buy-Side',
-        'millennium': 'Buy-Side',
-        'renaissance': 'Buy-Side',
-        'aqr': 'Buy-Side',
-        # Asset Management
-        'blackrock': 'Asset Management',
-        'vanguard': 'Asset Management',
-        'fidelity': 'Asset Management',
-        'pimco': 'Asset Management',
-        'schroders': 'Asset Management',
-        'invesco': 'Asset Management',
-        'aviva investors': 'Asset Management',
-        'legal & general investment': 'Asset Management', 'lgim': 'Asset Management',
-        'm&g': 'Asset Management',
-        'aberdeen': 'Asset Management', 'abrdn': 'Asset Management',
-        'jupiter asset': 'Asset Management',
-        'baillie gifford': 'Asset Management',
-        'artemis investment': 'Asset Management',
-        'rathbones': 'Asset Management',
-        'pictet': 'Asset Management',
-        'state street': 'Asset Management',
-        'northern trust': 'Asset Management',
-        't. rowe price': 'Asset Management',
-        'columbia threadneedle': 'Asset Management',
-        # Big 4
-        'deloitte': 'Big 4',
-        'pwc': 'Big 4', 'pricewaterhousecoopers': 'Big 4', 'price waterhouse': 'Big 4',
-        'kpmg': 'Big 4',
-        'ernst & young': 'Big 4', 'ernst and young': 'Big 4',
-        # Consulting
-        'mckinsey': 'Consulting',
-        'bcg': 'Consulting', 'boston consulting': 'Consulting',
-        'bain & company': 'Consulting', 'bain and company': 'Consulting',
-        'oliver wyman': 'Consulting',
-        'roland berger': 'Consulting',
-        'accenture': 'Consulting',
-        'capgemini': 'Consulting',
-        'strategy&': 'Consulting',
-        'pa consulting': 'Consulting',
-        # Trading and Quant
-        'jane street': 'Trading and Quant',
-        'optiver': 'Trading and Quant',
-        'virtu': 'Trading and Quant',
-        'flow traders': 'Trading and Quant',
-        'imc trading': 'Trading and Quant',
-        'susquehanna': 'Trading and Quant', 'sig ': 'Trading and Quant',
-        'tower research': 'Trading and Quant',
-        'hudson river trading': 'Trading and Quant',
-        'drw': 'Trading and Quant',
-        'jump trading': 'Trading and Quant',
-        'akuna capital': 'Trading and Quant',
-        # Real Estate
-        'cbre': 'Real Estate',
-        'jll': 'Real Estate', 'jones lang lasalle': 'Real Estate',
-        'savills': 'Real Estate',
-        'colliers': 'Real Estate',
-        'knight frank': 'Real Estate',
-        'cushman': 'Real Estate',
-        # Pensions and Insurance
-        'aviva': 'Pensions and Insurance',
-        'legal & general': 'Pensions and Insurance',
-        'standard life': 'Pensions and Insurance',
-        'prudential': 'Pensions and Insurance',
-        'zurich': 'Pensions and Insurance',
-        'axa': 'Pensions and Insurance',
-        'metlife': 'Pensions and Insurance',
-        'aegon': 'Pensions and Insurance',
-        'lloyds of london': 'Pensions and Insurance',
-        'willis towers watson': 'Pensions and Insurance', 'wtw': 'Pensions and Insurance',
-        'marsh': 'Pensions and Insurance',
-        'aon': 'Pensions and Insurance',
-        # Accounting and Audit
-        'grant thornton': 'Accounting and Audit',
-        'bdo': 'Accounting and Audit',
-        'mazars': 'Accounting and Audit', 'forvis mazars': 'Accounting and Audit',
-        'rsm': 'Accounting and Audit',
-        'crowe': 'Accounting and Audit',
-        'baker tilly': 'Accounting and Audit',
-        'haysmacintyre': 'Accounting and Audit',
+    _INDUSTRY_VERTICAL = {
+        "Finance":    "UK Finance",
+        "Technology": "UK Tech",
+        "Law":        "UK Law",
     }
 
-    def infer_firm_type(company: str) -> str:
-        if not company:
-            return "Miscellaneous"
-        c = company.lower().strip()
-        for key, ftype in FIRM_TYPE_MAP.items():
-            if key in c:
-                return ftype
-        return "Miscellaneous"
+    def infer_firm_type(industry: str, raw_json: str = "") -> str:
+        if raw_json:
+            try:
+                import json as _j
+                cats = _j.loads(raw_json).get("trackr_categories") or []
+                if "Consulting" in cats:
+                    return "UK Consulting"
+            except Exception:
+                pass
+        return _INDUSTRY_VERTICAL.get(industry or "", "Miscellaneous")
 
     _TRACKR_TYPE_LABEL = {
         "summer-internships":    "Summer Internship",
@@ -2066,7 +2075,7 @@ def api_opportunities():
             "id":             r.get("id"),
             "company":        company,
             "programme":      title,
-            "division":       infer_firm_type(company),
+            "division":       infer_firm_type(r.get("industry") or "", r.get("raw") or ""),
             "programme_type": infer_programme_type(title, r.get("raw") or ""),
             "opening_date":   r.get("opening_date") or "",
             "closing_date":   r.get("closing_date") or "",
