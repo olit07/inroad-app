@@ -1547,6 +1547,21 @@ def admin_fix_leads_apr2026():
     return jsonify({"status": "ok", **results})
 
 
+@app.route("/api/admin/delete-goldman-york", methods=["POST"])
+@require_admin
+def admin_delete_goldman_york():
+    """Delete all Goldman Sachs leads tagged with York university (New York false positives)."""
+    from db.database import execute as _execute, fetchall as _fetchall
+    before = _fetchall("SELECT COUNT(*) AS n FROM leads WHERE lower(company)='goldman sachs' AND lower(university)='york'")
+    n_before = (before[0].get("n") or 0) if before else 0
+    _execute("DELETE FROM leads WHERE lower(company)='goldman sachs' AND lower(university)='york'")
+    # Also delete any Goldman leads with name starting "Mark L"
+    _execute("DELETE FROM leads WHERE lower(company)='goldman sachs' AND name ILIKE 'Mark L%'")
+    after = _fetchall("SELECT COUNT(*) AS n FROM leads WHERE lower(company)='goldman sachs' AND lower(university)='york'")
+    n_after = (after[0].get("n") or 0) if after else 0
+    return jsonify({"status": "ok", "deleted": n_before - n_after, "remaining_york": n_after})
+
+
 @app.route("/api/admin/fix-leads-may2026", methods=["POST"])
 @require_admin
 def admin_fix_leads_may2026():
@@ -1885,6 +1900,7 @@ def _send_html(filename):
 
 @app.route("/")
 @app.route("/landing")
+@app.route("/home")
 def landing():
     return _send_html("inroad-landing.html")
 
