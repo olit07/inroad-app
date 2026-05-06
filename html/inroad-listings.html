@@ -357,22 +357,26 @@
     border: 1.5px solid rgba(255,255,255,0.35);
     display: flex; align-items: center; justify-content: center;
     font-size: 0.72rem; font-weight: 700; color: #fff;
-    flex-shrink: 0;
+    flex-shrink: 0; cursor: pointer;
   }
-  .btn-settings {
-    font-size: 0.82rem; font-weight: 500; font-family: var(--sans);
-    color: rgba(255,255,255,0.75); background: transparent;
-    border: none; padding: 0; text-decoration: none; cursor: pointer;
-    transition: color 0.15s;
+  .nav-initials-wrap { position: relative; }
+  .nav-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 140px;
+    overflow: hidden; display: none; z-index: 200;
   }
-  .btn-settings:hover { color: #fff; }
-  .btn-logout {
-    font-size: 0.82rem; font-weight: 500; font-family: var(--sans);
-    color: rgba(255,255,255,0.75); background: transparent;
-    border: none; padding: 0; cursor: pointer;
-    transition: color 0.15s;
+  .nav-dropdown.open { display: block; }
+  .nav-dropdown a, .nav-dropdown button {
+    display: block; width: 100%; text-align: left;
+    padding: 10px 16px; font-size: 0.85rem; font-weight: 500;
+    font-family: var(--sans); color: #374151; background: transparent;
+    border: none; cursor: pointer; text-decoration: none;
+    transition: background 0.12s; box-sizing: border-box;
   }
-  .btn-logout:hover { color: #fff; }
+  .nav-dropdown a:hover, .nav-dropdown button:hover { background: #f3f4f6; color: #374151; }
+  .nav-dropdown .dropdown-logout { color: #ef4444; }
+  .nav-dropdown .dropdown-logout:hover { background: #fef2f2; color: #dc2626; }
 
   /* ── REFERRAL BUTTON ── */
   .nav-refer-btn {
@@ -478,11 +482,11 @@
           <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
         </div>
         <div class="filter-wrap" id="filter-wrap">
-          <button class="filter-btn" data-div="UK Finance">UK Finance</button>
-          <button class="filter-btn" data-div="UK Consulting">UK Consulting</button>
-          <button class="filter-btn" data-div="UK Tech">UK Tech</button>
-          <button class="filter-btn" data-div="UK Law">UK Law</button>
-          <button class="filter-btn" data-div="Miscellaneous">Miscellaneous</button>
+          <button class="filter-btn" data-div="UK Finance">💰 UK Finance</button>
+          <button class="filter-btn" data-div="UK Consulting">📊 UK Consulting</button>
+          <button class="filter-btn" data-div="UK Tech">💻 UK Tech</button>
+          <button class="filter-btn" data-div="UK Law">⚖️ UK Law</button>
+          <button class="filter-btn" data-div="Miscellaneous">🗂️ Other</button>
         </div>
         <span class="shown-count" id="shown-count" style="display:none"></span>
       </div>
@@ -567,10 +571,16 @@
     if (navRight) navRight.innerHTML = `
       <div class="nav-user">
         ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get 5 daily emails</button>` : ''}
-        <a href="/settings" class="btn-settings">Settings</a>
-        <button class="btn-logout" onclick="authLogout()">Log out</button>
-        <div class="nav-initials">${esc(initials || '?')}</div>
+        <div class="nav-initials-wrap" id="nav-initials-wrap">
+          <div class="nav-initials" onclick="toggleNavDropdown(event)">${esc(initials || '?')}</div>
+          <div class="nav-dropdown" id="nav-dropdown">
+            <a href="/settings">Settings</a>
+            <button class="dropdown-logout" onclick="authLogout()">Log out</button>
+          </div>
+        </div>
       </div>`;
+    window.toggleNavDropdown = function(e) { e.stopPropagation(); document.getElementById('nav-dropdown').classList.toggle('open'); };
+    document.addEventListener('click', function() { const dd = document.getElementById('nav-dropdown'); if (dd) dd.classList.remove('open'); });
     try {
       if (d.status && userStatus !== d.status) { userStatus = d.status; applyStatusCollapse(); }
     } catch {}
@@ -963,7 +973,7 @@
     "gleacher shacklock": "https://www.gleachershacklock.com/careers/",
     "glencore": "https://www.glencore.com/careers/",
     "glg": "https://glginsights.com/careers/",
-    "goldman sachs": "https://www.goldmansachs.com/careers/professionals/early-careers/",
+    "goldman sachs": "https://www.goldmansachs.com/careers/",
     "google": "https://careers.google.com/",
     "gp bullhound": "https://www.gpbullhound.com/careers/",
     "grant thornton": "https://www.grantthornton.com/careers/early-career.aspx",
