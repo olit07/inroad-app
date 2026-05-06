@@ -227,7 +227,9 @@ class LinkedInMatcher:
         self.pdl_key     = os.environ.get("PDL_API_KEY", "")       # primary — education data
         self.apollo_key  = os.environ.get("APOLLO_API_KEY", "")    # secondary — verified data
         self.hunter_key  = os.environ.get("HUNTER_API_KEY", "")    # tertiary — domain people search
-        self.serper_key  = os.environ.get("SERPER_API_KEY", "")    # fallback — serper.dev
+        self.serper_key   = os.environ.get("SERPER_API_KEY", "")    # primary
+        self.serper_key_2 = os.environ.get("SERPER_API_KEY_2", "") # backup 1
+        self.serper_key_3 = os.environ.get("SERPER_API_KEY_3", "") # backup 2
         self.brave_key   = os.environ.get("BRAVE_SEARCH_API_KEY", "") # fallback
         self.serp_key    = os.environ.get("SERPAPI_KEY", "")       # fallback
         # Warn if someone has the old dead Bing key set
@@ -757,50 +759,69 @@ class LinkedInMatcher:
         Serper.dev — Google search API. $0.30/1k queries, free trial.
         Returns results in a format compatible with _parse_snippet().
         page=1 returns results 1-10, page=2 returns 11-20.
+        Falls back to SERPER_API_KEY_2 if primary key is exhausted.
         """
-        self._throttle()
-        payload = json.dumps({
-            "q": query, "num": min(count, 10),
-            "page": page, "gl": "gb", "hl": "en",
-        }).encode()
         import urllib.request
-        req = urllib.request.Request(
-            SERPER_ENDPOINT,
-            data=payload,
-            headers={
-                "X-API-KEY":    self.serper_key,
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=15) as r:
-                data = json.loads(r.read().decode("utf-8", errors="replace"))
-            # Detect credit exhaustion in response body
-            if data.get("credits") == 0 or "insufficient credits" in str(data).lower():
-                logger.critical("🚨 SERPER CREDITS EXHAUSTED — stopping lead scrape")
-                raise RuntimeError("SERPER_CREDITS_EXHAUSTED")
-            # Normalise Serper's organic results to the same shape _parse_snippet expects
-            organic = data.get("organic", [])
-            normalised = []
-            for item in organic:
-                normalised.append({
-                    "name":    item.get("title", ""),
-                    "url":     item.get("link", ""),
-                    "snippet": item.get("snippet", ""),
-                })
-            return normalised
-        except RuntimeError:
-            raise  # re-raise credit exhaustion so caller stops
-        except urllib.request.HTTPError as e:
-            if e.code in (402, 429):
-                logger.critical(f"🚨 SERPER CREDITS EXHAUSTED (HTTP {e.code}) — stopping lead scrape")
-                raise RuntimeError("SERPER_CREDITS_EXHAUSTED")
-            logger.error(f"Serper search failed (HTTP {e.code}): {e}")
-            return []
-        except Exception as e:
-            logger.error(f"Serper search failed: {e}")
-            return []
+        keys_to_try = [k for k in [self.serper_key, self.serper_key_2, self.serper_key_3] if k]
+        for i, key in enumerate(keys_to_try):
+            self._throttle()
+            payload = json.dumps({
+                "q": query, "num": min(count, 10),
+                "page": page, "gl": "gb", "hl": "en",
+            }).encode()
+            req = urllib.request.Request(
+                SERPER_ENDPOINT,
+                data=payload,
+                headers={"X-API-KEY": key, "Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    data = json.loads(r.read().decode("utf-8", errors="replace"))
+                if data.get("credits") == 0 or "insufficient credits" in str(data).lower():
+                    label = "primary" if i == 0 else "backup"
+                    logger.critical(f"🚨 SERPER CREDITS EXHAUSTED on {label} key")
+                    if i + 1 < len(keys_to_try):
+                        logger.info("Switching to backup Serper key...")
+                        continue
+                    raise RuntimeError("SERPER_CREDITS_EXHAUSTED")
+                organic = data.get("organic", [])
+                return [{"name": it.get("title", ""), "url": it.get("link", ""), "snippet": it.get("snippet", "")} for it in organic]
+            except RuntimeError:
+                if i + 1 < len(keys_to_try):
+                    logger.info("Switching to backup Serper key...")
+                    continue
+                raise
+            except urllib.request.HTTPError as e:
+                if e.code == 429:
+                    # Rate limited — back off and retry same key, don't treat as exhausted
+                    logger.warning(f"Serper rate limited (429) — backing off 10s")
+                    import time as _time; _time.sleep(10)
+                    try:
+                        with urllib.request.urlopen(req, timeout=15) as r2:
+                            data2 = json.loads(r2.read().decode("utf-8", errors="replace"))
+                        organic = data2.get("organic", [])
+                        return [{"name": it.get("title", ""), "url": it.get("link", ""), "snippet": it.get("snippet", "")} for it in organic]
+                    except Exception:
+                        return []
+                if e.code in (400, 402):
+                    label = "primary" if i == 0 else "backup"
+                    try:
+                        body = e.read().decode("utf-8", errors="replace")
+                    except Exception:
+                        body = ""
+                    if e.code == 402 or "not enough credits" in body.lower() or "insufficient" in body.lower():
+                        logger.critical(f"🚨 SERPER CREDITS EXHAUSTED (HTTP {e.code}) on {label} key: {body}")
+                        if i + 1 < len(keys_to_try):
+                            logger.info("Switching to backup Serper key...")
+                            continue
+                        raise RuntimeError("SERPER_CREDITS_EXHAUSTED")
+                    logger.error(f"Serper search failed (HTTP {e.code}): {body or e}")
+                return []
+            except Exception as e:
+                logger.error(f"Serper search failed: {e}")
+                return []
+        return []
 
     def _serper_search_two_pages(self, query: str) -> list[dict]:
         """Fetch pages 1 and 2 from Serper (up to 20 results). Deduplicates by URL."""
@@ -913,13 +934,18 @@ def _extract_university(text: str) -> str:
             pattern = r'\b' + re.escape(alias) + r'\b'
             if re.search(pattern, text_lower):
                 return alias.title()
-    # Generic patterns: "University of X", "X University"
+    # Generic patterns: "University of X", "X University", "X College"
+    # Restrict word counts to avoid greedily absorbing preceding company names.
     m = re.search(
-        r"\b(university of [a-z ]+|[a-z ]+ university|[a-z ]+ college)\b",
+        r"\b(university of (?:[a-z]+ ){1,4}[a-z]+|(?:[a-z]+ ){1,3}university|(?:[a-z]+ ){1,2}college)\b",
         text_lower,
     )
     if m:
-        return m.group(0).strip().title()
+        result = m.group(0).strip().title()
+        _generic = {"The University", "A University", "The College", "A College", "The School"}
+        if result in _generic:
+            return ""
+        return result
     return ""
 
 
@@ -1321,9 +1347,18 @@ def score_lead_v2(
     breakdown["seniority_fit"] = sen_pts
 
     # ── 7. Company size (8 pts) ──────────────────────────────────────
-    student_size = _normalise_company_size(student.get("company_size"))
-    job_size     = _normalise_company_size(job.get("company_size"))
-    size_pts = 8.0 if (student_size and job_size and student_size == job_size) else 0.0
+    raw_student_size = student.get("company_size")
+    if isinstance(raw_student_size, list):
+        student_sizes = [_normalise_company_size(s) for s in raw_student_size]
+    else:
+        try:
+            parsed = json.loads(raw_student_size) if raw_student_size else []
+            student_sizes = [_normalise_company_size(s) for s in (parsed if isinstance(parsed, list) else [parsed])]
+        except (json.JSONDecodeError, TypeError):
+            student_sizes = [_normalise_company_size(raw_student_size)]
+    student_sizes = [s for s in student_sizes if s]
+    job_size = _normalise_company_size(job.get("company_size"))
+    size_pts = 8.0 if (student_sizes and job_size and job_size in student_sizes) else 0.0
     breakdown["company_size"] = size_pts
 
     total = round(min(
