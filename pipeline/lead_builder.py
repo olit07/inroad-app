@@ -137,6 +137,9 @@ _NON_RELEVANT_KW = {
     "infrastructure", "platform engineer", "cloud engineer", "mobile engineer",
     "it ", "information technology", "cybersecurity", "cyber security",
     "security engineer", "network engineer",
+    # Tech titles at finance firms that slip through via "analyst"/"associate"
+    "technology analyst", "technology associate", "technology manager",
+    "data analyst", "systems analyst", "technical analyst",
 }
 _FINANCE_RELEVANT_KW = {
     "analyst", "associate", "banker", "trader", "portfolio manager",

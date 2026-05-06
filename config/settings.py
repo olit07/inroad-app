@@ -643,6 +643,18 @@ TITLE_SEARCH_KEYWORD_MAP: list[tuple[list[str], str]] = [
     (["restructuring"],                                      "restructuring analyst"),
     (["capital markets"],                                    "capital markets analyst"),
     (["corporate finance"],                                  "corporate finance analyst"),
+    (["financial advisory", "global advisory"],              "financial advisory analyst"),
+    (["corporate coverage", "coverage intern", "coverage analyst"], "coverage analyst"),
+    # ── Asset Management / Private Markets sub-roles ──────────────────────────
+    (["private credit", "direct lending", "private debt",
+      "special situations", "distressed"],                   "private credit analyst"),
+    (["private equity", "pe intern", "buyout", "co-investment",
+      "co investment"],                                      "private equity analyst"),
+    (["venture capital", "vc intern", "early stage", "seed"],  "venture capital analyst"),
+    (["capital formation", "investor relations", "fundraising"], "investor relations"),
+    (["infrastructure invest", "infrastructure fund",
+      "real assets"],                                        "infrastructure analyst"),
+    (["real estate invest", "property invest"],               "real estate analyst"),
     # ── Quant sub-roles ───────────────────────────────────────────────────────
     (["quantitative researcher", "quant research"],          "quantitative researcher"),
     (["quantitative trader", "quant trader"],                "quantitative trader"),
