@@ -439,7 +439,7 @@ TITLE_DEPT_MAP = [
     (["investment banking", "m&a", "mergers", "dcm", "ecm", "leveraged finance",
       "capital markets", "fig ", "debt advisory", "restructuring", "ipo",
       "equity capital", "debt capital", "advisory intern", "ib analyst",
-      "ib associate", "corporate finance",
+      "ib associate", "corporate finance", "corporate coverage", "coverage intern",
       "global advisory", "strategic advisory", "advisory"], "investment_banking"),
     # Quant (before sales_trading — "quant trader" should map here not sales_trading)
     (["quantitative", "quant trader", "quant research", "quant analyst",
@@ -463,7 +463,8 @@ TITLE_DEPT_MAP = [
       "investment manag", "private equity", "pe intern", "buyout",
       "venture capital", "vc intern", "real estate invest", "property invest",
       "real estate", "property invest", "real assets",
-      "credit invest", "special situations", "private credit",
+      "credit invest", "special situations", "private credit", "direct lending",
+      "private debt", "capital formation", "co-investment", "co investment",
       "infrastructure invest", "private markets",
       "investor relations", "clean energy", "renewable energy",
       "infrastructure fund"], "asset_management"),
