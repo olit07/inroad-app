@@ -87,6 +87,8 @@ def _parse_programme(raw: dict, region: str, industry: str, prog_type: str) -> d
     closing_date = clean_date(raw.get("closingDate") or "")
     locations    = raw.get("locations") or []
 
+    trackr_id = (raw.get("id") or "").strip()
+
     job = make_job(
         company_name    = company_name,
         title           = title,
@@ -100,10 +102,13 @@ def _parse_programme(raw: dict, region: str, industry: str, prog_type: str) -> d
         posted_date     = opening_date or None,
         closing_date    = closing_date,
     )
-    job["opening_date"] = opening_date
-    job["company_size"] = COMPANY_SIZE_LOOKUP.get(company_name.lower().strip(), "")
-    job["location"]     = ", ".join(locations) if locations else ""
-    job["trackr_type"]  = prog_type
+    job["opening_date"]      = opening_date
+    job["company_size"]      = COMPANY_SIZE_LOOKUP.get(company_name.lower().strip(), "")
+    job["location"]          = ", ".join(locations) if locations else ""
+    job["trackr_type"]       = prog_type
+    job["source_identifier"] = trackr_id
+    categories = raw.get("categories") or []
+    job["trackr_categories"] = categories  # stored in raw JSON; used to derive vertical
     return job
 
 
@@ -219,11 +224,11 @@ _OTHER_BUCKETS = [
     ("UK", "Technology", "2026", "off-cycle-internships"),
     ("UK", "Technology", "2026", "graduate-programmes"),
     ("UK", "Law",        "2026", "training-contracts"),
-    # North America
-    ("NA", "Finance",    "2026", "summer-internships"),
-    ("NA", "Finance",    "2027", "summer-internships"),
-    ("NA", "Technology", "2026", "summer-internships"),
-    ("NA", "Technology", "2027", "summer-internships"),
+    # North America — paused (too many US roles surfacing)
+    # ("NA", "Finance",    "2026", "summer-internships"),
+    # ("NA", "Finance",    "2027", "summer-internships"),
+    # ("NA", "Technology", "2026", "summer-internships"),
+    # ("NA", "Technology", "2027", "summer-internships"),
     # Europe
     ("EU", "Finance",    "2026", "summer-internships"),
     ("EU", "Finance",    "2027", "summer-internships"),
