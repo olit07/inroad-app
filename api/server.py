@@ -1610,6 +1610,56 @@ def admin_fix_leads_may2026():
     return jsonify({"status": "ok", **results})
 
 
+@app.route("/api/admin/remove-na-eu-listings", methods=["POST"])
+@require_admin
+def admin_remove_na_eu_listings():
+    """
+    Delete all jobs sourced from the NA Finance and EU Finance Trackr pages
+    (region IN ('US', 'EU'), source='trackr'), then remove leads for any
+    company that has no remaining jobs after the deletion.
+    """
+    from db.database import fetchone, execute as _execute, USE_POSTGRES
+    ph = "%s" if USE_POSTGRES else "?"
+
+    # Count before deletion for reporting
+    before = (fetchone(
+        f"SELECT COUNT(*) AS cnt FROM jobs WHERE source='trackr' AND region IN ({ph},{ph})",
+        ("US", "EU"),
+    ) or {}).get("cnt", 0)
+
+    # Delete the job listings
+    _execute(
+        f"DELETE FROM jobs WHERE source='trackr' AND region IN ({ph},{ph})",
+        ("US", "EU"),
+    )
+
+    # Remove leads for companies that no longer have any active jobs
+    if USE_POSTGRES:
+        _execute(
+            """DELETE FROM leads
+               WHERE lower(company) NOT IN (
+                   SELECT DISTINCT lower(company) FROM jobs
+                   WHERE company IS NOT NULL AND company != ''
+               )"""
+        )
+    else:
+        _execute(
+            """DELETE FROM leads
+               WHERE lower(company) NOT IN (
+                   SELECT DISTINCT lower(company) FROM jobs
+                   WHERE company IS NOT NULL AND company != ''
+               )"""
+        )
+
+    after_jobs = (fetchone("SELECT COUNT(*) AS cnt FROM jobs WHERE source='trackr'") or {}).get("cnt", 0)
+
+    return jsonify({
+        "status":        "ok",
+        "jobs_deleted":  before,
+        "trackr_jobs_remaining": after_jobs,
+    })
+
+
 @app.route("/api/admin/fix-xmg-leads", methods=["POST"])
 @require_admin
 def admin_fix_xmg_leads():
