@@ -829,9 +829,13 @@ def register_student():
         return jsonify({"error": "Student not found"}), 404
     email = student["email"]
 
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+
     student = upsert_student_profile(
         email=email,
-        name=data.get("name", ""),
+        name=name,
         age=data.get("age"),
         status=data.get("status", ""),
         industries=json.dumps(data.get("industries", [])),

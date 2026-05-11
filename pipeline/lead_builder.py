@@ -996,6 +996,43 @@ def build_leads(
                         if url and url not in all_leads:
                             all_leads[url] = lead
 
+        # ── Tier 6: No-company broadened search (< 5 leads after all above) ────
+        # For very small / niche companies with no indexed LinkedIn presence, drop
+        # the company name entirely and search by role + city so students still get
+        # relevant contacts to reach out to.
+        if len(all_leads) < 5:
+            q_broad = f'site:linkedin.com/in "{dept_keyword}" "{search_location}"'
+            logger.info(f"  Tier 6 (broadened, no company): {q_broad[:100]}")
+            for pg in [1, 2]:
+                if len(all_leads) >= 25:
+                    break
+                try:
+                    raw_broad = matcher._serper_search(q_broad, count=10, page=pg)
+                except RuntimeError as e:
+                    if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                        logger.critical("🚨 SERPER CREDITS EXHAUSTED during broadened fallback — stopping")
+                        return total_upserted
+                    logger.warning(f"  Tier 6 query failed: {e}")
+                    break
+                for i, r in enumerate(raw_broad):
+                    r["_rank"] = i + 1
+                for r in _dedup(raw_broad):
+                    lead = _parse_snippet(r, university="", dept_tag=dept_name)
+                    if not lead:
+                        continue
+                    if _snippet_role_is_past(lead.get("snippet", "")):
+                        continue
+                    lead["company"]            = company
+                    lead["job_title"]          = job_title
+                    lead["job_expected_email"] = ""
+                    lead["job_opening_date"]   = opening_date
+                    lead["lead_type"]          = _classify_lead_type(lead.get("title", ""), dept_name)
+                    if not lead.get("location_country") and location in _REGION_COUNTRY:
+                        lead["location_country"] = _REGION_COUNTRY[location]
+                    url = lead.get("linkedin_url", "")
+                    if url and url not in all_leads:
+                        all_leads[url] = lead
+
         logger.info(f"  {company} / {dept_name}: {len(all_leads)} total leads (all tiers)")
 
         # Cap "relevant" leads at 20% of total — demote excess to "general"
