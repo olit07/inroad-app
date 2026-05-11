@@ -2303,6 +2303,12 @@ def outlook_help_page():
     return _send_html("outlook-help.html")
 
 
+@app.route("/metrics")
+@require_admin
+def metrics_page():
+    return _send_html("inroad-metrics.html")
+
+
 @app.route("/contact")
 def contact_page():
     return _send_html("contact.html")
