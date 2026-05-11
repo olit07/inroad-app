@@ -391,6 +391,26 @@
   }
   .nav-refer-btn:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); }
 
+  /* ── PIPELINE CONTEXT MENU ── */
+  #ctx-menu {
+    position: fixed; z-index: 9999;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.14); min-width: 190px;
+    overflow: hidden; display: none; padding: 4px 0;
+  }
+  #ctx-menu.open { display: block; }
+  .ctx-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; font-size: 0.8rem; font-weight: 500;
+    font-family: var(--sans); color: #374151; cursor: pointer;
+    transition: background 0.1s;
+  }
+  .ctx-item:hover { background: #f3f4f6; }
+  .ctx-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .ctx-sep { height: 1px; background: #e5e7eb; margin: 4px 0; }
+  .ctx-item.ctx-clear { color: #6b7280; }
+  .ctx-item.ctx-clear:hover { background: #fef2f2; color: #dc2626; }
+
   /* ── REFERRAL MODAL ── */
   .refer-modal-backdrop {
     display: none; position: fixed; inset: 0;
@@ -468,6 +488,8 @@
 
 <!-- Toast notification -->
 <div id="toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;background:#1A1714;color:#fff;font-size:0.8rem;font-weight:600;padding:10px 20px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);white-space:nowrap;transition:opacity 0.3s;"></div>
+
+<div id="ctx-menu"></div>
 
 <div class="app-layout">
 
@@ -1300,7 +1322,83 @@
       .replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+
+  // ── Pipeline right-click context menu ──
+  const CTX_STAGES = [
+    { id: 'applied',  label: 'Applied and Pending',    color: '#E8960C' },
+    { id: 'hirevue',  label: 'HireVue / Tested',       color: '#D4C31E' },
+    { id: 'int1',     label: 'Interview #1',            color: '#9CC87A' },
+    { id: 'int2',     label: 'Interview #2',            color: '#72B050' },
+    { id: 'ac',       label: 'Assessment Centre',       color: '#3A7246' },
+    { id: 'offer',    label: 'Offer',                   color: '#1F4530' },
+    { id: 'rej-out',  label: 'Rejected Outright',       color: '#7F1D1D' },
+    { id: 'rej-hv',   label: 'Rejected after HV',       color: '#78716C' },
+    { id: 'rej-int1', label: 'Rejected after Int. #1',  color: '#78716C' },
+    { id: 'rej-int2', label: 'Rejected after Int. #2',  color: '#78716C' },
+    { id: 'rej-ac',   label: 'Rejected after AC',       color: '#78716C' },
+  ];
+
+  const ctxMenu = document.getElementById('ctx-menu');
+  let ctxJobId  = null;
+
+  function setPipelineStage(jobId, stageId) {
+    try {
+      const map = JSON.parse(localStorage.getItem('inroad_pipeline_v1') || '{}');
+      if (stageId) map[String(jobId)] = stageId;
+      else         delete map[String(jobId)];
+      localStorage.setItem('inroad_pipeline_v1', JSON.stringify(map));
+    } catch {}
+  }
+
+  function closeCtxMenu() { ctxMenu.classList.remove('open'); ctxJobId = null; }
+
+  function openCtxMenu(e, jobId) {
+    e.preventDefault();
+    ctxJobId = jobId;
+    const current = (() => {
+      try { return JSON.parse(localStorage.getItem('inroad_pipeline_v1') || '{}')[String(jobId)]; } catch { return null; }
+    })();
+    ctxMenu.innerHTML = CTX_STAGES.map(s =>
+      `<div class="ctx-item${s.id === current ? ' ctx-current' : ''}" data-stage="${s.id}">
+        <span class="ctx-dot" style="background:${s.color}"></span>${s.label}${s.id === current ? ' ✓' : ''}
+      </div>`
+    ).join('') +
+      `<div class="ctx-sep"></div>
+       <div class="ctx-item ctx-clear" data-stage="">Remove from pipeline</div>`;
+    ctxMenu.querySelectorAll('.ctx-item').forEach(item => {
+      item.addEventListener('click', () => {
+        setPipelineStage(ctxJobId, item.dataset.stage || null);
+        const card = listingsEl.querySelector(`.job-card[data-id="${ctxJobId}"]`);
+        if (card) {
+          if (item.dataset.stage) card.setAttribute('data-stage', item.dataset.stage);
+          else card.removeAttribute('data-stage');
+        }
+        closeCtxMenu();
+      });
+    });
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const mw = 200, mh = 40 * (CTX_STAGES.length + 2);
+    ctxMenu.style.left = (e.clientX + mw > vw ? e.clientX - mw : e.clientX) + 'px';
+    ctxMenu.style.top  = (e.clientY + mh > vh ? e.clientY - mh : e.clientY) + 'px';
+    ctxMenu.classList.add('open');
+  }
+
+  listingsEl.addEventListener('contextmenu', e => {
+    const card = e.target.closest('.job-card');
+    if (card) openCtxMenu(e, +card.dataset.id);
+  });
+  document.addEventListener('click', closeCtxMenu);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCtxMenu(); });
 })();
+
+// Forward scroll from anywhere on page to the listings panel
+document.addEventListener('wheel', function(e) {
+  const panel = document.getElementById('jobs-panel');
+  if (panel && !panel.contains(e.target)) {
+    e.preventDefault();
+    panel.scrollTop += e.deltaY;
+  }
+}, { passive: false });
 
 function openReferModal() {
   document.getElementById('refer-modal-overlay').classList.add('open');
