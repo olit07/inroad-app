@@ -2309,6 +2309,59 @@ def metrics_page():
     return _send_html("inroad-metrics.html")
 
 
+@app.route("/api/admin/metrics")
+@require_admin
+def admin_metrics():
+    from db.database import USE_POSTGRES
+    if USE_POSTGRES:
+        date_trunc  = "DATE_TRUNC('day', created_at)::date"
+        match_trunc = "DATE_TRUNC('day', sent_at)::date"
+        day30       = "NOW() - INTERVAL '30 days'"
+        today_expr  = "CURRENT_DATE"
+    else:
+        date_trunc  = "date(created_at)"
+        match_trunc = "date(sent_at)"
+        day30       = "datetime('now', '-30 days')"
+        today_expr  = "date('now')"
+
+    # Total accounts
+    total_accounts = (fetchone("SELECT COUNT(*) AS n FROM students") or {}).get("n", 0)
+
+    # New signups per day (last 30 days)
+    acct_rows = fetchall(
+        f"SELECT {date_trunc} AS date, COUNT(*) AS count FROM students "
+        f"WHERE created_at >= {day30} GROUP BY 1 ORDER BY 1"
+    )
+    accounts_by_day = [{"date": str(r["date"]), "count": r["count"]} for r in acct_rows]
+
+    # DAU / MAU — students who had at least one email sent (proxy for active users)
+    dau = (fetchone(
+        f"SELECT COUNT(DISTINCT student_id) AS n FROM matches "
+        f"WHERE status='sent' AND {match_trunc} = {today_expr}"
+    ) or {}).get("n", 0)
+
+    mau = (fetchone(
+        f"SELECT COUNT(DISTINCT student_id) AS n FROM matches "
+        f"WHERE status='sent' AND sent_at >= {day30}"
+    ) or {}).get("n", 0)
+
+    # Daily active students over last 30 days (used as visitor proxy)
+    visitors_rows = fetchall(
+        f"SELECT {match_trunc} AS date, COUNT(DISTINCT student_id) AS count FROM matches "
+        f"WHERE status='sent' AND sent_at >= {day30} GROUP BY 1 ORDER BY 1"
+    )
+    visitors_all = [{"date": str(r["date"]), "count": r["count"]} for r in visitors_rows]
+
+    return jsonify({"data": {
+        "total_accounts":        total_accounts,
+        "accounts_by_day":       accounts_by_day,
+        "unique_visitors_today": dau,
+        "visitors_all":          visitors_all,
+        "dau":                   dau,
+        "mau":                   mau,
+    }})
+
+
 @app.route("/contact")
 def contact_page():
     return _send_html("contact.html")
