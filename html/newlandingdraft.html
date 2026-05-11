@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>inroad</title>
+<meta name="description" content="Find live job openings and connect directly with the people who can get you in. Personalised outreach tied to real opportunities.">
+<meta property="og:title" content="inroad">
+<meta property="og:description" content="Find live job openings and connect directly with the people who can get you in. Personalised outreach tied to real opportunities.">
+<meta property="og:image" content="https://www.the-inroad.com/static/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.the-inroad.com/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://www.the-inroad.com/static/og-image.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #FFFFFF;
+    --surface:    #F5F5F2;
+    --surface-2:  #EEECEA;
+    --border:     #E2DED8;
+    --border-md:  #C8C3BB;
+    --green:      #1F4530;
+    --green-lite: #EBF4EE;
+    --green-mid:  #A8C9B0;
+    --green-deep: #122B1E;
+    --green-text: #122B1E;
+    --text:       #111110;
+    --text-mid:   #3A3733;
+    --muted:      #6E6860;
+    --subtle:     #A8A09A;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  * { hyphens: none; -webkit-hyphens: none; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    background: rgba(18,43,30,0.97);
+    backdrop-filter: blur(16px);
+    border-bottom: none;
+  }
+
+  .wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+
+  .wm-icon {
+    width: 30px; height: 30px;
+    background: var(--green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem; flex-shrink: 0;
+  }
+
+  .wm-text {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 1.25rem; font-weight: 700;
+    color: var(--text); letter-spacing: -0.02em;
+  }
+
+  .nav-center {
+    display: flex; align-items: center; gap: 32px; list-style: none;
+    position: absolute; left: 50%; transform: translateX(-50%);
+  }
+
+  .nav-center a {
+    font-size: 0.85rem; font-weight: 400;
+    color: rgba(255,255,255,0.65); text-decoration: none; transition: color 0.15s;
+  }
+
+  .nav-center a:hover { color: #fff; }
+
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+
+  .btn-login {
+    font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    color: rgba(255,255,255,0.8); background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    padding: 7px 18px; border-radius: 8px; text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-login:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
+
+  .btn-nav-cta {
+    font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    color: var(--green-deep); background: #fff; border: none;
+    padding: 8px 18px; border-radius: 8px; text-decoration: none;
+    transition: background 0.15s, transform 0.1s; white-space: nowrap;
+  }
+
+  .btn-nav-cta:hover { background: #F0FFF4; transform: translateY(-1px); }
+
+  /* ── HERO NEW — full-width dark ── */
+  .hero-new {
+    min-height: 100vh;
+    background: var(--green-deep);
+    padding: calc(62px + 56px) 52px 36px;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-new-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .hero-eyebrow {
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-size: 1.14rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: #A8D8B8;
+    margin-bottom: 24px;
+  }
+
+  .eyebrow-dash {
+    display: inline-block;
+    width: 2.2em;
+    height: 1px;
+    background: #A8D8B8;
+    vertical-align: 0.32em;
+    margin-left: 4px;
+    opacity: 0.7;
+  }
+
+  h1 {
+    font-family: 'Lora', Georgia, serif;
+    font-size: clamp(3.8rem, 8vw, 7rem);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin-bottom: 56px;
+    opacity: 0; animation: rise 0.5s ease 0.08s forwards;
+  }
+
+  h1 em { font-style: italic; font-weight: 400; color: #A8D8B8; }
+
+  .deck-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 30px;
+  }
+
+  .hero-deck {
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-size: 1rem;
+    color: rgba(255,255,255,0.72);
+    line-height: 1.74;
+    font-weight: 400;
+    max-width: 400px;
+    flex-shrink: 0;
+    opacity: 0; animation: rise 0.5s ease 0.16s forwards;
+  }
+
+  .deck-actions-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 4px;
+    opacity: 0; animation: rise 0.5s ease 0.24s forwards;
+    flex-shrink: 0;
+  }
+
+  .deck-actions-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 24px;
+  }
+
+  .deck-btns {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .deck-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-hero-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff; color: var(--green-text);
+    padding: 13px 22px; border-radius: 9px;
+    font-size: 0.875rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    text-decoration: none; transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  }
+
+  .btn-hero-primary:hover {
+    background: #F0FFF4; transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  }
+
+  .btn-hero-ghost {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,0.65); font-size: 0.875rem; font-weight: 400;
+    text-decoration: none; transition: color 0.15s;
+  }
+
+  .btn-hero-ghost:hover { color: #fff; }
+
+  .hero-notes { display: none; }
+
+  .hero-free-note {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 0.76rem; font-weight: 400;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .free-star { color: #7FD9A0; }
+
+  .hero-opps-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.75);
+    padding: 7px 16px;
+    border-radius: 100px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    width: fit-content;
+  }
+
+  .hero-opps-cta:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.4);
+    color: #fff;
+  }
+
+  /* ── HERO STRIP ── */
+  .strip-col3 {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .hero-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    align-items: stretch;
+    opacity: 0; animation: rise 0.6s ease 0.32s forwards;
+  }
+
+  .strip-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .strip-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .pp-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+  }
+
+  .pp-meta {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.38);
+    font-weight: 400;
+  }
+
+  /* Listing rows */
+  .strip-job-row {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    align-items: center;
+    padding: 7px 14px;
+    min-height: 48px;
+    gap: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .strip-job-row:last-child { border-bottom: none; }
+
+  .strip-date {
+    font-size: 0.63rem;
+    color: rgba(255,255,255,0.32);
+    white-space: nowrap;
+  }
+  .strip-date.fresh { font-weight: 700; color: rgba(255,255,255,0.7); }
+
+  .strip-job-info { min-width: 0; overflow: hidden; }
+  .strip-company {
+    font-size: 0.72rem; font-weight: 700;
+    color: rgba(255,255,255,0.85);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
+  }
+  .strip-programme {
+    font-size: 0.62rem; color: rgba(255,255,255,0.38);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
+  }
+
+  .strip-apply {
+    font-size: 0.58rem; font-weight: 700;
+    background: rgba(168,216,184,0.18); color: #A8D8B8;
+    border: 1px solid rgba(168,216,184,0.3);
+    border-radius: 4px; padding: 2px 8px;
+    text-decoration: none; white-space: nowrap; flex-shrink: 0;
+  }
+  .strip-careers {
+    font-size: 0.58rem; font-weight: 700;
+    background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px; padding: 2px 8px;
+    text-decoration: none; white-space: nowrap; flex-shrink: 0;
+  }
+
+  /* Lead rows (Opportunities card) */
+  .strip-lead-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    min-height: 48px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .strip-lead-row:last-child { border-bottom: none; }
+
+  .strip-lead-av {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.55rem; font-weight: 700; color: rgba(255,255,255,0.6);
+    flex-shrink: 0; overflow: hidden;
+  }
+
+  .strip-lead-av img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    filter: blur(4px) brightness(0.85);
+    transform: scale(1.18); border-radius: 50%;
+  }
+
+  .strip-lead-info { flex: 1; min-width: 0; }
+  .strip-lead-name-row {
+    display: flex; align-items: baseline; gap: 4px;
+    min-width: 0; overflow: hidden;
+  }
+  .strip-lead-name {
+    font-size: 0.72rem; font-weight: 700; color: rgba(255,255,255,0.85);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .strip-lead-title {
+    font-size: 0.63rem; color: rgba(255,255,255,0.38);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .strip-lead-title::before { content: '·'; margin-right: 4px; color: rgba(255,255,255,0.2); }
+
+  .strip-alumni-badge {
+    font-size: 0.57rem; font-weight: 700;
+    color: #7FD9A0; background: rgba(127,217,160,0.12);
+    border: 1px solid rgba(127,217,160,0.25);
+    padding: 1px 6px; border-radius: 100px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+
+  .strip-sent { font-size: 0.65rem; font-weight: 600; color: #7FD9A0; white-space: nowrap; flex-shrink: 0; }
+  .strip-draft-btn {
+    font-size: 0.58rem; font-weight: 700;
+    background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 4px; padding: 2px 8px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+
+  /* Pipeline mini-kanban */
+  .strip-kanban {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    padding: 10px;
+  }
+
+  .sk-col {
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .sk-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .sk-cnt {
+    font-size: 0.53rem;
+    font-weight: 700;
+    background: rgba(0,0,0,0.18);
+    border-radius: 100px;
+    padding: 1px 5px;
+  }
+
+  .sk-drop {
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: rgba(255,255,255,0.03);
+    min-height: 38px;
+  }
+
+  .sk-chip {
+    background: rgba(255,255,255,0.92);
+    border-radius: 3px;
+    padding: 2px 5px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sk-co {
+    font-size: 0.57rem;
+    font-weight: 700;
+    color: #111110;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sk-prog {
+    font-size: 0.51rem;
+    color: #6E6860;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Pipeline rows (legacy, kept for safety) */
+  .strip-stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 12px 14px 6px;
+  }
+
+  .stat-chip {
+    font-size: 0.62rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 100px;
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.42);
+  }
+
+  .stat-chip.active {
+    background: rgba(127,217,160,0.14);
+    color: #7FD9A0;
+  }
+
+  .strip-meeting {
+    padding: 5px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .strip-meeting-row {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .strip-meeting-row strong {
+    color: rgba(255,255,255,0.75);
+    font-weight: 700;
+  }
+
+  /* ── APP MOCK (feature sections) ── */
+  .app-mock {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 10px 30px rgba(0,0,0,0.08), 0 24px 60px rgba(0,0,0,0.05);
+    overflow: hidden; width: 100%; max-width: 440px;
+    transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .app-mock:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.06), 0 20px 50px rgba(0,0,0,0.12), 0 36px 80px rgba(0,0,0,0.07);
+  }
+
+  .mock-topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 13px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .mock-title { font-size: 0.78rem; font-weight: 700; color: var(--text-mid); }
+
+  .mock-quota { display: flex; align-items: center; gap: 7px; }
+  .quota-dots { display: flex; gap: 4px; }
+  .qdot { width: 7px; height: 7px; border-radius: 50%; }
+  .qdot.on  { background: var(--green); }
+  .qdot.off { background: var(--border); }
+  .mock-quota-label { font-size: 0.7rem; color: var(--muted); font-weight: 400; }
+
+  .card-quota-bar { padding: 8px 14px 4px; }
+  .card-quota-track { height: 3px; background: var(--border); border-radius: 100px; overflow: hidden; }
+  .card-quota-fill { height: 100%; background: var(--green); border-radius: 100px; }
+
+  .mock-list { padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+
+  .mock-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border: 1px solid var(--border);
+    border-radius: 11px; background: var(--bg); transition: border-color 0.15s;
+  }
+
+  .mock-row.active { border-color: var(--green-mid); background: var(--green-lite); }
+
+  .mock-av {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem; font-weight: 700; color: var(--muted); flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .mock-av img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: blur(6px) brightness(0.88);
+    transform: scale(1.18);
+    border-radius: 50%;
+  }
+
+  .mock-row.active .mock-av { background: var(--green-lite); border-color: var(--green-mid); color: var(--green); }
+
+  .mock-info { flex: 1; min-width: 0; }
+
+  .mock-name {
+    font-size: 0.82rem; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .alumni-chip {
+    font-size: 0.6rem; font-weight: 700; color: var(--green);
+    background: var(--green-lite); border: 1px solid var(--green-mid);
+    padding: 1px 6px; border-radius: 100px;
+  }
+
+  .mock-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
+  .mock-action { font-size: 0.72rem; font-weight: 700; color: var(--green); white-space: nowrap; flex-shrink: 0; }
+  .mock-sent { font-size: 0.72rem; color: var(--green); white-space: nowrap; flex-shrink: 0; font-weight: 600; }
+
+  /* ── CAROUSEL ── */
+  .carousel-wrap {
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    background: var(--surface); padding: 16px 0;
+    display: flex; align-items: center; overflow: hidden;
+  }
+
+  .ticker-label {
+    font-size: 0.7rem; font-weight: 700; color: var(--subtle);
+    letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+    flex-shrink: 0; padding: 0 24px 0 48px; border-right: 1px solid var(--border);
+  }
+
+  .carousel-track-outer {
+    overflow: hidden; flex: 1;
+    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  }
+
+  .carousel-track {
+    display: flex; gap: 10px; width: max-content;
+    animation: scroll-unis 40s linear infinite; padding: 0 16px;
+  }
+
+  .carousel-track:hover { animation-play-state: paused; }
+
+  @keyframes scroll-unis { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  .uni-pill {
+    font-size: 0.76rem; font-weight: 700; color: var(--text-mid);
+    background: var(--bg); border: 1px solid var(--border);
+    padding: 4px 14px; border-radius: 100px; white-space: nowrap; flex-shrink: 0;
+  }
+
+  /* ── STATS ── */
+  .stats-band {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    max-width: 1100px; margin: 0 auto; padding: 72px 48px;
+  }
+
+  .stat-item { padding: 0 40px; border-right: 1px solid var(--border); }
+  .stat-item:first-child { padding-left: 0; }
+  .stat-item:last-child { border-right: none; }
+
+  .stat-num {
+    font-size: 3.6rem; font-weight: 900; color: var(--text);
+    line-height: 1; letter-spacing: -0.03em; margin-bottom: 8px;
+  }
+
+  .stat-num span { color: var(--green); }
+  .stat-desc { font-size: 0.875rem; color: var(--muted); font-weight: 300; line-height: 1.55; max-width: 220px; }
+
+  /* ── SECTIONS ── */
+  .section { max-width: 1100px; margin: 0 auto; padding: 80px 48px; }
+  .section-divider { max-width: 1100px; margin: 0 auto; padding: 0 48px; }
+  .section-divider hr { border: none; border-top: 1px solid var(--border); }
+
+  .eyebrow {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--green); margin-bottom: 12px;
+  }
+
+  h2 {
+    font-family: 'Lato', sans-serif; font-size: clamp(1.9rem, 3vw, 2.6rem);
+    font-weight: 900; letter-spacing: -0.02em; line-height: 1.12;
+    color: var(--text); margin-bottom: 14px;
+  }
+
+  h2 em { font-style: italic; font-weight: 300; color: var(--green); }
+
+  .section-sub {
+    font-size: 0.95rem; color: var(--muted); font-weight: 300;
+    line-height: 1.75; max-width: 480px; margin-bottom: 52px;
+  }
+
+  /* ── STEPS ── */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  .step {
+    padding: 28px 24px; border: 1px solid var(--border);
+    border-left: 3px solid var(--green); border-radius: 14px;
+    background: var(--bg); transition: box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .step:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-color: var(--border-md); border-left-color: var(--green); }
+
+  .step-num { font-size: 0.7rem; font-weight: 700; color: var(--green); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+  .step h3 { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 10px; line-height: 1.35; }
+  .step p { font-size: 0.85rem; color: var(--muted); font-weight: 300; line-height: 1.66; }
+
+  /* ── FEATURE SPLIT ── */
+  .feature-split { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
+  .feature-text h2 { margin-bottom: 14px; }
+  .feature-text p { font-size: 0.9rem; color: var(--muted); font-weight: 300; line-height: 1.76; margin-bottom: 28px; }
+
+  .check-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+  .check-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 0.875rem; color: var(--text-mid); font-weight: 400; line-height: 1.5;
+  }
+
+  .check-icon {
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--green-lite); border: 1px solid var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 0.55rem; color: var(--green); margin-top: 1px;
+  }
+
+  /* ── EMAIL MOCK ── */
+  .email-mock {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; box-shadow: 0 6px 28px rgba(0,0,0,0.07);
+    transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .email-mock:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 14px 44px rgba(0,0,0,0.12);
+  }
+
+  .email-head {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 18px; display: flex; flex-direction: column; gap: 3px;
+  }
+
+  .ef { font-size: 0.73rem; color: var(--muted); display: flex; gap: 6px; }
+  .ef span { color: var(--text); font-weight: 700; }
+
+  .email-body { padding: 22px; font-size: 0.855rem; line-height: 1.82; color: var(--text-mid); font-weight: 300; }
+  .email-body p + p { margin-top: 10px; }
+  .email-body strong { font-weight: 700; color: var(--text); }
+  .email-link { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+
+  .email-foot {
+    border-top: 1px solid var(--border); padding: 11px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface);
+  }
+
+  .wc { font-size: 0.72rem; color: var(--subtle); }
+
+  .send-btn {
+    background: var(--text); color: var(--bg);
+    font-size: 0.76rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    padding: 7px 15px; border-radius: 7px; border: none; cursor: pointer;
+  }
+
+  /* ── TESTIMONIALS ── */
+  .testi-scroll { display: flex; gap: 18px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+  .testi-scroll::-webkit-scrollbar { display: none; }
+
+  .tcard {
+    flex-shrink: 0; width: 300px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 16px; padding: 26px;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 20px;
+  }
+
+  .tcard-open { font-size: 2.4rem; font-weight: 900; color: var(--green-mid); line-height: 1; margin-bottom: 6px; font-style: italic; }
+  .tcard-text { font-size: 0.875rem; color: var(--text-mid); font-weight: 300; line-height: 1.72; }
+
+  .tcard-author { display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  .tav {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--green-lite); border: 1px solid var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; color: var(--green); flex-shrink: 0;
+  }
+
+  .tname { font-size: 0.8rem; font-weight: 700; color: var(--text); }
+  .tuni { font-size: 0.7rem; color: var(--muted); font-weight: 300; }
+
+  /* ── CTA ── */
+  .cta-section {
+    background: var(--green-deep); padding: 100px 48px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 28px 28px; pointer-events: none;
+  }
+
+  .cta-section h2 { font-size: clamp(2.2rem, 4vw, 3.4rem); color: #fff; margin-bottom: 16px; position: relative; z-index: 1; }
+  .cta-section h2 em { color: #A8D8B8; }
+
+  .cta-section p {
+    font-size: 1rem; color: rgba(255,255,255,0.65); max-width: 420px;
+    margin: 0 auto 16px; font-weight: 300; line-height: 1.72; position: relative; z-index: 1;
+  }
+
+  .cta-actions { display: flex; flex-direction: column; align-items: center; gap: 0; position: relative; z-index: 1; }
+
+  .btn-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff; color: var(--green-text);
+    font-size: 0.9rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    padding: 14px 28px; border-radius: 10px; text-decoration: none;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .btn-cta:hover { background: #F0FFF4; transform: translateY(-1px); }
+  .cta-note { margin-top: 16px; font-size: 0.75rem; color: rgba(255,255,255,0.4); }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border); max-width: 1100px;
+    margin: 0 auto; padding: 32px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .footer-wordmark { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+
+  .footer-wm-icon {
+    width: 22px; height: 22px; background: var(--green); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
+  }
+
+  .footer-wm-text { font-family: 'Lora', Georgia, serif; font-size: 1.1rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+
+  .footer-links { display: flex; gap: 24px; list-style: none; }
+
+  .footer-links a {
+    font-size: 0.82rem; color: var(--muted); text-decoration: none;
+    font-weight: 400; transition: color 0.15s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+  .footer-copy { font-size: 0.76rem; color: var(--subtle); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease, transform 0.55s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  .reveal-group > * { opacity: 0; transform: translateY(16px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .reveal-group.visible > *:nth-child(1) { opacity:1; transform:none; transition-delay:0s; }
+  .reveal-group.visible > *:nth-child(2) { opacity:1; transform:none; transition-delay:0.07s; }
+  .reveal-group.visible > *:nth-child(3) { opacity:1; transform:none; transition-delay:0.14s; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 0 20px; }
+    .nav-center { display: none; }
+    .hero-new { padding: 100px 24px 56px; }
+    h1 { font-size: clamp(3rem, 10vw, 4.5rem); }
+    .deck-row { flex-direction: column; gap: 28px; }
+    .hero-strip { grid-template-columns: 1fr; }
+    .stats-band { grid-template-columns: 1fr; padding: 48px 24px; gap: 36px; }
+    .stat-item { padding: 0; border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 32px; }
+    .stat-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .section { padding: 56px 24px; }
+    .section-divider { padding: 0 24px; }
+    .steps { grid-template-columns: 1fr; }
+    .feature-split { grid-template-columns: 1fr; gap: 36px; }
+    .cta-section { padding: 72px 24px; }
+    footer { flex-direction: column; gap: 20px; text-align: center; padding: 28px 24px; }
+    .carousel-wrap { padding: 14px 0; }
+    .ticker-label { padding: 0 16px 0 24px; }
+  }
+  .nav-user { display: flex; align-items: center; gap: 12px; }
+  nav.nav-logged-in { background: var(--green); border-bottom-color: transparent; }
+  nav.nav-logged-in .wordmark span { color: #fff !important; }
+  nav.nav-logged-in .nav-center a { color: rgba(255,255,255,0.7); }
+  nav.nav-logged-in .nav-center a:hover { color: #fff; }
+  .nav-initials {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .btn-settings {
+    font-size: 0.82rem; font-weight: 500; font-family: var(--sans);
+    color: rgba(255,255,255,0.75); background: transparent;
+    border: none; padding: 0; text-decoration: none; cursor: pointer;
+    transition: color 0.15s;
+  }
+  .btn-settings:hover { color: #fff; }
+  .nav-refer-btn {
+    background: rgba(255,255,255,0.15); color: #fff;
+    border: 1px solid rgba(255,255,255,0.4); border-radius: 100px;
+    padding: 6px 16px; font-size: 12px; font-weight: 700; font-family: var(--sans);
+    cursor: pointer; white-space: nowrap; letter-spacing: 0.01em; text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .nav-refer-btn:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); }
+</style>
+<script src="/static/auth.js"></script>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:#fff;">inroad</span>
+  </a>
+  <ul class="nav-center">
+    <li><a href="/opportunities">Opportunities</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#stories">Stories</a></li>
+  </ul>
+  <div class="nav-right" id="nav-right">
+    <a href="/login" class="btn-login">Login / Sign up</a>
+    <a href="/opportunities" class="btn-nav-cta">Get started free →</a>
+  </div>
+</nav>
+<script>
+(async function () {
+  let token = getAccessToken();
+  if (!token) { const ok = await _tryRefresh(); if (!ok) return; token = getAccessToken(); }
+  let d = null;
+  try {
+    let resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+    if (resp.status === 401) {
+      const ok = await _tryRefresh(); if (!ok) return; token = getAccessToken();
+      resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+    }
+    if (resp.ok) d = await resp.json();
+  } catch { return; }
+  if (!d) return;
+  const lim = (d.daily_cards_override && parseInt(d.daily_cards_override, 10) > 0)
+    ? parseInt(d.daily_cards_override, 10) : 3;
+  const name = d.name || '';
+  const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('') || '?';
+  const nav = document.querySelector('nav');
+  if (nav) nav.classList.add('nav-logged-in');
+  const navRight = document.getElementById('nav-right');
+  if (navRight) navRight.innerHTML = `
+    <div class="nav-user">
+      <a href="/opportunities" class="nav-refer-btn">Get ${lim} daily emails</a>
+      <a href="/settings" class="btn-settings">Settings</a>
+      <div class="nav-initials">${initials}</div>
+    </div>`;
+})();
+</script>
+
+<!-- HERO -->
+<div class="hero-new">
+  <div class="hero-new-inner">
+    <div class="hero-eyebrow">A smarter path into the workforce <span class="eyebrow-dash"></span></div>
+    <h1>Make your<br><em>inroad.</em></h1>
+    <div class="deck-row">
+      <p class="hero-deck" style="grid-column: span 2;">Stop applying into the void.<br>The graduate job market is broken.<br>inroad gives you personalised outreach tied to the newest openings and the people who can get you in.</p>
+      <div class="deck-actions-col">
+        <div class="deck-btns">
+          <a href="/opportunities" class="btn-hero-primary">Get started free →</a>
+          <a href="#how" class="btn-hero-ghost">How it works ›</a>
+        </div>
+        <p class="hero-free-note">
+          <span class="free-star">✦</span>
+          Free forever for students · No credit card needed
+        </p>
+      </div>
+    </div>
+
+    <div class="hero-strip">
+
+      <!-- Listings card -->
+      <div class="strip-card">
+        <div class="strip-card-head">
+          <span class="pp-title">Listings</span>
+          <span class="pp-meta">2,000+ internships &amp; graduate programmes</span>
+        </div>
+        <div class="strip-job-row">
+          <span class="strip-date fresh">10 May</span>
+          <div class="strip-job-info">
+            <span class="strip-company">Jane Street</span>
+            <span class="strip-programme">Trading Internship</span>
+          </div>
+          <a class="strip-apply" href="/opportunities">Apply →</a>
+        </div>
+        <div class="strip-job-row">
+          <span class="strip-date fresh">10 May</span>
+          <div class="strip-job-info">
+            <span class="strip-company">Citadel</span>
+            <span class="strip-programme">Summer Internship</span>
+          </div>
+          <a class="strip-apply" href="/opportunities">Apply →</a>
+        </div>
+        <div class="strip-job-row">
+          <span class="strip-date fresh">9 May</span>
+          <div class="strip-job-info">
+            <span class="strip-company">Morgan Stanley</span>
+            <span class="strip-programme">Summer Internship</span>
+          </div>
+          <a class="strip-apply" href="/opportunities">Apply →</a>
+        </div>
+        <div class="strip-job-row">
+          <span class="strip-date fresh">7 May</span>
+          <div class="strip-job-info">
+            <span class="strip-company">Revolut</span>
+            <span class="strip-programme">Graduate Programme</span>
+          </div>
+          <a class="strip-apply" href="/opportunities">Apply →</a>
+        </div>
+        <div class="strip-job-row">
+          <span class="strip-date">2 May</span>
+          <div class="strip-job-info">
+            <span class="strip-company">Goldman Sachs</span>
+            <span class="strip-programme">Graduate Programme</span>
+          </div>
+          <a class="strip-apply" href="/opportunities">Apply →</a>
+        </div>
+      </div>
+
+      <!-- Opportunities card -->
+      <div class="strip-card">
+        <div class="strip-card-head">
+          <span class="pp-title">Opportunities</span>
+          <span class="pp-meta">Today · 3/5 sent</span>
+        </div>
+        <div class="strip-lead-row">
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-info">
+            <div class="strip-lead-name-row">
+              <span class="strip-lead-name">Marcus L.</span>
+              <span class="strip-lead-title">Trader · Jane Street</span>
+            </div>
+          </div>
+          <span class="strip-draft-btn">Draft email →</span>
+        </div>
+        <div class="strip-lead-row">
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-info">
+            <div class="strip-lead-name-row">
+              <span class="strip-lead-name">Priya N.</span>
+              <span class="strip-lead-title">Analyst · Citadel</span>
+            </div>
+          </div>
+          <span class="strip-draft-btn">Draft email →</span>
+        </div>
+        <div class="strip-lead-row">
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-info">
+            <div class="strip-lead-name-row">
+              <span class="strip-lead-name">Sarah R.</span>
+              <span class="strip-lead-title">Director · Morgan Stanley</span>
+            </div>
+          </div>
+          <span class="strip-alumni-badge">Alumni</span>
+          <span class="strip-sent">Sent ✓</span>
+        </div>
+        <div class="strip-lead-row">
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-info">
+            <div class="strip-lead-name-row">
+              <span class="strip-lead-name">Aisha T.</span>
+              <span class="strip-lead-title">PM · Revolut</span>
+            </div>
+          </div>
+          <span class="strip-sent">Sent ✓</span>
+        </div>
+        <div class="strip-lead-row">
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-info">
+            <div class="strip-lead-name-row">
+              <span class="strip-lead-name">James K.</span>
+              <span class="strip-lead-title">Analyst · Goldman Sachs</span>
+            </div>
+          </div>
+          <span class="strip-sent">Sent ✓</span>
+        </div>
+      </div>
+
+      <!-- Pipeline card -->
+      <div class="strip-card">
+        <div class="strip-card-head">
+          <span class="pp-title">Pipeline</span>
+          <span class="pp-meta">Jobs applied to: 4</span>
+        </div>
+        <div class="strip-kanban">
+          <div class="sk-col">
+            <div class="sk-hdr" style="background:#E8960C;color:#fff;">Applied <span class="sk-cnt">4</span></div>
+            <div class="sk-drop">
+              <div class="sk-chip"><span class="sk-co">Morgan S.</span><span class="sk-prog">Internship</span></div>
+              <div class="sk-chip"><span class="sk-co">Barclays</span><span class="sk-prog">Grad Prog</span></div>
+              <div class="sk-chip"><span class="sk-co">Jane Street</span><span class="sk-prog">Internship</span></div>
+              <div class="sk-chip"><span class="sk-co">Citadel</span><span class="sk-prog">Internship</span></div>
+            </div>
+          </div>
+          <div class="sk-col">
+            <div class="sk-hdr" style="background:#D4C31E;color:#1A1714;">HireVue <span class="sk-cnt">1</span></div>
+            <div class="sk-drop">
+              <div class="sk-chip"><span class="sk-co">Goldman S.</span><span class="sk-prog">Grad Prog</span></div>
+            </div>
+          </div>
+          <div class="sk-col">
+            <div class="sk-hdr" style="background:#9CC87A;color:#1A1714;">Interview <span class="sk-cnt">1</span></div>
+            <div class="sk-drop">
+              <div class="sk-chip"><span class="sk-co">Revolut</span><span class="sk-prog">Grad Prog</span></div>
+            </div>
+          </div>
+          <div class="sk-col">
+            <div class="sk-hdr" style="background:#3A7246;color:#fff;">Offer <span class="sk-cnt">0</span></div>
+            <div class="sk-drop"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- CAROUSEL -->
+<div class="carousel-wrap">
+  <span class="ticker-label">Students from</span>
+  <div class="carousel-track-outer">
+    <div class="carousel-track">
+      <span class="uni-pill">University of Oxford</span><span class="uni-pill">University of Cambridge</span><span class="uni-pill">UCL</span><span class="uni-pill">LSE</span><span class="uni-pill">Imperial College</span><span class="uni-pill">King's College London</span><span class="uni-pill">University of Edinburgh</span><span class="uni-pill">University of Manchester</span><span class="uni-pill">University of Warwick</span><span class="uni-pill">Durham University</span><span class="uni-pill">University of Bristol</span><span class="uni-pill">University of Bath</span><span class="uni-pill">University of Leeds</span><span class="uni-pill">University of Birmingham</span><span class="uni-pill">Cardiff University</span><span class="uni-pill">University of Liverpool</span><span class="uni-pill">University of St Andrews</span>
+      <span class="uni-pill">University of Oxford</span><span class="uni-pill">University of Cambridge</span><span class="uni-pill">UCL</span><span class="uni-pill">LSE</span><span class="uni-pill">Imperial College</span><span class="uni-pill">King's College London</span><span class="uni-pill">University of Edinburgh</span><span class="uni-pill">University of Manchester</span><span class="uni-pill">University of Warwick</span><span class="uni-pill">Durham University</span><span class="uni-pill">University of Bristol</span><span class="uni-pill">University of Bath</span><span class="uni-pill">University of Leeds</span><span class="uni-pill">University of Birmingham</span><span class="uni-pill">Cardiff University</span><span class="uni-pill">University of Liverpool</span><span class="uni-pill">University of St Andrews</span>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section-divider"><hr></div>
+<div class="section" id="how">
+  <p class="eyebrow reveal">How it works</p>
+  <h2 class="reveal">From sign up to your first outreach<br><em>in minutes.</em></h2>
+  <p class="section-sub reveal">No complicated setup. Sign in with your email and you're ready to reach out.</p>
+  <div class="steps reveal-group">
+    <div class="step">
+      <div class="step-num">Step 01</div>
+      <h3>Sign in with your email</h3>
+      <p>Your email verifies you instantly. No lengthy forms, no waiting, no credit card needed.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">Step 02</div>
+      <h3>Tell us your target role, industry and company size</h3>
+      <p>We pull live job openings from job boards, career networks and trackers. Then we surface the people at those companies who could actually get you in.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">Step 03</div>
+      <h3>Review, approve and send.</h3>
+      <p>We draft a personalised email tied to a real open role. You read it, edit it, and hit send.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE: MATCHING -->
+<div class="section-divider"><hr></div>
+<div class="section" id="features">
+  <div class="feature-split reveal">
+    <div class="feature-text">
+      <p class="eyebrow">Smart matching</p>
+      <h2>Matched to <em>real openings.</em></h2>
+      <p>We don't just find contacts. We match you to people at companies with active roles that fit your profile. Alumni are prioritised because shared experience converts. When someone sees their university in your email, response rates jump.</p>
+      <ul class="check-list">
+        <li><span class="check-icon">✓</span> Open roles pulled from job boards and career networks</li>
+        <li><span class="check-icon">✓</span> Alumni from your university surfaced first</li>
+        <li><span class="check-icon">✓</span> Name, position, company and contact info surfaced per match</li>
+      </ul>
+    </div>
+    <div class="app-mock" style="max-width:420px;">
+      <div class="mock-topbar">
+        <span class="mock-title">Live opportunities</span>
+      </div>
+      <div class="mock-list">
+        <div class="mock-row active"><div class="mock-av"><img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">Sarah R. <span class="alumni-chip">Alumni</span></div><div class="mock-sub">VP Product · Monzo · PM opening</div></div><div class="mock-sent">Sent ✓</div></div>
+        <div class="mock-row active"><div class="mock-av"><img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">James K. <span class="alumni-chip">Alumni</span></div><div class="mock-sub">Analyst · Goldman · Summer intern</div></div><div class="mock-sent">Sent ✓</div></div>
+        <div class="mock-row"><div class="mock-av"><img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">Aisha T.</div><div class="mock-sub">Consultant · McKinsey · Analyst role</div></div><div class="mock-action">Draft email →</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE: EMAIL -->
+<div class="section-divider"><hr></div>
+<div class="section">
+  <div class="feature-split reveal" style="direction:rtl;">
+    <div class="feature-text" style="direction:ltr;">
+      <p class="eyebrow">AI email drafting</p>
+      <h2>Not a spam bot.<br><em>A targeted introduction.</em></h2>
+      <p>Every email is written around the specific role and the professional's actual background. Short, direct, genuine. Three rotating templates keep things fresh. You always read it before it sends. You are in control.</p>
+      <ul class="check-list">
+        <li><span class="check-icon">✓</span> Under 120 words so professionals actually read them</li>
+        <li><span class="check-icon">✓</span> 3 matches per day at most, keeping your outreach focused</li>
+        <li><span class="check-icon">✓</span> References the specific open role and their career path</li>
+        <li><span class="check-icon">✓</span> Plain text only so no spam filters get triggered</li>
+      </ul>
+    </div>
+    <div class="email-mock" style="direction:ltr; max-width:420px;">
+      <div class="email-head">
+        <div class="ef">To: <span>john.smith@gmail.com</span></div>
+        <div class="ef">Subject: <span>UCL student reaching out about your PM role at Monzo</span></div>
+      </div>
+      <div class="email-body">
+        <p>Hi Sarah,</p>
+        <p>I noticed you studied at UCL before joining Monzo's product team. I'm in my final year there and came across the PM opening you're currently hiring for.</p>
+        <p>I'd love to hear how you made the jump from university into fintech product. Would you be open to 20 minutes?</p>
+        <p>Thanks,<br><strong>Alex</strong></p>
+      </div>
+      <div class="email-foot">
+        <span class="wc">78 words</span>
+        <button class="send-btn">Send email →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TESTIMONIALS -->
+<div class="section-divider"><hr></div>
+<div class="section" id="stories">
+  <p class="eyebrow reveal">Student stories</p>
+  <h2 class="reveal">They stopped applying.<br>They started <em>connecting.</em></h2>
+  <p class="section-sub reveal">Early results from students who switched from mass applying to targeted outreach.</p>
+  <div class="testi-scroll reveal">
+    <div class="tcard">
+      <div><div class="tcard-open">"</div><p class="tcard-text">Got a Goldman Sachs internship after 3 weeks. The alumni matching is the secret. My response rate was unlike anything I had seen from cold outreach on other platforms.</p></div>
+      <div class="tcard-author"><div class="tav">MK</div><div><div class="tname">Maya K.</div><div class="tuni">LSE · Finance · Class of 2025</div></div></div>
+    </div>
+    <div class="tcard">
+      <div><div class="tcard-open">"</div><p class="tcard-text">Four months of applications going nowhere. First week on inroad I had three real conversations with people actually doing the job I wanted.</p></div>
+      <div class="tcard-author"><div class="tav">TW</div><div><div class="tname">Tom W.</div><div class="tuni">Manchester · CS · Class of 2025</div></div></div>
+    </div>
+    <div class="tcard">
+      <div><div class="tcard-open">"</div><p class="tcard-text">My flatmate asked how I wrote such a good cold email. I didn't have the heart to tell her. The platform makes you look like you've been networking for years.</p></div>
+      <div class="tcard-author"><div class="tav">PL</div><div><div class="tname">Priya L.</div><div class="tuni">Edinburgh · Marketing · Class of 2026</div></div></div>
+    </div>
+    <div class="tcard">
+      <div><div class="tcard-open">"</div><p class="tcard-text">I'd avoided cold emailing because it felt pushy. The emails this generates feel so natural I barely edited them. Three replies in my first week.</p></div>
+      <div class="tcard-author"><div class="tav">OB</div><div><div class="tname">Oliver B.</div><div class="tuni">Imperial · Engineering · Class of 2025</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section reveal" id="signup">
+  <h2>Your next job starts with<br>a <em>conversation.</em></h2>
+  <div class="cta-actions">
+    <a href="/opportunities" class="btn-cta">Get started free →</a>
+    <p class="cta-note">Free, no credit card needed.</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <a href="#" class="footer-wordmark">
+      <svg width="22" height="22" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+      <span class="footer-wm-text">inroad</span>
+    </a>
+    <a href="https://www.linkedin.com/company/the-inroad" target="_blank" rel="noopener" style="display:flex;align-items:center;color:var(--subtle);transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--subtle)'" aria-label="LinkedIn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452H17.21v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.987V9h3.102v1.561h.046c.432-.818 1.49-1.681 3.065-1.681 3.278 0 3.881 2.156 3.881 4.961v6.611zM5.337 7.433a1.8 1.8 0 1 1 0-3.601 1.8 1.8 0 0 1 0 3.601zM6.954 20.452H3.72V9h3.234v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+  </div>
+  <ul class="footer-links">
+    <li><a href="/privacy">Privacy</a></li>
+    <li><a href="/terms">Terms</a></li>
+    <li><a href="/contact">Contact</a></li>
+  </ul>
+  <p class="footer-copy">© 2026 Inroad</p>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal, .reveal-group').forEach(el => observer.observe(el));
+
+  setTimeout(() => {
+    document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('visible'));
+  }, 1500);
+</script>
+</body>
+</html>
