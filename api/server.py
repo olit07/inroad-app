@@ -1623,13 +1623,13 @@ def admin_remove_na_eu_listings():
 
     # Count before deletion for reporting
     before = (fetchone(
-        f"SELECT COUNT(*) AS cnt FROM jobs WHERE source='trackr' AND region IN ({ph},{ph})",
+        f"SELECT COUNT(*) AS cnt FROM jobs WHERE source='trackr' AND location IN ({ph},{ph})",
         ("US", "EU"),
     ) or {}).get("cnt", 0)
 
     # Delete the job listings
     _execute(
-        f"DELETE FROM jobs WHERE source='trackr' AND region IN ({ph},{ph})",
+        f"DELETE FROM jobs WHERE source='trackr' AND location IN ({ph},{ph})",
         ("US", "EU"),
     )
 
