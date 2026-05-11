@@ -2053,7 +2053,7 @@ def _send_html(filename):
 @app.route("/landing")
 @app.route("/home")
 def landing():
-    return _send_html("inroad-landing.html")
+    return _send_html("newlandingdraft.html")
 
 
 @app.route("/login")
