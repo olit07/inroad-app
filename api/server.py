@@ -1610,6 +1610,83 @@ def admin_fix_leads_may2026():
     return jsonify({"status": "ok", **results})
 
 
+@app.route("/api/admin/fix-xmg-leads", methods=["POST"])
+@require_admin
+def admin_fix_xmg_leads():
+    """Clear all XMG leads and insert 6 manually curated ones."""
+    from db.database import upsert_lead, execute as _execute
+    _execute("DELETE FROM leads WHERE lower(company) IN ('xmg', 'xmg inc', 'xmg, inc.')")
+    leads = [
+        {
+            "name": "Ken Kemal", "title": "Chief Executive Officer",
+            "company": "XMG", "university": "", "snippet": "",
+            "linkedin_url": "https://www.linkedin.com/in/ken-kemal-6690921",
+            "location_city": "", "location_country": "",
+            "tenure_months": 0, "is_alumni": False,
+            "dept_tag": "sales_trading", "lead_type": "exec",
+            "scraped_rank": 1, "job_title": "Equity Trading and Research Interns",
+            "job_expected_email": "", "job_opening_date": "",
+        },
+        {
+            "name": "Julian Faber", "title": "Low Latency Quant C++ Software Engineer",
+            "company": "XMG", "university": "", "snippet": "",
+            "linkedin_url": "https://www.linkedin.com/in/julian-faber-56454484",
+            "location_city": "", "location_country": "",
+            "tenure_months": 0, "is_alumni": False,
+            "dept_tag": "sales_trading", "lead_type": "relevant",
+            "scraped_rank": 2, "job_title": "Equity Trading and Research Interns",
+            "job_expected_email": "", "job_opening_date": "",
+        },
+        {
+            "name": "Garrett Nenner",
+            "title": "Co-Founder & CEO eZorro | Ex-Millennium & Bank of America",
+            "company": "XMG", "university": "", "snippet": "",
+            "linkedin_url": "https://www.linkedin.com/in/garrett-nenner",
+            "location_city": "", "location_country": "",
+            "tenure_months": 0, "is_alumni": False,
+            "dept_tag": "sales_trading", "lead_type": "exec",
+            "scraped_rank": 3, "job_title": "Equity Trading and Research Interns",
+            "job_expected_email": "", "job_opening_date": "",
+        },
+        {
+            "name": "Sunny Stalham",
+            "title": "Risk Manager at XMG Inc",
+            "company": "XMG", "university": "", "snippet": "",
+            "linkedin_url": "https://www.linkedin.com/in/sunny-stalham-881735193",
+            "location_city": "", "location_country": "",
+            "tenure_months": 0, "is_alumni": False,
+            "dept_tag": "sales_trading", "lead_type": "relevant",
+            "scraped_rank": 4, "job_title": "Equity Trading and Research Interns",
+            "job_expected_email": "", "job_opening_date": "",
+        },
+        {
+            "name": "Lev Butin",
+            "title": "Master of Quantitative Finance @ Rutgers",
+            "company": "XMG", "university": "Rutgers", "snippet": "",
+            "linkedin_url": "https://www.linkedin.com/in/lev-butin-392726323",
+            "location_city": "", "location_country": "",
+            "tenure_months": 0, "is_alumni": False,
+            "dept_tag": "sales_trading", "lead_type": "general",
+            "scraped_rank": 5, "job_title": "Equity Trading and Research Interns",
+            "job_expected_email": "", "job_opening_date": "",
+        },
+        {
+            "name": "William Lopez",
+            "title": "Regional Sales Manager at XMG, Inc.",
+            "company": "XMG", "university": "", "snippet": "",
+            "linkedin_url": "https://www.linkedin.com/in/william-lopez-aa457b",
+            "location_city": "", "location_country": "",
+            "tenure_months": 0, "is_alumni": False,
+            "dept_tag": "sales_trading", "lead_type": "general",
+            "scraped_rank": 6, "job_title": "Equity Trading and Research Interns",
+            "job_expected_email": "", "job_opening_date": "",
+        },
+    ]
+    for lead in leads:
+        upsert_lead(lead)
+    return jsonify({"status": "ok", "deleted_company": "XMG", "inserted": len(leads)})
+
+
 @app.route("/api/admin/build-leads", methods=["POST"])
 @require_admin
 def admin_build_leads():
