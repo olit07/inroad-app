@@ -490,6 +490,13 @@
         <button class="filter-btn" data-div="UK Law">⚖️ UK Law</button>
         <button class="filter-btn" data-div="Miscellaneous">🗂️ Other</button>
       </div>
+      <div class="filter-wrap" id="prog-filter-wrap">
+        <button class="filter-btn prog-filter-btn" data-pt="Summer Internship">Summer Internship</button>
+        <button class="filter-btn prog-filter-btn" data-pt="Spring Week">Spring Week</button>
+        <button class="filter-btn prog-filter-btn" data-pt="Off-Cycle Internship">Off-Cycle Internship</button>
+        <button class="filter-btn prog-filter-btn" data-pt="Industrial Placement">Industrial Placement</button>
+        <button class="filter-btn prog-filter-btn" data-pt="Graduate Programme">Graduate Programme</button>
+      </div>
     </div>
     <div class="panel-body" id="listings">
       <p style="font-size:0.78rem;color:var(--subtle);padding:20px 0;">Loading listings…</p>
@@ -501,7 +508,8 @@
 <script>
 (function () {
   let allJobs = [];
-  let activeFilters  = new Set();
+  let activeFilters    = new Set();
+  let activeProgFilters = new Set();
   let searchQuery    = '';
   let selectedJobId  = null;
   let userStatus     = null;
@@ -605,12 +613,22 @@
     PROG_KEYS.forEach(k => collapsedSections.delete(k));
   }
 
-  // ── Filter buttons ──
-  document.querySelectorAll('.filter-btn').forEach(btn => {
+  // ── Filter buttons (division) ──
+  document.querySelectorAll('.filter-btn:not(.prog-filter-btn)').forEach(btn => {
     btn.addEventListener('click', () => {
       const div = btn.dataset.div;
       if (activeFilters.has(div)) { activeFilters.delete(div); btn.classList.remove('on'); }
       else                        { activeFilters.add(div);    btn.classList.add('on'); expandSectionsForFilter(); }
+      render();
+    });
+  });
+
+  // ── Filter buttons (programme type) ──
+  document.querySelectorAll('.prog-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pt = btn.dataset.pt;
+      if (activeProgFilters.has(pt)) { activeProgFilters.delete(pt); btn.classList.remove('on'); }
+      else                           { activeProgFilters.add(pt);    btn.classList.add('on'); expandSectionsForFilter(); }
       render();
     });
   });
@@ -643,6 +661,7 @@
   function filtered() {
     return allJobs.filter(j => {
       if (activeFilters.size > 0 && !activeFilters.has(j.division)) return false;
+      if (activeProgFilters.size > 0 && !activeProgFilters.has(j.programme_type)) return false;
       if (searchQuery) {
         if (!(j.company + ' ' + j.programme).toLowerCase().includes(searchQuery)) return false;
       }
@@ -658,7 +677,7 @@
     const newJobs = jobs.filter(j =>  isNew(j.opening_date));
     const oldJobs = jobs.filter(j => !isNew(j.opening_date));
 
-    const filtering = activeFilters.size > 0 || searchQuery;
+    const filtering = activeFilters.size > 0 || activeProgFilters.size > 0 || searchQuery;
     shownCountEl.style.display = filtering ? '' : 'none';
     if (filtering) shownCountEl.textContent = jobs.length + ' shown';
 
