@@ -1621,6 +1621,11 @@ def admin_remove_na_eu_listings():
     from db.database import fetchone, execute as _execute, USE_POSTGRES
     ph = "%s" if USE_POSTGRES else "?"
 
+    # Diagnostic: show distinct location values for trackr jobs
+    from db.database import fetchall
+    sample = fetchall("SELECT DISTINCT location FROM jobs WHERE source='trackr' LIMIT 20")
+    distinct_locations = [r.get("location") for r in sample]
+
     # Count before deletion for reporting
     before = (fetchone(
         f"SELECT COUNT(*) AS cnt FROM jobs WHERE source='trackr' AND location IN ({ph},{ph})",
@@ -1657,6 +1662,7 @@ def admin_remove_na_eu_listings():
         "status":        "ok",
         "jobs_deleted":  before,
         "trackr_jobs_remaining": after_jobs,
+        "debug_distinct_locations": distinct_locations,
     })
 
 
