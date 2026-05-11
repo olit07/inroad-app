@@ -193,7 +193,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
   }
 
   .search-wrap { position: relative; flex: 1; min-width: 120px; }
@@ -223,6 +222,7 @@
   .filter-wrap {
     display: flex; gap: 4px;
     overflow-x: auto; padding-bottom: 2px;
+    margin-top: 8px;
     scrollbar-width: none;
     flex-wrap: nowrap; width: 100%;
   }
@@ -790,14 +790,14 @@
           <span class="search-icon">⌕</span>
           <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
         </div>
-        <div class="filter-wrap" id="filter-wrap">
-          <button class="filter-btn" data-div="UK Finance">💰 UK Finance</button>
-          <button class="filter-btn" data-div="UK Consulting">📊 UK Consulting</button>
-          <button class="filter-btn" data-div="UK Tech">💻 UK Tech</button>
-          <button class="filter-btn" data-div="UK Law">⚖️ UK Law</button>
-          <button class="filter-btn" data-div="Miscellaneous">🗂️ Other</button>
-        </div>
         <span class="shown-count" id="shown-count" style="display:none"></span>
+      </div>
+      <div class="filter-wrap" id="filter-wrap">
+        <button class="filter-btn" data-div="UK Finance">💰 UK Finance</button>
+        <button class="filter-btn" data-div="UK Consulting">📊 UK Consulting</button>
+        <button class="filter-btn" data-div="UK Tech">💻 UK Tech</button>
+        <button class="filter-btn" data-div="UK Law">⚖️ UK Law</button>
+        <button class="filter-btn" data-div="Miscellaneous">🗂️ Other</button>
       </div>
     </div>
     <div class="panel-body" id="listings">
@@ -1049,18 +1049,25 @@
       : `${count} / ${lim} email reveals today`;
   }
 
+  const PROG_KEYS = ['Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement', 'Graduate Programme', 'Pre-Uni', 'Events', 'other'];
+
+  function expandSectionsForFilter() {
+    PROG_KEYS.forEach(k => collapsedSections.delete(k));
+  }
+
   // ── Filter buttons ──
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const div = btn.dataset.div;
       if (activeFilters.has(div)) { activeFilters.delete(div); btn.classList.remove('on'); }
-      else                        { activeFilters.add(div);    btn.classList.add('on'); }
+      else                        { activeFilters.add(div);    btn.classList.add('on'); expandSectionsForFilter(); }
       render();
     });
   });
 
   searchEl.addEventListener('input', () => {
     searchQuery = searchEl.value.trim().toLowerCase();
+    if (searchQuery) expandSectionsForFilter();
     render();
   });
 
