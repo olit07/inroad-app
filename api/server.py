@@ -1621,10 +1621,22 @@ def admin_remove_na_eu_listings():
     from db.database import fetchone, execute as _execute, USE_POSTGRES
     ph = "%s" if USE_POSTGRES else "?"
 
-    # Diagnostic: show distinct location values for trackr jobs
+    # Diagnostic: check raw JSON for EU/US region values
     from db.database import fetchall
     sample = fetchall("SELECT DISTINCT location FROM jobs WHERE source='trackr' LIMIT 20")
     distinct_locations = [r.get("location") for r in sample]
+    eu_raw = fetchall(
+        "SELECT COUNT(*) AS cnt FROM jobs WHERE source='trackr' AND raw LIKE '%\"region\": \"EU\"%'"
+        if not USE_POSTGRES else
+        "SELECT COUNT(*) AS cnt FROM jobs WHERE source='trackr' AND raw::text LIKE '%\"region\": \"EU\"%'"
+    )
+    us_raw = fetchall(
+        "SELECT COUNT(*) AS cnt FROM jobs WHERE source='trackr' AND raw LIKE '%\"region\": \"US\"%'"
+        if not USE_POSTGRES else
+        "SELECT COUNT(*) AS cnt FROM jobs WHERE source='trackr' AND raw::text LIKE '%\"region\": \"US\"%'"
+    )
+    eu_count_raw = (eu_raw[0] or {}).get("cnt", 0) if eu_raw else 0
+    us_count_raw = (us_raw[0] or {}).get("cnt", 0) if us_raw else 0
 
     # Count before deletion for reporting
     before = (fetchone(
@@ -1663,6 +1675,8 @@ def admin_remove_na_eu_listings():
         "jobs_deleted":  before,
         "trackr_jobs_remaining": after_jobs,
         "debug_distinct_locations": distinct_locations,
+        "debug_eu_in_raw": eu_count_raw,
+        "debug_us_in_raw": us_count_raw,
     })
 
 
