@@ -86,7 +86,7 @@ def _start_background_scheduler():
     except (IOError, OSError):
         return  # another worker already holds the lock
 
-    TRACKR_SLOTS = [(5, 45), (10, 45), (16, 45)]
+    TRACKR_SLOTS = [(5,0),(7,10),(9,15),(11,20),(13,25),(15,30),(17,45),(20,0)]
     PIPELINE_HOUR = 6
 
     def _next_slot(slots):
@@ -465,6 +465,68 @@ def send_login_link(email: str, token: str, next_url: str = None):
         return False
 
 
+# ── Anonymous visitor tracking ────────────────────────────────────────────────
+
+_VISITOR_COOKIE = "inroad_visitor"
+_SKIP_PREFIXES  = ("/api/", "/static/", "/auth/")
+
+_BOT_UA_FRAGMENTS = (
+    "bot", "crawl", "spider", "slurp", "curl/", "python", "go-http",
+    "java/", "okhttp", "axios", "wget", "scrapy", "headless", "phantom",
+    "selenium", "puppeteer", "playwright", "node-fetch", "got/", "httpx",
+)
+
+@app.before_request
+def _record_page_visit():
+    if request.method in ("OPTIONS", "HEAD"):
+        return
+    if any(request.path.startswith(p) for p in _SKIP_PREFIXES):
+        return
+    ua = (request.headers.get("User-Agent") or "").lower()
+    if not ua or any(f in ua for f in _BOT_UA_FRAGMENTS):
+        return
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    app.logger.info("VISIT %s %s | ip=%s ua=%s", request.method, request.path, ip, ua[:120])
+    visitor_id = request.cookies.get(_VISITOR_COOKIE)
+    if not visitor_id:
+        import uuid as _uuid
+        visitor_id = str(_uuid.uuid4())
+    g._visitor_id     = visitor_id
+    g._visitor_is_new = _VISITOR_COOKIE not in request.cookies
+    try:
+        from db.database import execute as _ex, USE_POSTGRES
+        if USE_POSTGRES:
+            _ex(
+                "INSERT INTO site_visits (visitor_id, visited_date) "
+                "VALUES (?, CURRENT_DATE) ON CONFLICT (visitor_id, visited_date) DO NOTHING",
+                (visitor_id,),
+            )
+        else:
+            _ex(
+                "INSERT OR IGNORE INTO site_visits (visitor_id, visited_date) "
+                "VALUES (?, date('now'))",
+                (visitor_id,),
+            )
+    except Exception:
+        pass
+
+
+@app.after_request
+def _set_visitor_cookie(response):
+    visitor_id = getattr(g, "_visitor_id", None)
+    if visitor_id and getattr(g, "_visitor_is_new", False):
+        response.set_cookie(
+            _VISITOR_COOKIE,
+            visitor_id,
+            max_age=365 * 24 * 3600,
+            httponly=True,
+            secure=IS_PRODUCTION,
+            samesite="Lax",
+            path="/",
+        )
+    return response
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 
 @app.route("/api/health")
@@ -662,6 +724,13 @@ def refresh():
 
     student_id = token_row["student_id"]
 
+    # Stamp last_seen on every token refresh (catches users whose sessions stay alive)
+    try:
+        from datetime import datetime as _dt, timezone as _tz
+        update_student_fields(student_id, {"last_seen": _dt.now(_tz.utc).isoformat()})
+    except Exception:
+        pass
+
     # Token rotation: revoke old, issue new
     revoke_refresh_token(token_str)
     new_refresh_str = make_refresh_token_str()
@@ -722,6 +791,13 @@ def me():
     student = get_student_by_id(g.student_id)
     if not student:
         return jsonify({"error": "Student not found"}), 404
+    from db.database import USE_POSTGRES
+    from datetime import datetime, timezone
+    now_str = datetime.now(timezone.utc).isoformat()
+    try:
+        update_student_fields(g.student_id, {"last_seen": now_str})
+    except Exception as exc:
+        app.logger.warning("last_seen update failed for student %s: %s", g.student_id, exc)
     return jsonify(_sanitise_student(student))
 
 
@@ -760,7 +836,7 @@ def _regenerate_todays_drafts(student_id: int) -> int:
         }
         lead_ctx = {"name": r.get("person_name") or "", "company": r.get("person_company") or ""}
         job_ctx  = {"title": r.get("job_title") or "", "industry": r.get("industry") or ""}
-        subject, body = generate_email_draft(student_ctx, lead_ctx, job_ctx)
+        subject, body, _ = generate_email_draft(student_ctx, lead_ctx, job_ctx)
         db_execute(
             "UPDATE matches SET email_subject = %s, email_body = %s WHERE id = %s",
             (subject, body, r["id"])
@@ -893,7 +969,7 @@ def regenerate_draft():
     }
 
     from pipeline.daily_cards import generate_email_draft
-    subject, body = generate_email_draft(student, lead, job)
+    subject, body, is_personalised = generate_email_draft(student, lead, job)
 
     # Persist the regenerated draft so it survives page refresh
     match_id = data.get("match_id")
@@ -905,7 +981,7 @@ def regenerate_draft():
             (subject, body, match_id, g.student_id),
         )
 
-    return jsonify({"subject": subject, "body": body})
+    return jsonify({"subject": subject, "body": body, "personalised": is_personalised})
 
 
 # ── Matches ───────────────────────────────────────────────────────────────────
@@ -1683,78 +1759,81 @@ def admin_remove_na_eu_listings():
 @app.route("/api/admin/fix-xmg-leads", methods=["POST"])
 @require_admin
 def admin_fix_xmg_leads():
-    """Clear all XMG leads and insert 6 manually curated ones."""
-    from db.database import upsert_lead, execute as _execute
+    """
+    Upsert XMG job + 6 curated leads with Groq-derived email format.
+    Calls Groq to discover XMG's email domain/format, computes expected_email
+    for each lead, and inserts the XMG job into jobs if not already present.
+    """
+    from db.database import upsert_lead, execute as _execute, save_email_format, fetchone as _fetchone, USE_POSTGRES
+    from pipeline.lead_builder import _lookup_email_format_via_llm, _infer_email
+    from datetime import date, datetime
+
+    # 1. Groq email format lookup for XMG
+    groq_result = _lookup_email_format_via_llm("XMG")
+    fmt_code = "FL"
+    domain   = ""
+    if groq_result:
+        fmt_code, domain = groq_result
+        try:
+            save_email_format("XMG", fmt_code, domain, source="groq")
+        except Exception:
+            pass
+        app.logger.info(f"XMG email format (Groq): {fmt_code} @ {domain}")
+    else:
+        app.logger.warning("XMG email format lookup failed — emails will be empty")
+
+    # 2. Ensure an XMG job exists so it appears on the opportunities page
+    ph = "%s" if USE_POSTGRES else "?"
+    existing_job = _fetchone(f"SELECT id FROM jobs WHERE lower(company) = lower({ph})", ("XMG",))
+    if not existing_job:
+        today = date.today().isoformat()
+        now   = datetime.utcnow().isoformat()
+        _execute(
+            f"INSERT INTO jobs (title, company, url, source, industry, opening_date, created_at) "
+            f"VALUES ({ph},{ph},{ph},{ph},{ph},{ph},{ph})",
+            ("Equity Trading and Research Interns", "XMG",
+             "https://xmg-inc.com/careers", "trackr", "Finance", today, now),
+        )
+        app.logger.info("Inserted XMG job into jobs table")
+
+    # 3. Clear stale XMG leads and re-insert with computed emails
     _execute("DELETE FROM leads WHERE lower(company) IN ('xmg', 'xmg inc', 'xmg, inc.')")
-    leads = [
-        {
-            "name": "Ken Kemal", "title": "Chief Executive Officer",
-            "company": "XMG", "university": "", "snippet": "",
-            "linkedin_url": "https://www.linkedin.com/in/ken-kemal-6690921",
-            "location_city": "", "location_country": "",
-            "tenure_months": 0, "is_alumni": False,
-            "dept_tag": "sales_trading", "lead_type": "exec",
-            "scraped_rank": 1, "job_title": "Equity Trading and Research Interns",
-            "job_expected_email": "", "job_opening_date": "",
-        },
-        {
-            "name": "Julian Faber", "title": "Low Latency Quant C++ Software Engineer",
-            "company": "XMG", "university": "", "snippet": "",
-            "linkedin_url": "https://www.linkedin.com/in/julian-faber-56454484",
-            "location_city": "", "location_country": "",
-            "tenure_months": 0, "is_alumni": False,
-            "dept_tag": "sales_trading", "lead_type": "relevant",
-            "scraped_rank": 2, "job_title": "Equity Trading and Research Interns",
-            "job_expected_email": "", "job_opening_date": "",
-        },
-        {
-            "name": "Garrett Nenner",
-            "title": "Co-Founder & CEO eZorro | Ex-Millennium & Bank of America",
-            "company": "XMG", "university": "", "snippet": "",
-            "linkedin_url": "https://www.linkedin.com/in/garrett-nenner",
-            "location_city": "", "location_country": "",
-            "tenure_months": 0, "is_alumni": False,
-            "dept_tag": "sales_trading", "lead_type": "exec",
-            "scraped_rank": 3, "job_title": "Equity Trading and Research Interns",
-            "job_expected_email": "", "job_opening_date": "",
-        },
-        {
-            "name": "Sunny Stalham",
-            "title": "Risk Manager at XMG Inc",
-            "company": "XMG", "university": "", "snippet": "",
-            "linkedin_url": "https://www.linkedin.com/in/sunny-stalham-881735193",
-            "location_city": "", "location_country": "",
-            "tenure_months": 0, "is_alumni": False,
-            "dept_tag": "sales_trading", "lead_type": "relevant",
-            "scraped_rank": 4, "job_title": "Equity Trading and Research Interns",
-            "job_expected_email": "", "job_opening_date": "",
-        },
-        {
-            "name": "Lev Butin",
-            "title": "Master of Quantitative Finance @ Rutgers",
-            "company": "XMG", "university": "Rutgers", "snippet": "",
-            "linkedin_url": "https://www.linkedin.com/in/lev-butin-392726323",
-            "location_city": "", "location_country": "",
-            "tenure_months": 0, "is_alumni": False,
-            "dept_tag": "sales_trading", "lead_type": "general",
-            "scraped_rank": 5, "job_title": "Equity Trading and Research Interns",
-            "job_expected_email": "", "job_opening_date": "",
-        },
-        {
-            "name": "William Lopez",
-            "title": "Regional Sales Manager at XMG, Inc.",
-            "company": "XMG", "university": "", "snippet": "",
-            "linkedin_url": "https://www.linkedin.com/in/william-lopez-aa457b",
-            "location_city": "", "location_country": "",
-            "tenure_months": 0, "is_alumni": False,
-            "dept_tag": "sales_trading", "lead_type": "general",
-            "scraped_rank": 6, "job_title": "Equity Trading and Research Interns",
-            "job_expected_email": "", "job_opening_date": "",
-        },
+
+    _LEADS = [
+        ("Ken Kemal",      "Chief Executive Officer",                            "https://www.linkedin.com/in/ken-kemal-6690921",      "exec",     1, ""),
+        ("Julian Faber",   "Low Latency Quant C++ Software Engineer",            "https://www.linkedin.com/in/julian-faber-56454484",  "relevant", 2, ""),
+        ("Garrett Nenner", "Co-Founder & CEO eZorro | Ex-Millennium & BofA",     "https://www.linkedin.com/in/garrett-nenner",         "exec",     3, ""),
+        ("Sunny Stalham",  "Risk Manager at XMG Inc",                           "https://www.linkedin.com/in/sunny-stalham-881735193","relevant", 4, ""),
+        ("Lev Butin",      "Master of Quantitative Finance @ Rutgers",           "https://www.linkedin.com/in/lev-butin-392726323",    "general",  5, "Rutgers"),
+        ("William Lopez",  "Regional Sales Manager at XMG, Inc.",               "https://www.linkedin.com/in/william-lopez-aa457b",   "general",  6, ""),
     ]
+
+    leads = []
+    for name, title, li_url, lead_type, rank, uni in _LEADS:
+        email = _infer_email(name, "XMG") if domain else ""
+        leads.append({
+            "name": name, "title": title,
+            "company": "XMG", "university": uni, "snippet": "",
+            "linkedin_url": li_url,
+            "location_city": "", "location_country": "",
+            "tenure_months": 0, "is_alumni": False,
+            "dept_tag": "sales_trading", "lead_type": lead_type,
+            "scraped_rank": rank,
+            "job_title": "Equity Trading and Research Interns",
+            "job_expected_email": email, "job_opening_date": "",
+        })
+
     for lead in leads:
         upsert_lead(lead)
-    return jsonify({"status": "ok", "deleted_company": "XMG", "inserted": len(leads)})
+
+    emails_found = [l["job_expected_email"] for l in leads if l["job_expected_email"]]
+    return jsonify({
+        "status":        "ok",
+        "email_format":  f"{fmt_code}@{domain}" if domain else "unknown",
+        "emails_computed": len(emails_found),
+        "sample_email":  emails_found[0] if emails_found else None,
+        "inserted":      len(leads),
+    })
 
 
 @app.route("/api/admin/build-leads", methods=["POST"])
@@ -2096,36 +2175,61 @@ def listings_page():
     return _send_html("inroad-listings.html")
 
 
+# In-process cache for /api/opportunities — recomputed at most once every 5 minutes
+_opp_cache: dict = {"data": None, "expires_at": 0.0}
+
 @app.route("/api/opportunities")
 def api_opportunities():
     """Return all jobs with insider leads, formatted for the opportunities page."""
+    import time as _time
     from datetime import datetime, timezone
     from db.database import USE_POSTGRES
 
+    now = _time.time()
+    if _opp_cache["data"] is not None and now < _opp_cache["expires_at"]:
+        resp = jsonify(_opp_cache["data"])
+        resp.headers["Cache-Control"] = "public, max-age=300"
+        return resp
+
     # Firm type lookup by company name (used as section headers)
     _INDUSTRY_VERTICAL = {
-        "Finance":    "UK Finance",
-        "Technology": "UK Tech",
-        "Law":        "UK Law",
+        "Finance":    "Finance",
+        "Technology": "Tech",
+        "Law":        "Law",
     }
 
     def infer_firm_type(industry: str, raw_json: str = "") -> str:
         if raw_json:
             try:
                 import json as _j
-                cats = _j.loads(raw_json).get("trackr_categories") or []
+                raw_data = _j.loads(raw_json)
+                cats = raw_data.get("trackr_categories") or []
                 if "Consulting" in cats:
-                    return "UK Consulting"
+                    return "Consulting"
+                # Only fall back to Miscellaneous for events if industry has no known vertical
+                if raw_data.get("trackr_type") == "events" and not _INDUSTRY_VERTICAL.get(industry or ""):
+                    return "Miscellaneous"
             except Exception:
                 pass
         return _INDUSTRY_VERTICAL.get(industry or "", "Miscellaneous")
 
+    def extract_region(raw_json: str) -> str:
+        if not raw_json:
+            return "UK"
+        try:
+            import json as _j
+            return _j.loads(raw_json).get("region") or "UK"
+        except Exception:
+            return "UK"
+
     _TRACKR_TYPE_LABEL = {
         "summer-internships":    "Summer Internship",
         "spring-weeks":          "Spring Week",
+        "insight-programmes":    "Spring Week",
         "off-cycle-internships": "Off-Cycle Internship",
         "industrial-placements": "Industrial Placement",
         "graduate-programmes":   "Graduate Programme",
+        "full-time-programmes":  "Graduate Programme",
         "training-contracts":    "Graduate Programme",
         "pre-uni":               "Pre-Uni",
         "events":                "Events",
@@ -2177,10 +2281,10 @@ def api_opportunities():
         order_clause = "ORDER BY CASE WHEN opening_date IS NULL OR opening_date = '' THEN 1 ELSE 0 END, opening_date DESC, created_at DESC"
 
     rows = fetchall(
-        "SELECT id, title, company, url, opening_date, closing_date, industry, created_at, raw "
+        "SELECT id, title, company, url, opening_date, closing_date, industry, created_at, raw, careers_site "
         "FROM jobs WHERE company IS NOT NULL AND company != '' "
         f"AND title IS NOT NULL AND title != '' AND source = 'trackr' "
-        f"AND lower(company) != 'trackr' {order_clause} LIMIT 2000"
+        f"AND lower(company) != 'trackr' {order_clause} LIMIT 10000"
     )
 
     if not rows:
@@ -2191,20 +2295,27 @@ def api_opportunities():
 
     leads_by_company: dict = {}
     if companies:
+        now_expr = "NOW()" if USE_POSTGRES else "datetime('now')"
+        cols = "id, name, title, job_title, linkedin_url, job_expected_email, company, lead_type, is_alumni, university, tenure_months"
         if USE_POSTGRES:
-            placeholders = ",".join(["%s"] * len(companies))
+            all_leads = fetchall(
+                f"SELECT {cols} FROM leads "
+                f"WHERE lower(company) = ANY(%s) "
+                f"AND (stale_after IS NULL OR stale_after > {now_expr}) "
+                f"ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END, "
+                f"is_alumni DESC, tenure_months DESC",
+                (companies,),
+            )
         else:
             placeholders = ",".join(["?"] * len(companies))
-
-        now_expr = "NOW()" if USE_POSTGRES else "datetime('now')"
-        all_leads = fetchall(
-            f"SELECT * FROM leads "
-            f"WHERE lower(company) IN ({placeholders}) "
-            f"AND (stale_after IS NULL OR stale_after > {now_expr}) "
-            f"ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END, "
-            f"is_alumni DESC, tenure_months DESC",
-            tuple(companies),
-        )
+            all_leads = fetchall(
+                f"SELECT {cols} FROM leads "
+                f"WHERE lower(company) IN ({placeholders}) "
+                f"AND (stale_after IS NULL OR stale_after > {now_expr}) "
+                f"ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END, "
+                f"is_alumni DESC, tenure_months DESC",
+                tuple(companies),
+            )
         for l in all_leads:
             key = (l.get("company") or "").lower()
             leads_by_company.setdefault(key, []).append(l)
@@ -2244,18 +2355,25 @@ def api_opportunities():
             "programme":      title,
             "division":       infer_firm_type(r.get("industry") or "", r.get("raw") or ""),
             "programme_type": infer_programme_type(title, r.get("raw") or ""),
+            "region":         extract_region(r.get("raw") or ""),
             "opening_date":   r.get("opening_date") or "",
             "closing_date":   r.get("closing_date") or "",
             "apply_url":      r.get("url") or "",
+            "careers_site":   r.get("careers_site") or "",
             "industry_label": _IND_LABEL.get(r.get("industry") or "", ""),
             "leads":          leads,
         })
 
-    return jsonify({
+    result = {
         "jobs":       jobs,
         "count":      len(jobs),
         "updated_at": datetime.now(timezone.utc).isoformat(),
-    })
+    }
+    _opp_cache["data"]       = result
+    _opp_cache["expires_at"] = _time.time() + 300  # 5-minute TTL
+    resp = jsonify(result)
+    resp.headers["Cache-Control"] = "public, max-age=300"
+    return resp
 
 
 @app.route("/admin")
@@ -2309,19 +2427,43 @@ def metrics_page():
     return _send_html("inroad-metrics.html")
 
 
+@app.route("/api/admin/debug-lastseen")
+@require_admin
+def debug_lastseen():
+    from db.database import USE_POSTGRES
+    rows = fetchall(
+        "SELECT id, email, last_seen FROM students "
+        "ORDER BY last_seen DESC NULLS LAST LIMIT 20"
+        if USE_POSTGRES else
+        "SELECT id, email, last_seen FROM students "
+        "ORDER BY CASE WHEN last_seen IS NULL THEN 1 ELSE 0 END, last_seen DESC LIMIT 20"
+    )
+    return jsonify({"rows": [dict(r) for r in rows]})
+
+
+@app.route("/api/flags")
+def feature_flags():
+    """Public endpoint returning enabled feature flags for the current environment."""
+    return jsonify({
+        "personalise": bool(os.environ.get("PERSONALISE_FEATURE")),
+    })
+
+
 @app.route("/api/admin/metrics")
 @require_admin
 def admin_metrics():
     from db.database import USE_POSTGRES
     if USE_POSTGRES:
         date_trunc  = "DATE_TRUNC('day', created_at)::date"
-        match_trunc = "DATE_TRUNC('day', sent_at)::date"
+        seen_trunc  = "DATE_TRUNC('day', last_seen)::date"
         day30       = "NOW() - INTERVAL '30 days'"
+        day30_date  = "CURRENT_DATE - INTERVAL '30 days'"
         today_expr  = "CURRENT_DATE"
     else:
         date_trunc  = "date(created_at)"
-        match_trunc = "date(sent_at)"
+        seen_trunc  = "date(last_seen)"
         day30       = "datetime('now', '-30 days')"
+        day30_date  = "date('now', '-30 days')"
         today_expr  = "date('now')"
 
     # Total accounts
@@ -2334,32 +2476,62 @@ def admin_metrics():
     )
     accounts_by_day = [{"date": str(r["date"]), "count": r["count"]} for r in acct_rows]
 
-    # DAU / MAU — students who had at least one email sent (proxy for active users)
+    # Unique site visits — cookie-based, covers logged-in and non-logged-in
+    unique_today = (fetchone(
+        f"SELECT COUNT(DISTINCT visitor_id) AS n FROM site_visits "
+        f"WHERE visited_date = {today_expr}"
+    ) or {}).get("n", 0)
+
+    visitors_rows = fetchall(
+        f"SELECT visited_date AS date, COUNT(DISTINCT visitor_id) AS count FROM site_visits "
+        f"WHERE visited_date >= {day30_date} GROUP BY 1 ORDER BY 1"
+    )
+    visitors_all = [{"date": str(r["date"]), "count": r["count"]} for r in visitors_rows]
+
+    # DAU / MAU — logged-in students who visited today / this month
     dau = (fetchone(
-        f"SELECT COUNT(DISTINCT student_id) AS n FROM matches "
-        f"WHERE status='sent' AND {match_trunc} = {today_expr}"
+        f"SELECT COUNT(*) AS n FROM students "
+        f"WHERE last_seen IS NOT NULL AND {seen_trunc} = {today_expr}"
     ) or {}).get("n", 0)
 
     mau = (fetchone(
-        f"SELECT COUNT(DISTINCT student_id) AS n FROM matches "
-        f"WHERE status='sent' AND sent_at >= {day30}"
+        f"SELECT COUNT(*) AS n FROM students "
+        f"WHERE last_seen IS NOT NULL AND last_seen >= {day30}"
     ) or {}).get("n", 0)
 
-    # Daily active students over last 30 days (used as visitor proxy)
-    visitors_rows = fetchall(
-        f"SELECT {match_trunc} AS date, COUNT(DISTINCT student_id) AS count FROM matches "
-        f"WHERE status='sent' AND sent_at >= {day30} GROUP BY 1 ORDER BY 1"
+    # Email reveals
+    if USE_POSTGRES:
+        sig_trunc = "DATE_TRUNC('day', created_at)::date"
+    else:
+        sig_trunc = "date(created_at)"
+
+    total_reveals = (fetchone(
+        "SELECT COUNT(*) AS n FROM signals WHERE signal = 'email_revealed'"
+    ) or {}).get("n", 0)
+
+    reveals_today = (fetchone(
+        f"SELECT COUNT(*) AS n FROM signals WHERE signal = 'email_revealed' AND {sig_trunc} = {today_expr}"
+    ) or {}).get("n", 0)
+
+    reveals_rows = fetchall(
+        f"SELECT {sig_trunc} AS date, COUNT(*) AS count FROM signals "
+        f"WHERE signal = 'email_revealed' AND created_at >= {day30} GROUP BY 1 ORDER BY 1"
     )
-    visitors_all = [{"date": str(r["date"]), "count": r["count"]} for r in visitors_rows]
+    reveals_by_day = [{"date": str(r["date"]), "count": r["count"]} for r in reveals_rows]
 
     return jsonify({"data": {
         "total_accounts":        total_accounts,
         "accounts_by_day":       accounts_by_day,
-        "unique_visitors_today": dau,
+        "unique_visitors_today": unique_today,
         "visitors_all":          visitors_all,
         "dau":                   dau,
         "mau":                   mau,
+        "total_reveals":         total_reveals,
+        "reveals_today":         reveals_today,
+        "reveals_by_day":        reveals_by_day,
     }})
+
+
 
 
 @app.route("/contact")
