@@ -50,14 +50,9 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 48px;
-    background: rgba(255,255,255,0.96);
+    background: rgba(18,43,30,0.97);
     backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-    transition: background 0.25s, border-color 0.25s;
-  }
-  nav.nav-logged-in {
-    background: var(--green);
-    border-bottom-color: transparent;
+    border-bottom: none;
   }
 
   .wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
@@ -68,25 +63,21 @@
   }
   .nav-center a {
     font-size: 0.85rem; font-weight: 400;
-    color: var(--muted); text-decoration: none; transition: color 0.15s;
+    color: rgba(255,255,255,0.7); text-decoration: none; transition: color 0.15s;
   }
-  .nav-center a:hover { color: var(--text); }
-  .nav-center a.active { color: var(--green); font-weight: 700; }
-  nav.nav-logged-in .wordmark span { color: #fff !important; }
-  nav.nav-logged-in .nav-center a { color: rgba(255,255,255,0.7); }
-  nav.nav-logged-in .nav-center a:hover { color: #fff; }
-  nav.nav-logged-in .nav-center a.active { color: #fff; font-weight: 700; }
+  .nav-center a:hover { color: #fff; }
+  .nav-center a.active { color: #fff; font-weight: 700; }
 
   .nav-right { display: flex; align-items: center; gap: 10px; }
 
   .btn-login {
     font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
-    color: var(--text); background: transparent;
-    border: 1.5px solid var(--border-md);
+    color: rgba(255,255,255,0.8); background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.25);
     padding: 7px 18px; border-radius: 8px; text-decoration: none;
     transition: border-color 0.15s, color 0.15s;
   }
-  .btn-login:hover { border-color: var(--green); color: var(--green); }
+  .btn-login:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
 
   .btn-nav-cta {
     font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
@@ -96,9 +87,6 @@
     transition: background 0.15s; white-space: nowrap;
   }
   .btn-nav-cta:hover { background: var(--green-deep); }
-  nav.nav-logged-in .btn-nav-cta { color: var(--green); background: #fff; }
-  nav.nav-logged-in .btn-nav-cta:hover { background: var(--green-lite); }
-
   .nav-user { display: flex; align-items: center; gap: 12px; }
   .nav-initials {
     width: 32px; height: 32px; border-radius: 50%;
@@ -195,38 +183,6 @@
     border-right: none;
   }
 
-  /* Invisible click zone covering the full border height */
-  .listings-border-zone {
-    position: absolute;
-    top: 0; bottom: 0;
-    left: calc(28% - 5px);
-    width: 10px;
-    z-index: 15;
-    cursor: col-resize;
-    transition: left 0.25s ease;
-  }
-  .listings-border-zone.collapsed { left: -5px; }
-
-  /* Toggle tab on the border between panels */
-  .listings-toggle {
-    position: absolute;
-    left: calc(28% - 1px);
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 20;
-    width: 18px; height: 44px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: none;
-    border-radius: 0 6px 6px 0;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    font-size: 9px; color: var(--subtle);
-    transition: background 0.15s, color 0.15s, left 0.25s ease;
-    user-select: none;
-  }
-  .listings-toggle:hover { background: var(--surface-2); color: var(--text); }
-  .listings-toggle.collapsed { left: 0; border-radius: 0 6px 6px 0; }
 
   .panel-header {
     position: sticky;
@@ -246,6 +202,9 @@
     text-transform: uppercase;
     color: var(--subtle);
     margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
   }
 
   .panel-body { padding: 8px 14px 40px; flex: 1; }
@@ -277,6 +236,20 @@
   }
   .filter-btn:hover { opacity: 0.8; }
   .filter-btn.on { opacity: 1; color: #fff; }
+
+  .region-wrap { flex-shrink: 0; }
+  .region-select {
+    font-family: var(--sans); font-size: 0.68rem; font-weight: 700;
+    color: var(--text-mid); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 7px;
+    padding: 4px 22px 4px 7px; cursor: pointer; outline: none;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 6px center;
+    background-color: var(--bg); transition: border-color 0.15s;
+  }
+  .region-select:focus { border-color: var(--green); }
+  .shown-count { font-size: 0.62rem; font-weight: 700; color: var(--subtle); white-space: nowrap; }
 
   /* Section rows */
   .new-section {
@@ -336,9 +309,12 @@
     display: grid; grid-template-columns: 1fr 44px 68px;
     align-items: center; padding: 4px 7px; min-height: 28px; gap: 4px;
   }
-  .card-left { min-width: 0; }
+  .card-left { min-width: 0; display: flex; align-items: center; gap: 5px; }
+  .card-left-text { min-width: 0; overflow: hidden; }
   .card-company { font-size: 0.71rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card-programme { font-size: 0.63rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+  .card-logo { width: 14px; height: 14px; border-radius: 2px; object-fit: contain; flex-shrink: 0; display: block; }
+  .card-logo-placeholder { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; display: block; background: var(--border); }
   .card-date { font-size: 0.64rem; color: var(--subtle); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .card-date.fresh { color: var(--green); font-weight: 700; }
 
@@ -396,7 +372,7 @@
   .kanban-track {
     display: flex;
     align-items: center;
-    padding: 20px;
+    padding: 12px;
     overflow-x: auto;
     overflow-y: auto;
     flex: 1;
@@ -419,20 +395,20 @@
   /* Horizontal arrow between columns */
   .kanban-arrow {
     flex-shrink: 0;
-    width: 28px;
+    width: 18px;
     display: flex;
     align-items: flex-start;
     padding-top: 13px;
     justify-content: center;
     color: var(--text);
-    font-size: 13px;
+    font-size: 11px;
     user-select: none;
   }
 
   /* Each column: active stage on top, rejection stage below */
   .kanban-col {
-    flex: 0 0 200px;
-    min-width: 200px;
+    flex: 0 0 155px;
+    min-width: 155px;
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -461,8 +437,8 @@
 
   .kstage-hdr {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 6px 9px;
-    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.01em;
+    padding: 5px 7px;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.01em;
     line-height: 1.3;
   }
   .kstage-hdr-label { flex: 1; }
@@ -473,8 +449,8 @@
   }
 
   .drop-zone {
-    min-height: 40px;
-    padding: 5px 6px;
+    min-height: 36px;
+    padding: 4px 5px;
     background: rgba(255,255,255,0.3);
     border-top: 1px solid rgba(0,0,0,0.05);
     transition: background 0.15s;
@@ -512,9 +488,9 @@
 <body>
 
 <nav id="main-nav">
-  <a href="/" class="wordmark">
+  <a href="/?home=1" class="wordmark">
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
-    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);" id="wordmark-text">inroad</span>
+    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:#fff;" id="wordmark-text">inroad</span>
   </a>
   <ul class="nav-center" id="nav-center">
     <li><a href="/listings">Listings</a></li>
@@ -547,17 +523,27 @@
 <div class="page-layout" style="position:relative">
 
   <!-- Clickable border zone + toggle tab -->
-  <div class="listings-border-zone" id="listings-border-zone" onclick="toggleListings()"></div>
-  <div class="listings-toggle" id="listings-toggle" onclick="toggleListings()" title="Toggle listings">◀</div>
 
   <!-- ── LISTINGS PANEL (28%) ── -->
   <div class="listings-panel" id="listings-panel">
     <div class="panel-header">
-      <div class="panel-title">Listings &nbsp;<span id="listing-count" style="font-weight:400;color:var(--subtle)"></span></div>
+      <div class="panel-title">
+        <span>Listings &nbsp;<span id="listing-count" style="font-weight:400;color:var(--subtle)"></span></span>
+        <span class="shown-count" id="shown-count"></span>
+      </div>
       <div class="toolbar">
-        <div class="search-wrap">
-          <span class="search-icon">⌕</span>
-          <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
+        <div style="display:flex;align-items:flex-end;gap:6px;">
+          <div class="search-wrap" style="flex:1;">
+            <span class="search-icon">⌕</span>
+            <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
+          </div>
+          <div class="region-wrap">
+            <select class="region-select" id="region-select">
+              <option value="UK" selected>🇬🇧 UK</option>
+              <option value="US">🇺🇸 US</option>
+              <option value="EU">🇪🇺 EU</option>
+            </select>
+          </div>
         </div>
         <div class="filter-wrap" id="filter-wrap">
           <!-- Stage filter pills rendered by JS -->
@@ -585,7 +571,181 @@
 <script>
 (function () {
 
+  // ── Auth guard — redirect unauthenticated users to login ─────────────────
+  (async function authGuard() {
+    let token = getAccessToken();
+    if (!token) {
+      const ok = await _tryRefresh();
+      if (!ok) {
+        window.location.href = '/login?next=/pipeline';
+        return;
+      }
+      token = getAccessToken();
+    }
+    // Verify the token is still valid
+    const resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' });
+    if (resp.status === 401) {
+      const ok = await _tryRefresh();
+      if (!ok) {
+        window.location.href = '/login?next=/pipeline';
+      }
+    }
+  })();
+
   // ── Helpers ──────────────────────────────────────────────────────────────
+  const CAREER_SITES = {
+    "1password": "https://1password.com/careers/",
+    "a.p. moller - maersk": "https://www.maersk.com/careers",
+    "abn amro": "https://www.abnamro.com/en/careers",
+    "accenture": "https://www.accenture.com/gb-en/careers",
+    "aig": "https://www.aig.com/careers",
+    "airbnb": "https://careers.airbnb.com/",
+    "alantra": "https://www.alantra.com/people/join-alantra",
+    "alixpartners": "https://www.alixpartners.com/careers/",
+    "allianz": "https://careers.allianz.com/",
+    "allianz global investors": "https://www.allianzgi.com/en/careers",
+    "alter domus": "https://www.alterdomus.com/careers/",
+    "alvarez & marsal": "https://www.alvarezandmarsal.com/careers",
+    "amazon": "https://www.amazon.jobs/",
+    "amundi": "https://careers.amundi.com/",
+    "apollo global management": "https://www.apollo.com/careers",
+    "apple": "https://www.apple.com/careers/",
+    "ardian": "https://www.ardian.com/join-us",
+    "ares management": "https://www.aresmgmt.com/careers",
+    "ares management corporation": "https://www.aresmgmt.com/careers",
+    "atlas wealth": "https://www.atlaswealth.co.uk/careers",
+    "augusta & co": "https://www.augustaco.com/careers",
+    "aviva": "https://careers.aviva.co.uk/",
+    "axa": "https://careers.axa.com/",
+    "axa im": "https://www.axa-im.com/en/careers",
+    "bain & company": "https://www.bain.com/careers/",
+    "bain capital": "https://www.baincapital.com/careers",
+    "bank of america": "https://careers.bankofamerica.com/",
+    "bank of england": "https://www.bankofengland.co.uk/careers",
+    "barclays": "https://home.barclays/careers/",
+    "bda partners": "https://www.bdapartners.com/careers/",
+    "bdo uk": "https://www.bdo.co.uk/en-gb/careers",
+    "berenberg": "https://www.berenberg.com/en/careers/",
+    "binance": "https://www.binance.com/en/careers",
+    "blackrock": "https://careers.blackrock.com/",
+    "blackstone": "https://www.blackstone.com/careers/",
+    "bloomberg": "https://careers.bloomberg.com/",
+    "bnp paribas": "https://jobs.bnpparibas.com/",
+    "boston consulting group": "https://www.bcg.com/careers",
+    "bp": "https://www.bp.com/en/global/corporate/careers.html",
+    "brex": "https://www.brex.com/careers",
+    "bridgepoint": "https://www.bridgepoint.eu/careers/",
+    "capco": "https://www.capco.com/careers",
+    "capital dynamics": "https://www.capdyn.com/about/careers/",
+    "carlyle": "https://www.carlyle.com/about-carlyle/careers",
+    "carnegie consulting": "https://www.carnegieconsulting.co.uk/careers",
+    "checkout.com": "https://www.checkout.com/careers",
+    "citi": "https://jobs.citi.com/",
+    "citigroup": "https://jobs.citi.com/",
+    "citadel": "https://www.citadel.com/careers/",
+    "clifford chance": "https://www.cliffordchance.com/careers.html",
+    "computershare": "https://careers.computershare.com/",
+    "crédit agricole cib": "https://careers.ca-cib.com/",
+    "credit suisse": "https://www.credit-suisse.com/careers",
+    "deloitte": "https://www2.deloitte.com/uk/en/pages/careers/",
+    "delin property": "https://www.delinproperty.com/careers",
+    "deliveroo": "https://careers.deliveroo.co.uk/",
+    "deutsche bank": "https://careers.db.com/",
+    "drw": "https://drw.com/work-at-drw/",
+    "efinancialcareers": "https://www.efinancialcareers.co.uk/",
+    "evercore": "https://www.evercore.com/careers/",
+    "ey": "https://www.ey.com/en_uk/careers",
+    "fca": "https://www.fca.org.uk/careers",
+    "financial conduct authority": "https://www.fca.org.uk/careers",
+    "five arrows": "https://www.fivearrows.com/careers",
+    "freshfields": "https://www.freshfields.com/en-gb/careers/",
+    "glg": "https://glg.it/careers/",
+    "goldman sachs": "https://www.goldmansachs.com/careers/",
+    "gore street capital": "https://gorestreetgroup.com/careers",
+    "grant thornton": "https://www.grantthornton.co.uk/careers/",
+    "greenhill": "https://www.greenhill.com/careers/",
+    "gucci": "https://www.gucci.com/us/en/st/careers-landing",
+    "h.i.g. capital": "https://higcapital.com/careers",
+    "houlihan lokey": "https://www.hl.com/careers",
+    "hsbc": "https://www.hsbc.com/careers",
+    "hudson river trading": "https://www.hudsonrivertrading.com/careers/",
+    "intercontinental exchange": "https://careers.ice.com/",
+    "ja solar": "https://en.jasolar.com/html/about/joinus/",
+    "janus henderson investors": "https://www.janushenderson.com/en-gb/about-us/careers/",
+    "jp morgan": "https://careers.jpmorgan.com/",
+    "jpmorgan": "https://careers.jpmorgan.com/",
+    "jpmorgan chase": "https://careers.jpmorgan.com/",
+    "jpmorgan chase & co.": "https://careers.jpmorgan.com/",
+    "kepler cheuvreux": "https://www.keplercheuvreux.com/en/careers/",
+    "keybridge capital": "https://www.keybridgecapital.com/careers",
+    "kfw": "https://www.kfw.de/careers/",
+    "kpmg": "https://home.kpmg/uk/en/home/careers.html",
+    "lazard": "https://www.lazard.com/careers/",
+    "linklaters": "https://www.linklaters.com/en/careers",
+    "lse aic": "https://www.lseaic.com/",
+    "m&g": "https://www.mandg.com/about-us/careers",
+    "macquarie": "https://www.macquarie.com/us/en/careers.html",
+    "man group": "https://www.man.com/careers",
+    "marshall wace": "https://www.marshallwace.com/careers",
+    "mckinsey & company": "https://www.mckinsey.com/careers",
+    "millennium management": "https://www.mlp.com/careers/",
+    "mizuho": "https://www.mizuhogroup.com/careers",
+    "moody's": "https://careers.moodys.com/",
+    "morgan stanley": "https://www.morganstanley.com/people/careers",
+    "natixis": "https://careers.natixis.com/",
+    "natwest": "https://jobs.natwestgroup.com/",
+    "natwest markets": "https://jobs.natwestgroup.com/",
+    "nomura": "https://www.nomura.com/careers/",
+    "norges bank investment management": "https://careers.nbim.no/",
+    "pimco": "https://www.pimco.com/en-us/our-firm/careers",
+    "pwc": "https://www.pwc.co.uk/careers.html",
+    "robeco": "https://www.robeco.com/en/careers",
+    "rothschild & co": "https://www.rothschildandco.com/en/careers/",
+    "rothschild & co.": "https://www.rothschildandco.com/en/careers/",
+    "schroders": "https://www.schroders.com/en/global/individual/careers/",
+    "shell": "https://www.shell.co.uk/careers.html",
+    "siemens": "https://www.siemens.com/global/en/company/jobs.html",
+    "slaughter and may": "https://www.slaughterandmay.com/careers/",
+    "societe generale": "https://careers.societegenerale.com/",
+    "société générale": "https://careers.societegenerale.com/",
+    "softbank": "https://careers.softbank.com/",
+    "standard chartered": "https://www.sc.com/en/careers/",
+    "state street": "https://careers.statestreet.com/",
+    "t. rowe price": "https://www.troweprice.com/corporate/us/en/about/careers.html",
+    "ubs": "https://www.ubs.com/global/en/careers.html",
+    "unicredit": "https://www.unicreditgroup.eu/en/careers.html",
+    "vanguard": "https://investor.vanguard.com/about-vanguard/careers",
+    "wells fargo": "https://www.wellsfargo.com/about/careers/",
+    "willis towers watson": "https://careers.wtwco.com/",
+    "wtw": "https://careers.wtwco.com/"
+  };
+
+  function _getCareerSiteUrl(company) {
+    const key = (company || '').toLowerCase().trim();
+    if (CAREER_SITES[key]) return CAREER_SITES[key];
+    for (const [k, v] of Object.entries(CAREER_SITES)) {
+      if (key.includes(k) || k.includes(key)) return v;
+    }
+    return '';
+  }
+
+  const _LOGO_OVERRIDES = {
+    'mckinsey & company': '/static/mckinsey-company.png',
+    'mckinsey':           '/static/mckinsey-company.png',
+    'ardian':             '/static/ardian.png',
+  };
+  function getLogoUrl(job) {
+    const key = (job.company || '').toLowerCase().trim();
+    if (_LOGO_OVERRIDES[key]) return _LOGO_OVERRIDES[key];
+    let site = job.careers_site || '';
+    if (!site || site.includes('bit.ly')) site = _getCareerSiteUrl(job.company || job.person_company || '');
+    if (!site) return '';
+    try {
+      const domain = new URL(site).hostname.replace(/^www\./, '');
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+    } catch { return ''; }
+  }
+
   function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
@@ -606,23 +766,23 @@
   const COLUMNS = [
     {
       active:    { id: 'applied',  label: 'Applied and Pending',   bg: '#E8960C', fg: '#fff'    },
-      rejection: { id: 'rej-out',  label: 'Rejected Outright',     bg: '#7F1D1D', fg: '#fff'    },
+      rejection: { id: 'rej-out',  label: 'Rejected Outright',     bg: '#FFAAAA', fg: '#7F1D1D'    },
     },
     {
       active:    { id: 'hirevue',  label: 'HireVue and Tested',    bg: '#D4C31E', fg: '#1A1714' },
-      rejection: { id: 'rej-hv',   label: 'Rejected after HV',     bg: '#78716C', fg: '#fff'    },
+      rejection: { id: 'rej-hv',   label: 'Rejected after HV',     bg: '#FFAAAA', fg: '#7F1D1D'    },
     },
     {
       active:    { id: 'int1',     label: 'Interview #1',          bg: '#9CC87A', fg: '#1A1714' },
-      rejection: { id: 'rej-int1', label: 'Rejected after Int. #1',bg: '#78716C', fg: '#fff'    },
+      rejection: { id: 'rej-int1', label: 'Rejected after Int. #1',bg: '#FFAAAA', fg: '#7F1D1D'    },
     },
     {
       active:    { id: 'int2',     label: 'Interview #2',          bg: '#72B050', fg: '#fff'    },
-      rejection: { id: 'rej-int2', label: 'Rejected after Int. #2',bg: '#78716C', fg: '#fff'    },
+      rejection: { id: 'rej-int2', label: 'Rejected after Int. #2',bg: '#FFAAAA', fg: '#7F1D1D'    },
     },
     {
       active:    { id: 'ac',       label: 'Assessment Center',     bg: '#3A7246', fg: '#fff'    },
-      rejection: { id: 'rej-ac',   label: 'Rejected after AC',     bg: '#78716C', fg: '#fff'    },
+      rejection: { id: 'rej-ac',   label: 'Rejected after AC',     bg: '#FFAAAA', fg: '#7F1D1D'    },
     },
     {
       active:    { id: 'offer',    label: 'Offer',                 bg: '#1F4530', fg: '#fff'    },
@@ -638,6 +798,7 @@
   let allJobs = [];
   let activeFilters = new Set();
   let searchQuery   = '';
+  let regionFilter  = 'UK';
   const collapsedSections = new Set();
 
   function loadPipeline() {
@@ -819,6 +980,7 @@
         const stage = stageForJob(j.id);
         if (!activeFilters.has(stage || '__none__')) return false;
       }
+      if (regionFilter && (j.region || 'UK') !== regionFilter) return false;
       if (searchQuery && !(j.company + ' ' + j.programme).toLowerCase().includes(searchQuery)) return false;
       return true;
     });
@@ -826,6 +988,12 @@
 
   function renderListings() {
     const jobs    = filtered();
+    const filtering = regionFilter || activeFilters.size > 0 || searchQuery;
+    const shownEl = document.getElementById('shown-count');
+    if (shownEl) {
+      shownEl.textContent = jobs.length + ' shown';
+      shownEl.style.display = filtering ? '' : 'none';
+    }
     const newJobs = jobs.filter(j =>  isNew(j.opening_date));
     const oldJobs = jobs.filter(j => !isNew(j.opening_date));
 
@@ -915,8 +1083,11 @@
       <div class="job-card" draggable="true" data-id="${job.id}" style="${borderStyle}">
         <div class="card-row">
           <div class="card-left">
-            <div class="card-company">${esc(job.company)}</div>
-            <div class="card-programme">${esc(job.programme)}</div>
+            ${(() => { const lu = getLogoUrl(job); return lu ? `<img class="card-logo" src="${lu}" alt="" onerror="this.outerHTML='<span class=\\'card-logo-placeholder\\'></span>'">` : '<span class="card-logo-placeholder"></span>'; })()}
+            <div class="card-left-text">
+              <div class="card-company">${esc(job.company)}</div>
+              <div class="card-programme">${esc(job.programme)}</div>
+            </div>
           </div>
           <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
           <div class="card-right">${stageBadge}</div>
@@ -957,6 +1128,10 @@
     searchQuery = searchEl.value.trim().toLowerCase();
     renderListings();
   });
+  document.getElementById('region-select').addEventListener('change', function() {
+    regionFilter = this.value;
+    renderListings();
+  });
 
   // ── Load jobs ─────────────────────────────────────────────────────────────
   fetch('/api/opportunities')
@@ -973,35 +1148,6 @@
 
   renderPipeline();
 
-  // ── Listings toggle ───────────────────────────────────────────────────────
-  let listingsVisible = localStorage.getItem('inroad_listings_visible') !== 'false';
-
-  function applyListingsState() {
-    const panel  = document.getElementById('listings-panel');
-    const toggle = document.getElementById('listings-toggle');
-    const zone   = document.getElementById('listings-border-zone');
-    if (listingsVisible) {
-      panel.classList.remove('collapsed');
-      toggle.classList.remove('collapsed');
-      zone.classList.remove('collapsed');
-      toggle.textContent = '◀';
-      toggle.style.left  = 'calc(28% - 1px)';
-    } else {
-      panel.classList.add('collapsed');
-      toggle.classList.add('collapsed');
-      zone.classList.add('collapsed');
-      toggle.textContent = '▶';
-      toggle.style.left  = '0px';
-    }
-  }
-
-  window.toggleListings = function() {
-    listingsVisible = !listingsVisible;
-    localStorage.setItem('inroad_listings_visible', listingsVisible);
-    applyListingsState();
-  };
-
-  applyListingsState();
 
   // ── Kanban pan-by-drag ────────────────────────────────────────────────────
   (function initPan() {
@@ -1045,8 +1191,6 @@
       token = getAccessToken();
     }
 
-    // Go green immediately; only revert if auth actually fails
-    if (navEl) navEl.classList.add('nav-logged-in');
     if (navRight) navRight.style.visibility = 'hidden';
 
     let d = null;
@@ -1054,7 +1198,7 @@
       let resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
       if (resp.status === 401) {
         const ok = await _tryRefresh();
-        if (!ok) { if (navEl) navEl.classList.remove('nav-logged-in'); if (navRight) navRight.style.visibility = ''; return; }
+        if (!ok) { if (navRight) navRight.style.visibility = ''; return; }
         token = getAccessToken();
         resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
       }
@@ -1062,7 +1206,6 @@
     } catch { /* network error */ }
 
     if (!d) {
-      if (navEl) navEl.classList.remove('nav-logged-in');
       if (navRight) navRight.style.visibility = '';
       return;
     }

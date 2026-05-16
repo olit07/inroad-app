@@ -51,9 +51,9 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 48px;
-    background: rgba(255,255,255,0.96);
+    background: rgba(18,43,30,0.97);
     backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
+    border-bottom: none;
   }
 
   .wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
@@ -64,21 +64,21 @@
   }
   .nav-center a {
     font-size: 0.85rem; font-weight: 400;
-    color: var(--muted); text-decoration: none; transition: color 0.15s;
+    color: rgba(255,255,255,0.7); text-decoration: none; transition: color 0.15s;
   }
-  .nav-center a:hover { color: var(--text); }
-  .nav-center a.active { color: var(--green); font-weight: 700; }
+  .nav-center a:hover { color: #fff; }
+  .nav-center a.active { color: #fff; font-weight: 700; }
 
   .nav-right { display: flex; align-items: center; gap: 10px; }
 
   .btn-login {
     font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
-    color: var(--text); background: transparent;
-    border: 1.5px solid var(--border-md);
+    color: rgba(255,255,255,0.8); background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.25);
     padding: 7px 18px; border-radius: 8px; text-decoration: none;
     transition: border-color 0.15s, color 0.15s;
   }
-  .btn-login:hover { border-color: var(--green); color: var(--green); }
+  .btn-login:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
 
   .btn-nav-cta {
     font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
@@ -129,10 +129,10 @@
   }
   .app-layout.mode-3col #draft-panel { flex: 1; height: 100%; border-right: none; }
 
-  /* Listing cards: stacked company + programme */
-  .app-layout.mode-3col .card-left { display: block; }
-  .app-layout.mode-3col .card-company { display: block; }
-  .app-layout.mode-3col .card-programme { display: block; margin-top: 1px; }
+  /* Listing cards: logo + company on same line, programme wraps below */
+  .app-layout.mode-3col .card-left { display: flex; flex-wrap: wrap; align-items: center; }
+  .app-layout.mode-3col .card-company { flex: 1; min-width: 0; }
+  .app-layout.mode-3col .card-programme { flex-basis: 100%; margin-top: 1px; }
   .app-layout.mode-3col .card-programme::before { content: none; }
 
   /* Contact cards: original sizing, stacked name/title, badges on new row */
@@ -177,6 +177,8 @@
     flex-shrink: 0;
   }
 
+  #jobs-panel .panel-title { margin-bottom: 0; }
+
   .panel-title {
     font-size: 0.72rem;
     font-weight: 700;
@@ -191,11 +193,24 @@
   /* ── TOOLBAR ── */
   .toolbar {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 8px;
   }
 
   .search-wrap { position: relative; flex: 1; min-width: 120px; }
+
+  .region-wrap { flex-shrink: 0; }
+  .region-select {
+    font-family: var(--sans); font-size: 0.68rem; font-weight: 700;
+    color: var(--text-mid); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 7px;
+    padding: 4px 22px 4px 7px; cursor: pointer; outline: none;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%239C9389'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 6px center;
+    background-color: var(--bg); transition: border-color 0.15s;
+  }
+  .region-select:focus { border-color: var(--green); }
 
   .search-icon {
     position: absolute; left: 9px; top: 50%;
@@ -352,7 +367,22 @@
 
   .card-left {
     min-width: 0; overflow: hidden;
-    display: flex; align-items: baseline; gap: 5px;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .card-logo {
+    width: 14px; height: 14px;
+    border-radius: 2px;
+    object-fit: contain;
+    flex-shrink: 0;
+    display: block;
+  }
+  .card-logo-placeholder {
+    width: 14px; height: 14px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    display: block;
+    background: var(--border);
   }
 
   .card-company {
@@ -508,21 +538,28 @@
 
   .draft-fields-row { display: flex; gap: 8px; margin-bottom: 8px; }
   .draft-fields-row .draft-field { flex: 1; margin-bottom: 0; }
-  .draft-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .draft-actions { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+  /* Unified size, font and border treatment for all draft action buttons */
+  .btn-copy, .btn-mailto, .btn-outlook, .btn-outlook-connect, .btn-personalise {
+    height: 34px; width: 150px; flex: none;
+    font-size: 0.76rem; font-weight: 700; font-family: var(--sans);
+    border-radius: 7px; border: 1.5px solid transparent;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; white-space: nowrap;
+  }
+  /* outlook-btn-wrap passes fixed width and height to the dynamically-rendered button inside */
+  #outlook-btn-wrap { display: inline-flex; align-self: stretch; width: 150px; flex: none; }
+  #outlook-btn-wrap > button, #outlook-btn-wrap > a { flex: 1; height: 100%; }
 
   .btn-copy {
-    font-size: 0.76rem; font-weight: 700; font-family: var(--sans);
-    background: var(--green); color: #fff; border: none;
-    border-radius: 7px; padding: 8px 18px; cursor: pointer;
+    background: var(--green); color: #fff;
     transition: background 0.15s;
   }
   .btn-copy:hover { background: var(--green-deep); }
 
   .btn-mailto {
-    font-size: 0.76rem; font-weight: 700; font-family: var(--sans);
-    background: #111; color: #fff;
-    border: none; border-radius: 7px;
-    padding: 8px 18px; cursor: pointer; text-decoration: none;
+    background: #111; color: #fff; text-decoration: none;
     transition: background 0.15s;
   }
   .btn-mailto:hover { background: #333; }
@@ -534,20 +571,31 @@
   .copy-confirm.show { opacity: 1; }
 
   .btn-outlook {
-    font-size: 0.76rem; font-weight: 700; font-family: var(--sans);
-    background: #0078d4; color: #fff; border: none;
-    border-radius: 7px; padding: 8px 18px; cursor: pointer;
-    transition: background 0.15s; white-space: nowrap;
+    background: #0078d4; color: #fff;
+    transition: background 0.15s;
   }
   .btn-outlook:hover { background: #005a9e; }
   .btn-outlook:disabled { opacity: 0.5; cursor: default; }
+  @keyframes opp-spin { to { transform: rotate(360deg); } }
+  .btn-spinner-sm {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid rgba(0,0,0,0.12); border-top-color: #555;
+    border-radius: 50%; animation: opp-spin 0.65s linear infinite;
+    vertical-align: middle;
+  }
+  .btn-personalise {
+    background: #fff; color: #7c3aed;
+    border-color: #7c3aed;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-personalise:hover:not(:disabled) { background: #7c3aed; color: #fff; }
+  .btn-personalise:disabled { opacity: 0.6; cursor: default; }
+  .ai-confirmed { font-size: 0.72rem; color: #7c3aed; font-weight: 700; display: none; }
+
   .btn-outlook-connect {
-    font-size: 0.76rem; font-weight: 700; font-family: var(--sans);
     background: transparent; color: #0078d4;
-    border: 1px solid #0078d4; border-radius: 7px;
-    padding: 8px 18px; cursor: pointer; text-decoration: none;
-    transition: background 0.15s, color 0.15s; white-space: nowrap;
-    display: inline-flex; align-items: center; gap: 5px;
+    border-color: #0078d4; text-decoration: none;
+    transition: background 0.15s, color 0.15s;
   }
   .btn-outlook-connect:hover { background: #0078d4; color: #fff; }
 
@@ -590,6 +638,20 @@
   }
   .tooltip-wrap:hover .tooltip-box,
   .tooltip-wrap.open .tooltip-box { opacity: 1; transform: translateY(-50%) translateX(0); }
+  /* Tooltip positioned above the element */
+  .tooltip-box--above {
+    left: 50%; top: auto; bottom: calc(100% + 7px);
+    transform: translateX(-50%) translateY(4px);
+  }
+  .tooltip-wrap:hover .tooltip-box--above,
+  .tooltip-wrap.open .tooltip-box--above { transform: translateX(-50%) translateY(0); }
+  /* Tooltip positioned to the left of the element (used on Reveal email button) */
+  .tooltip-box--left {
+    left: auto; right: calc(100% + 8px); top: 50%;
+    transform: translateY(-50%) translateX(4px);
+  }
+  .tooltip-wrap:hover .tooltip-box--left,
+  .tooltip-wrap.open .tooltip-box--left { opacity: 1; transform: translateY(-50%) translateX(0); }
 
   /* ── SEND PROGRESS BAR ── */
   .send-counter {
@@ -642,14 +704,6 @@
 
   /* ── AUTH NAV ── */
   .nav-user { display: flex; align-items: center; gap: 12px; }
-  nav.nav-logged-in {
-    background: var(--green);
-    border-bottom-color: transparent;
-  }
-  nav.nav-logged-in .wordmark span { color: #fff !important; }
-  nav.nav-logged-in .nav-center a { color: rgba(255,255,255,0.7); }
-  nav.nav-logged-in .nav-center a:hover { color: #fff; }
-  nav.nav-logged-in .nav-center a.active { color: #fff; font-weight: 700; }
   .nav-initials {
     width: 32px; height: 32px; border-radius: 50%;
     background: rgba(255,255,255,0.15);
@@ -757,8 +811,8 @@
 <body>
 
 <nav>
-  <a href="/" class="wordmark">
-    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
+  <a href="/?home=1" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:#fff;">inroad</span>
   </a>
   <ul class="nav-center" id="nav-center">
     <li><a href="/listings">Listings</a></li>
@@ -796,28 +850,37 @@
   <!-- LEFT: Job listings -->
   <div class="panel" id="jobs-panel">
     <div class="panel-header">
-      <div class="panel-title" style="display:flex;align-items:center;">
-        Listings <span id="listing-count" style="font-weight:400;color:var(--subtle);margin-left:4px;"></span>
-        <div style="display:flex;align-items:center;gap:6px;margin-left:10px;">
-          <span id="layout-label" style="display:inline-flex;align-items:center;color:var(--muted);"></span>
-          <label class="layout-switch" title="Toggle layout">
-            <input type="checkbox" id="layout-toggle-input">
-            <span class="layout-switch-track"><span class="layout-switch-thumb"></span></span>
-          </label>
-        </div>
+      <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="display:inline-flex;align-items:center;">
+          Listings <span id="listing-count" style="font-weight:400;color:var(--subtle);margin-left:4px;"></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;margin-left:10px;">
+            <span id="layout-label" style="display:inline-flex;align-items:center;color:var(--muted);"></span>
+            <label class="layout-switch" title="Toggle layout">
+              <input type="checkbox" id="layout-toggle-input">
+              <span class="layout-switch-track"><span class="layout-switch-thumb"></span></span>
+            </label>
+          </span>
+        </span>
+        <span class="shown-count" id="shown-count"></span>
       </div>
       <div class="toolbar">
         <div class="search-wrap">
           <span class="search-icon">⌕</span>
           <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
         </div>
-        <span class="shown-count" id="shown-count" style="display:none"></span>
+        <div class="region-wrap">
+          <select class="region-select" id="region-select">
+            <option value="UK" selected>🇬🇧 UK</option>
+            <option value="US">🇺🇸 US</option>
+            <option value="EU">🇪🇺 EU</option>
+          </select>
+        </div>
       </div>
       <div class="filter-wrap" id="filter-wrap">
-        <button class="filter-btn" data-div="UK Finance">💰 UK Finance</button>
-        <button class="filter-btn" data-div="UK Consulting">📊 UK Consulting</button>
-        <button class="filter-btn" data-div="UK Tech">💻 UK Tech</button>
-        <button class="filter-btn" data-div="UK Law">⚖️ UK Law</button>
+        <button class="filter-btn" data-div="Finance">💰 Finance</button>
+        <button class="filter-btn" data-div="Consulting">📊 Consulting</button>
+        <button class="filter-btn" data-div="Tech">💻 Tech</button>
+        <button class="filter-btn" data-div="Law">⚖️ Law</button>
         <button class="filter-btn" data-div="Miscellaneous">🗂️ Other</button>
       </div>
       <div class="filter-wrap" id="prog-filter-wrap">
@@ -879,6 +942,7 @@
   let activeFilters    = new Set();
   let activeProgFilters = new Set();
   let searchQuery    = '';
+  let regionFilter   = 'UK';
   let leadsQuery     = '';
   let selectedJobId  = null;
   let selectedLeadId = null;
@@ -937,8 +1001,6 @@
       token = getAccessToken();
     }
 
-    // Go green immediately; only revert if auth actually fails
-    if (navEl) navEl.classList.add('nav-logged-in');
     if (navRight) navRight.style.visibility = 'hidden';
 
     let d = null;
@@ -946,7 +1008,7 @@
       let resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
       if (resp.status === 401) {
         const ok = await _tryRefresh();
-        if (!ok) { if (navEl) navEl.classList.remove('nav-logged-in'); if (navRight) navRight.style.visibility = ''; return; }
+        if (!ok) { if (navRight) navRight.style.visibility = ''; return; }
         token = getAccessToken();
         resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
       }
@@ -954,7 +1016,6 @@
     } catch { /* network error */ }
 
     if (!d) {
-      if (navEl) navEl.classList.remove('nav-logged-in');
       if (navRight) navRight.style.visibility = '';
       return;
     }
@@ -1000,10 +1061,8 @@
     const toCollapse = userStatus === 'full-time' ? FULLTIME_ONLY
                      : userStatus === 'grad-program' ? INTERNSHIP_ONLY
                      : [];
-    // Apply to both regular and new-prefixed keys, but only if not already explicitly set
     toCollapse.forEach(pt => {
       collapsedSections.add(pt);
-      collapsedSections.add('new-' + pt);
     });
     renderListings();
   }
@@ -1058,6 +1117,12 @@
     revealed.push(String(leadId));
     const count = Math.min((s.count || 0) + 1, getDailyLimit());
     localStorage.setItem(SENDS_KEY, JSON.stringify({ date: todayKey(), count, revealed }));
+    const tok = getAccessToken();
+    if (tok) fetch('/api/signals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+      body: JSON.stringify({ signal: 'email_revealed' })
+    }).catch(() => {});
     return count;
   }
 
@@ -1081,7 +1146,7 @@
   const PROG_KEYS = ['Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement', 'Graduate Programme', 'Pre-Uni', 'Events', 'other'];
 
   function expandSectionsForFilter() {
-    PROG_KEYS.forEach(k => collapsedSections.delete(k));
+    PROG_KEYS.forEach(k => { collapsedSections.delete(k); collapsedSections.delete('new-' + k); });
   }
 
   // ── Filter buttons (division) ──
@@ -1107,6 +1172,11 @@
   searchEl.addEventListener('input', () => {
     searchQuery = searchEl.value.trim().toLowerCase();
     if (searchQuery) expandSectionsForFilter();
+    render();
+  });
+
+  document.getElementById('region-select').addEventListener('change', function() {
+    regionFilter = this.value;
     render();
   });
 
@@ -1153,6 +1223,7 @@
 
   function filtered() {
     return allJobs.filter(j => {
+      if (regionFilter && (j.region || 'UK') !== regionFilter) return false;
       if (activeFilters.size > 0 && !activeFilters.has(j.division)) return false;
       if (activeProgFilters.size > 0 && !activeProgFilters.has(j.programme_type)) return false;
       if (searchQuery) {
@@ -1170,7 +1241,7 @@
     const newJobs = jobs.filter(j =>  isNew(j.opening_date));
     const oldJobs = jobs.filter(j => !isNew(j.opening_date));
 
-    const filtering = activeFilters.size > 0 || activeProgFilters.size > 0 || searchQuery;
+    const filtering = regionFilter || activeFilters.size > 0 || activeProgFilters.size > 0 || searchQuery;
     shownCountEl.style.display = filtering ? '' : 'none';
     if (filtering) shownCountEl.textContent = jobs.length + ' shown';
 
@@ -1289,460 +1360,1477 @@
 
 
   const CAREER_SITES = {
+    "17capital": "https://www.17capital.com/",
+    "73 strings": "https://www.73strings.com/resources/careers",
+    "a&o shearman": "https://www.aoshearman.com/en/careers",
+    "aab group": "https://aab.uk/about/careers/vacancies/",
+    "abbvie": "https://careers.abbvie.com/en/",
     "abdiel capital": "http://job-boards.greenhouse.io/abdielcapital",
+    "aberdeen group": "https://www.aberdeenplc.com/en-gb/careers/early-careers",
     "abf": "https://www.abf.co.uk/responsibility/graduates",
     "abn amro": "https://www.abnamro.com/en/careers",
+    "abrahams dresden llp": "https://www.adlegal.co.uk/careers/",
     "abrdn": "https://www.abrdn.com/en-gb/corporate/careers",
+    "accelercomm": "https://bit.ly/4hQ1xVx",
     "accenture": "https://www.accenture.com/gb-en/careers/local/graduate-home",
+    "access bank": "https://theaccessbankukltd.bamboohr.com/careers",
     "access capital partners": "https://www.access-capital-partners.com/en/careers",
     "access holdings": "http://job-boards.greenhouse.io/accessholdingsmanagementfirm",
+    "accolite": "https://www.bounteous.com/",
     "accuracy": "https://www.accuracy.com/careers/",
+    "accutrainee": "https://careers.accutrainee.com/",
     "acr capital": "https://www.aqr.com/About-Us/Careers",
+    "acre": "https://www.acresoftware.com/careers",
+    "acrisure": "https://acrisure.wd1.myworkdayjobs.com/en-US/Acrisure",
     "actica consulting": "https://actica.pinpointhq.com/",
+    "activumsg": "https://www.activumsg.com/culture-careers/",
+    "acturis": "https://www.acturis.com/careers",
+    "acuity law": "https://acuitylaw.grad.allhires.com/app/",
+    "adam smith institute": "https://www.adamsmith.org/careers",
+    "addepar": "https://addepar.com/careers",
+    "addleshaw goddard": "https://www.addleshawgoddard.com/en/careers/",
+    "adm": "https://www.adm.com/en-us/culture-and-careers/early-careers/",
+    "admiral group": "https://www.admiraljobs.co.uk/jobs",
+    "adobe": "https://bit.ly/4fpWOrM",
+    "advancy": "https://www.advancy.com/life-at-advancy",
+    "advanta invest": "https://advantainvest.co.uk/",
+    "advent international": "https://bit.ly/3zyIoCs",
+    "aecom": "https://aecom.com/careers/graduates-and-early-careers",
     "aegon": "https://www.aegon.com/careers/",
+    "aerfin": "https://careers.aerfin.com/jobs",
     "aeris partners": "https://jobs.lever.co/aerispartners.com",
     "aew capital management": "https://www.aew.com/about/careers",
+    "afry capital": "https://afry.com/en",
+    "agc partners": "https://www.agcpartners.com/careers",
+    "ageas": "https://careers.ageas.co.uk/uk/en",
     "agentis capital": "https://jobs.ashbyhq.com/agentis-capital-advisors",
     "agwest farm credit": "http://job-boards.greenhouse.io/agwestfarmcredit",
+    "aib": "https://jobs.aib.ie/aib/content/Graduate/",
     "aig": "https://www.aig.co.uk/careers",
     "airbnb": "https://careers.airbnb.com/",
+    "airbus": "https://www.airbus.com/en/careers/students-and-graduates",
     "airwallex": "https://www.airwallex.com/careers",
+    "aj bell": "https://www.ajbell.co.uk/group/careers",
+    "akereos capital": "https://akereos.com/careers/",
+    "aksia": "https://www.aksia.com/working-at-aksia/",
     "akuna capital": "https://akunacapital.com/careers/",
     "alantra": "https://www.alantra.com/careers/",
+    "albert goodman": "https://bit.ly/4icXQbk",
+    "alchemmy": "https://alchemmy.com/careers/#positions",
+    "alexa capital": "https://www.alexa-capital.com/",
+    "alfa": "https://www.alfasystems.com/en-eu/careers",
     "alix partners": "https://www.alixpartners.com/careers/",
     "alixpartners": "https://www.alixpartners.com/careers/",
     "alliance bernstein": "https://www.alliancebernstein.com/corporate/en/careers.html",
+    "alliancebernstein": "https://www.alliancebernstein.com/corporate/en/careers/students.html",
+    "allianz global investors": "https://www.allianzgi.com/en/our-firm/career",
     "allianz insurance": "https://careers.allianz.com/us/en/test-page-search-3?from=430&s=1",
+    "allied world": "https://alliedworldinsurance.com/products/working-at-allied-world/",
+    "alloyed": "https://bit.ly/40NeDwt",
     "allsop": "https://www.allsop.co.uk/work-with-us/",
     "allstate": "https://allstate.wd5.myworkdayjobs.com/allstate_careers",
+    "almac group": "https://www.almacgroup.com/careers/",
+    "alpha fmc": "https://alphafmc.com/careers-global-awm/graduates/",
     "alphasights": "https://www.alphasights.com/careers/",
     "altana wealth": "https://www.altanawealth.com/careers",
     "alter domus": "https://www.alterdomus.com/careers/",
     "altman solon": "https://www.altmansolon.com/careers/",
+    "altus group": "https://careers.altusgroup.com/global/en/students",
+    "altuva group": "https://www.altuvagroup.com/",
     "alvarez & marsal": "https://www.alvarezandmarsal.com/careers",
     "amazon": "https://www.amazon.jobs/",
+    "amd": "https://careers.amd.com/students",
     "american express": "https://www.americanexpress.com/en-us/careers/",
+    "amey": "https://careers.amey.co.uk/content/Early-careers/?locale=en_GB",
+    "amius": "https://www.amius.com/",
+    "amplifyme": "https://amplifyme.com/",
     "amundi": "https://jobs.amundi.com/homepage.aspx?LCID=2057",
+    "analysys mason": "https://www.analysysmason.com/careers",
     "andreessen horowitz": "https://jobs.a16z.com/",
+    "anesi advisors": "https://anesiadvisors.com/",
+    "ankura": "https://ankura.com/careers",
+    "antares": "https://antaresglobal.com/careers",
     "anthropic": "https://www.anthropic.com/careers",
+    "antin infrastructure partners": "https://www.antin-ip.com/careers",
+    "anton": "https://antonstudios.com/",
+    "aon": "https://www.aon.com/careers/uk/internships-3.html",
+    "apg capital markets": "https://apgcapitalmarkets.com/careers/",
     "apollo": "https://www.apollo.com/careers",
+    "apollo global management": "https://www.apollo.com/careers",
+    "apollo ibott": "https://apollounderwriting.com/careers",
     "apple": "https://www.apple.com/careers/us/",
+    "apr actuarial solutions": "https://aprllp.com/working-for-apr",
     "aqr capital management": "https://www.aqr.com/About-Us/Careers",
     "aquatic capital management": "http://job-boards.greenhouse.io/aquaticcapitalmanagement",
+    "arbuthnot latham": "https://careers.arbuthnotlatham.co.uk/working-for-us/early-careers.aspx",
+    "arc ratings": "https://arcratings.com/join-us",
+    "arcadis": "https://bit.ly/3Ahe9UR",
+    "arch insurance international": "https://bit.ly/45HEbtX",
     "arctic lake": "https://arcticlake.com/careers/",
+    "ardea partners": "https://www.ardeapartners.com/careers",
     "ardian": "https://ardian.wd103.myworkdayjobs.com/ArdianCareers",
     "arena investors": "https://apply.workable.com/arena-investors-lp/",
+    "ares management": "https://bit.ly/4331G0v",
+    "argus media": "https://www.argusmedia.com/en/about-argus/careers",
     "aridan": "https://www.ardian.com/join-us",
+    "aries global": "https://aries.global/",
+    "arkap & co": "https://arkap.ch/",
+    "arkle finance": "https://arklefinance.co.uk/careers/",
+    "arm": "https://careers.arm.com/emerging-talent",
+    "arma partners": "https://www.armapartners.com/careers/",
     "armanino": "https://armaninollp.wd1.myworkdayjobs.com/Armanino",
+    "armstrong watson": "https://www.armstrongwatson.co.uk/careers",
+    "arnold & porter": "https://www.arnoldporter.com/en/careers",
+    "arnold clark": "https://careers.arnoldclark.com/",
+    "arnold greenwood": "https://www.arnoldgreenwoodsolicitors.co.uk/recruitment/",
+    "arondite": "https://www.arondite.com/company",
+    "arr investment partners": "https://www.arrinvestments.com/career",
+    "artemis origination": "https://www.artemisorigination.com/",
+    "arthur d. little": "https://www.adlittle.com/en/careers",
+    "arup": "https://jobs.arup.com/",
+    "ashfords": "https://www.ashfords.co.uk/careers/early-careers",
+    "ashmore": "https://www.ashmoregroup.com/en-gb/careers?check_logged_in=1",
+    "ashton fire": "https://ashtonfire.com/careers",
+    "ashurst": "https://www.ashurst.com/en/careers/students-and-graduates/",
+    "asmpt": "https://smt.asmpt.com/en/career/uk/",
+    "aspect capital": "https://www.aspectcapital.com/careers/",
+    "aspen": "https://bit.ly/3qHX8OJ",
+    "aston martin": "https://careers.astonmartin.com/en/listing",
+    "astorg": "https://astorg.pinpointhq.com/",
+    "astrazeneca": "https://careers.astrazeneca.com/search-jobs",
     "at kearney": "https://www.uk.kearney.com/careers",
+    "atkins realis": "https://careers.atkinsrealis.com/en/early-careers/uk",
+    "atlanta wealth": "https://altanawealth.com/careers/",
+    "atmos international": "https://www.atmosi.com/en/about-us/careers/",
+    "audit scotland": "https://audit.scot/about-us/work-with-us",
+    "audley chaucer": "https://www.arnoldgreenwoodsolicitors.co.uk/recruitment/",
     "augusta & co": "https://augustaco.com/careers/",
+    "aulium": "https://www.linkedin.com/company/aulium",
+    "australiansuper": "https://www.australiansuper.com/careers",
+    "autodesk": "https://bit.ly/3zVr3HH",
+    "avenir group": "https://www.avenir.hk/career",
     "aventum group": "https://aventumgroup.com/join-us/careers",
     "aveva": "https://aveva.wd3.myworkdayjobs.com/AVEVA_careers",
+    "avis budget group": "http://www.avisbudgetgroup.jobs/",
     "avison young": "https://www.avisonyoung.co.uk/careers",
     "aviva investors": "https://careers.avivainvestors.com/starting-your-career/",
+    "axa": "https://bit.ly/48np9fa",
+    "axa investment managers": "https://bit.ly/48np9fa",
+    "axiom alternative investments": "https://www.axiom-ai.com/en",
+    "ayan": "https://www.ayan.co.uk/about-us",
+    "ayvens": "https://ayvens.wd3.myworkdayjobs.com/en-US/AyvensCareers",
+    "azets": "https://www.azets.com/en-uk/careers",
+    "b p collins llp": "https://www.bpcollins.co.uk/careers/",
     "b2c2": "http://job-boards.eu.greenhouse.io/b2c2",
+    "babcock international": "https://bit.ly/3PvsGQz",
     "bae systems": "https://careers.baesystems.com/",
     "baillie gifford": "https://earlycareers.bailliegifford.com/",
     "bain & company": "https://www.bain.com/careers/work-with-us/internships-programs/",
     "bain capital credit": "https://baincapital.wd1.myworkdayjobs.com/External_Public",
     "bain capital credit (seo)": "https://www.baincapitalcredit.com/people",
+    "baird": "https://bit.ly/437zZDw",
     "baker hughes": "https://bakerhughes.wd5.myworkdayjobs.com/BakerHughes",
+    "baker mckenzie": "https://bit.ly/3XqDWS0",
     "baker tilly": "https://www.bakertilly.com/careers",
+    "balfour beatty": "https://www.balfourbeatty.com/careers/careers-at-balfour-beatty",
     "balyasny asset management": "https://www.bamfunds.com/careers/overview",
     "bank of america": "https://careers.bankofamerica.com/en-us",
+    "bank of china": "https://www.bankofchina.com/uk/aboutus/ab6/202111/t20211115_20478040.html",
     "bank of england": "https://www.bankofengland.co.uk/careers/early-careers",
+    "bank of ireland": "https://careers.bankofireland.com/home",
     "barclays": "https://search.jobs.barclays/grads-interns",
     "baringa": "https://www.baringa.com/en/careers/",
     "barings": "https://www.barings.com/gb/institutional/about-us/careers-at-barings",
     "barnett waddingham": "https://www.barnett-waddingham.co.uk/careers/",
+    "basf": "https://www.basf.com/us/en/careers",
     "bastion trading": "https://bastiontrading.com/careers",
+    "bbc": "https://careers.bbc.co.uk/content/EC_Home/?locale=en_GB",
+    "bbva": "https://www.bbva.com/en/careers/",
     "bcg": "https://careers.bcg.com/united-kingdom",
+    "bda partners": "https://bit.ly/3FaNVlq",
     "bdo": "https://www.bdoearlyincareer.co.uk/",
     "bdo global": "https://careers.bdo.co.uk/early-careers",
+    "beazley": "https://www.beazley.com/en-US/who-we-are/work-us/",
+    "belmond": "https://careers.belmond.com/",
+    "benchmark international": "https://www.benchmarkintl.com/eu/careers/open-positions/",
     "bending spoons": "https://www.bendingspoons.com/careers",
+    "benefact group": "https://careers.benefactgroup.com/",
+    "benefit street partners": "https://www.franklintempletoncareers.com/",
+    "benjamin button": "https://benjaminbutton.co.uk/",
+    "bentley": "https://bit.ly/4eRwTZ7",
     "berenberg": "https://career.berenberg.com/early-careers",
     "berkeley research group": "https://www.thinkbrg.com/careers/",
     "bernstein": "https://www.bernstein.com/our-team/careers.html",
+    "best star real estate": "https://uk.linkedin.com/company/best-star-real-estate",
+    "bet365": "https://bit.ly/49baa94",
+    "bevan brittan": "https://www.bevanbrittan.com/careers",
+    "bgc group": "https://bit.ly/4dRwztL",
+    "bgf": "https://bit.ly/3Kz2SkM",
     "bgm": "https://bgm360.com/careers/",
     "binance": "https://www.binance.com/en/careers",
+    "bird & bird": "https://www.twobirds.com/en/careers",
+    "bishop fleming": "https://careers.bishopfleming.co.uk/",
+    "blackfin capital partners": "https://www.blackfin.com/team/",
+    "blackfinch group": "https://blackfinch.com/careers/",
     "blackrock": "https://careers.blackrock.com/early-careers/",
     "blackstone": "https://www.blackstone.com/careers/careers-blackstone/",
+    "blackwood capital": "https://www.blackwoodcapital.com/careers/",
+    "blenheim chalcot": "https://blenheimchalcot.com/careers",
     "blockchain.com": "https://www.blockchain.com/careers",
     "bloomberg": "https://www.bloomberg.com/company/careers/early-career/internships-at-bloomberg/",
     "bluebay": "https://www.bp.com/en/global/corporate/careers/students-and-graduates/locations/united-kingdom/graduate-programmes.html",
+    "bluebox corporate finance": "https://www.blueboxcfg.com/",
+    "bluecrest capital management": "https://job-boards.greenhouse.io/bluecrestcapitalmanagement",
+    "bluesmith": "https://www.bluesmithis.com/careers.htm",
     "bmo": "https://www.bmogam.com/careers/",
+    "bmo capital markets": "https://jobs.bmo.com/ca/en/campus",
     "bmo real estate partners": "https://www.bmogam.com/careers/",
+    "bmt": "https://www.bmt.org/careers",
+    "bmw": "https://bit.ly/40ijlRo",
     "bnp paribas": "https://careers.bnpparibas.co.uk/early-careers/",
     "bnp paribas real estate": "https://www.realestate.bnpparibas.co.uk/early-careers",
     "bny mellon": "https://jobs.bnymellon.com/",
+    "boehringer ingelheim": "https://www.boehringer-ingelheim.com/careers",
+    "boeing": "https://jobs.boeing.com/internships",
+    "boodle hatfield": "https://www.boodlehatfield.com/current-vacancies",
+    "border to coast": "https://www.bordertocoast.org.uk/current-vacancies",
+    "bose": "https://www.bose.co.uk/en_gb/careers.html",
     "boston consulting group": "https://careers.bcg.com/locations/united-kingdom",
     "boston consulting group (bcg)": "https://careers.bcg.com/united-kingdom",
+    "bp": "https://bit.ly/3zsSC7A",
     "bp trading": "https://www.bp.com/en/global/corporate/careers/students-and-graduates/locations/united-kingdom/trading-and-shipping-early-careers.html",
+    "brabners": "https://www.brabners.com/careers/early-law-careers-opportunities",
+    "braemar": "https://braemar.com/careers",
+    "bre group": "https://jobs.bregroup.com/",
+    "breega": "https://recruitee.com/",
     "brevan howard": "https://www.brevanhoward.com/careers/",
     "brex": "https://www.brex.com/careers",
     "bridgepoint": "https://www.bridgepoint.eu/about-us/joining-the-team/internships",
     "bridgewater associates": "http://job-boards.greenhouse.io/bridgewater89",
     "brio real estate": "https://revantage.wd1.myworkdayjobs.com/Brio_Real_Estate",
+    "bristol myers squibb": "https://careers.bms.com/",
+    "bristows": "https://bristows.grad.allhires.com/app/",
+    "brit insurance": "https://www.britinsurance.com/careers-at-brit-insurance",
+    "britannia global markets": "https://www.britannia.com/careers",
+    "british airways": "https://careers.ba.com/emerging-talent",
+    "british business bank": "https://www.british-business-bank.co.uk/about/careers",
+    "british international investment": "https://bit.ly/4eRZL3N",
     "british land": "https://www.britishland.com/careers",
     "broadstone": "https://careers-rpmliving.icims.com/jobs/36704/intern%2C-property-management/job",
+    "brookfield": "https://bit.ly/40LNeaW",
     "brookfield asset management": "https://www.brookfield.com/about-us/careers",
+    "brown advisory": "https://www.brownadvisory.com/careers",
     "brown edwards": "https://jobs.jobvite.com/brownedwards/jobs",
+    "brown gibbons lang & company": "https://www.bglco.com/careers/",
     "brown shipley": "https://brownshipley.com/en-gb/about-us/join-the-team",
+    "browne jacobson": "https://brownejacobsoncareers.com/VacancyPosting/Search",
+    "bryan cave leighton paisner": "https://www.bclplaw.com/en-US/careers.html",
+    "bryan, garnier & co": "https://bit.ly/3RRUQrC",
     "bst": "https://bstglobal.com/careers/",
+    "bt": "https://jobs.bt.com/content/Students-and-Graduates/",
     "btg pactual": "https://www.btgpactual.com/careers",
     "btig": "http://job-boards.greenhouse.io/btig27",
+    "bumble": "https://team.bumble.com/",
+    "bupa": "https://careers.bupa.co.uk/search-jobs",
+    "burford capital": "https://www.burfordcapital.com/about-us/careers/",
+    "burges salmon": "https://www.burges-salmon.com/join-us/",
+    "buro happold": "https://vacancies.burohappold.com/jobs/category/129",
+    "c-centric": "https://www.ccentric.co.uk/",
+    "cabot properties": "https://www.cabotprop.com/careers/",
+    "cadence": "https://bit.ly/4h1AxkY",
     "cairneagle": "https://www.cairneagle.com/work-with-us/",
+    "caledonia investments": "https://www.caledonia.com/",
     "cambell luytens": "https://www.campbell-lutyens.com/careers/",
+    "cambon partners": "https://www.cambonpartners.com/en/careers",
     "cambridge associates": "https://www.cambridgeassociates.com/careers/early-career/",
     "cambridge consultants": "https://www.cambridgeconsultants.com/careers/",
+    "cambridge econometrics": "https://www.camecon.com/careers",
+    "campbell lutyens": "https://campbell-lutyens.com/careers/graduate-programme/",
+    "canaccord genuity": "https://www.canaccordgenuity.com/cgcareers/",
+    "canada life": "https://life-careers.com/",
     "canary wharf group": "https://group.canarywharf.com/careers/",
+    "canopius": "https://www.canopius.com/careers-with-canopius/early-careers",
     "cantab asset management": "https://www.cantabam.com/careers/",
     "cantor fitzgerald": "https://www.cantor.com/our-company/careers/",
     "capco": "https://www.capco.com/careers",
+    "capgemini": "https://www.capgemini.com/gb-en/careers/join-us/",
     "capital and counties": "https://jobs.capitalone.co.uk/earlycareers",
+    "capital d": "https://capitald.com/",
     "capital dynamics": "https://job-boards.eu.greenhouse.io/capitaldynamicsag/jobs/4787755101",
     "capital group": "https://jobs.capitalgroup.com/",
+    "capital law": "https://www.capitallaw.co.uk/vacancies/",
     "capital one": "https://jobs.capitalone.co.uk/earlycareers",
+    "capman": "https://capman.com/about-us/careers",
     "capstone": "https://www.capstonedc.com/careers/",
     "capula investment management": "https://careers.capulaglobal.com/",
+    "carlsquare": "https://carlsquare.com/the-company/",
+    "carnall farrar": "https://apply.workable.com/carnallfarrar/",
     "carter jonas": "https://static4.carterjonas.co.uk/early-careers",
+    "cartesian": "https://www.cartesian.com/careers/",
     "cascadia capital": "https://www.cascadiacapital.com/careers/",
+    "castleforge": "https://castleforge.com/careers/",
     "castleton commodities international": "https://osv-cci.wd1.myworkdayjobs.com/CCICareers",
     "castleton commodities intl.": "https://www.cci.com/careers",
+    "catapult": "https://www.catapult.com/careers",
+    "caterpillar": "https://bit.ly/3BEMvBh",
+    "caxton associates": "https://bit.ly/4dX7Q7i",
     "cboe global markets": "https://careers.cboe.com/",
     "cbre": "https://www.cbre.co.uk/about-cbre/careers",
     "cd&r": "https://www.cdr-inc.com/",
+    "cdpq": "https://www.lacaisse.com/en/careers",
     "centerview partners": "https://www.centerviewpartners.com/careers.aspx",
+    "centre for cities": "https://www.centreforcities.org/about/jobs-and-internships/",
+    "centrica": "https://bit.ly/4e0hbeu",
+    "centrica energy": "https://centricaenergy.com/career/",
+    "cerberus capital management": "https://bit.ly/4bdGHLY",
+    "certara": "https://careers.certara.com/",
+    "cevian capital": "https://cevian.com/careers/",
     "cfc": "https://cfc.pinpointhq.com/",
+    "cfo insights": "https://job-boards.greenhouse.io/cfoinsights",
+    "cgi": "https://www.cgi.com/uk/en-gb/careers/early-careers",
     "charles river associates": "https://www.crai.com/cra-careers/jobs/",
+    "charles russell speechlys": "https://www.charlesrussellspeechlys.com/en/careers/",
+    "charles taylor": "https://www.charlestaylor.com/en/careers/",
+    "charter hcp": "https://www.charterhcp.com/",
     "chatham financial": "https://chathamfinancial.wd501.myworkdayjobs.com/ChathamFinancial",
+    "chaucer group": "https://www.chaucergroup.com/careersatchaucer",
     "checkout.com": "https://www.checkout.com/careers",
     "chicago trading company": "http://job-boards.greenhouse.io/chicagotradingcampus",
+    "chubb": "https://fa-ewgu-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/jobs",
+    "cibc": "https://www.cibc.com/en/about-cibc/careers/students-and-graduates.html",
+    "cicc": "https://bit.ly/3tfFX7W",
+    "ciena": "https://www.ciena.com/careers",
+    "cil management consultants": "https://cil.com/careers/students-and-graduates",
+    "cinven": "https://www.cinven.com/",
+    "cirrus logic": "https://www.cirrus.com/careers",
     "cisco": "https://jobs.cisco.com/",
     "cisco systems": "https://jobs.cisco.com/",
     "citadel": "https://www.citadel.com/careers/open-opportunities/students/internships/",
+    "citadel securities": "https://www.citadelsecurities.com/careers",
+    "citco": "https://www.citco.com/careers",
     "citi": "https://jobs.citi.com/early-careers-emea",
+    "citic clsa": "https://www.clsa.com/careers/",
+    "civil service fast stream": "https://www.civil-service-careers.gov.uk/fast-stream/?utm_content=Home",
+    "clairfield": "https://www.clairfield.com/",
+    "clarify": "https://clarifyb2b.com/",
+    "clarion solicitors": "https://www.clarionsolicitors.com/careers-at-clarion",
+    "clarksons": "https://www.clarksons.com/home/careers/",
+    "clear street": "https://job-boards.greenhouse.io/clearstreet",
+    "clear-com": "https://www.clearcom.com/Company/Career-Opportunities",
+    "clearlake credit": "https://clearlake.com/careers/",
+    "clearview healthcare partners": "https://clearviewhcp.com/careers/",
+    "clearwater": "https://www.clearwatercf.com/en-gb/careers",
     "clearwater international": "https://www.clearwaterinternational.com/careers",
+    "clifford chance": "https://www.cliffordchance.com/careers.html",
     "cliftonlarsonallen": "https://cliftonlarsonallen.wd1.myworkdayjobs.com/CLA",
+    "climate investment": "https://www.climateinvestment.com/about-us/careers",
     "cloudflare": "http://job-boards.greenhouse.io/careersday/jobs/6395227",
+    "cloudkitchens": "https://cloudkitchens.com/careers",
+    "clyde & co": "https://careers.clydeco.com/en/early-careers/united-kingdom/england/",
     "cme group": "https://careers.cmegroup.com/",
+    "cms": "https://bit.ly/3AXGlfc",
+    "cnh industrial": "https://careers.cnh.com/",
+    "cobb harbour investment": "https://cobbharbour.com/",
+    "coca cola": "https://www.coca-colacompany.com/careers",
+    "cogna": "https://www.cogna.co/careers",
     "cohen & company": "https://experienced-opportunities-cohenco.icims.com/jobs/search?hashed=-625949305&mobile=false&width=1743&height=500&bga=true&needsRedirect=false&jan1offset=-300&jun1offset=-240",
     "cohere": "https://cohere.com/about/careers",
     "coinbase": "https://www.coinbase.com/careers",
+    "colliers": "https://bit.ly/3ryEwRy",
     "colliers international": "https://earlycareers.colliers.com/",
+    "collins aerospace": "https://careers.rtx.com/global/en/collins-aerospace",
+    "columbia threadneedle investments": "https://www.columbiathreadneedle.com/en/gb/intermediary/careers/",
+    "commbank": "https://www.commbank.com.au/about-us/careers.html",
     "commerzbank": "https://www.commerzbank.com/en/hauptnavigation/karriere/karriere.html",
+    "compare the market": "https://jobs.comparethemarketcareers.com/en/sites/MK/jobs",
+    "compass lexecon": "https://www.compasslexecon.com/careers/",
+    "compound equity group": "https://www.compoundequitygroup.com/",
+    "confluent": "https://careers.confluent.io/",
     "connor group": "https://connorgp.wd12.myworkdayjobs.com/CG",
+    "convergent": "https://www.convergent.org/",
+    "convex insurance": "https://convexin.com/life-at-convex/careers/",
+    "cooper parry": "https://bit.ly/3MeLAKs",
+    "copper.co": "https://copper.co/en/company/careers",
+    "corebridge": "https://www.corebridgefinancial.com/",
+    "cornerstone research": "https://www.cornerstone.com/careers/",
     "coutts": "https://www.coutts.com/careers.html",
+    "creandum": "https://careers.creandum.com/jobs",
     "credit agricole": "https://www.ca-cib.com/careers/students-and-young-graduates",
     "credit suisse": "https://www.credit-suisse.com/careers/en.html",
+    "creditsights": "https://know.creditsights.com/careers",
+    "cripps": "https://www.cripps.co.uk/join-us/graduates-and-students/",
+    "crowdstrike": "https://www.crowdstrike.com/en-us/careers/university-interns/",
+    "crowe": "https://bit.ly/3DPcPGT",
+    "crux": "https://cruxproductdesign.com/careers/",
     "crédit agricole": "https://www.credit-agricole.com/en/join-us",
     "cs2": "https://cs2.co.uk/graduate-opportunities/",
+    "ct: accountants advisers": "https://ct.me/join-us/early-careers",
+    "cummins inc": "https://www.cummins.com/careers",
+    "cusana capital": "https://cusanacapital.com/",
     "cushman & wakefield": "https://www.cushwakeearlycareers.com/",
     "cvc": "https://www.cvc.com/our-firm/people/career/",
+    "cygnum capital": "https://www.cygnumcapital.com/careers",
+    "d'angelin & co.": "https://www.dangelin.com/",
     "d.a. davidson": "https://jobs.lever.co/dadavidson",
     "d.e shaw": "https://www.deshaw.com/careers",
     "d.e. shaw": "https://www.deshaw.com/careers",
     "da vinci trading": "https://davincitrading.com/job/experienced-quant/",
     "dains accountants": "https://careers.dains.com/",
+    "danaher": "https://jobs.danaher.com/global/en/search-results",
     "dare": "https://www.dare.global/careers/",
     "dare (former vcmt)": "https://v-cmt.com/careers",
+    "davy": "https://www.davy.ie/working-at-davy/early-careers",
+    "dawson cornwell": "https://dawsoncornwell.com/about-us/careers/",
     "dc advisory": "https://www.dcadvisory.com/join-us/early-careers/",
     "dcl insurance": "https://dclinsurance.com/about-us/work-with-us/",
     "de shaw": "https://www.deshaw.com/careers",
+    "deal flow xchange": "https://www.dealflowxchange.com/",
+    "dealglobe": "https://en.dealglobe.com/careers/",
+    "dean wilson": "https://deanwilson.co.uk/careers",
+    "dechert llp": "https://www.dechert.com/careers.html",
+    "deductive ai": "https://www.deductive.ai/about",
     "deel": "https://www.deel.com/careers",
+    "delin property": "https://www.delinproperty.com/",
     "deliveroo": "https://careers.deliveroo.co.uk/",
     "deloitte": "https://www2.deloitte.com/uk/en/pages/careers/articles/early-careers-programmes.html",
     "deloitte real estate": "https://www2.deloitte.com/uk/en/careers/programmes.html",
+    "dentons": "https://bit.ly/3XmgMfC",
     "deustche bank": "https://www.db.com/who-we-are/our-culture/hr-report/enriching-our-workforce/early-careers",
     "deutsche bank": "https://careers.db.com/",
+    "devere group": "https://www.devere-group.com/careers",
     "devona cresa": "https://www.devono.com/about-cresa/",
+    "dexters": "https://www.dexters.co.uk/why-dexters/careers/estate-agent-jobs-in-london",
+    "df capital": "https://apply.workable.com/df-capital/",
+    "diageo": "https://www.diageo.com/en/careers",
+    "diamond light source": "https://www.diamond.ac.uk/Careers.html",
+    "digitalbridge": "https://www.digitalbridge.com/",
     "dimensional fund advisors": "https://us.dimensional.com/about-us/careers",
+    "ding": "https://company.ding.com/",
+    "dirac trading group": "https://dirac.software/careers",
+    "direct line group": "https://directlinegroupcareers.com/apply/?perPage=25",
+    "direct soccer": "https://www.directsoccer.co.uk/",
+    "dmh stallard": "https://dmhstallard.allhires.com/app",
+    "dn capital": "https://dncapital.hire.trakstar.com/",
+    "dojo": "https://dojo.careers/",
     "dore partnership": "https://dorepartnership.com/careers/",
+    "dorset software": "https://www.dorsetsoftware.com/Careers/home",
     "dow jones": "https://www.dowjones.com/careers/",
+    "downing": "https://www.downing.co.uk/careers",
     "drw": "https://drw.com/oncampus",
+    "dsw ventures": "https://dswcareers.co.uk/join-us/",
+    "dtcp": "https://www.dtcp.capital/about-us/careers/",
     "duff & phelps": "https://www.dpimc.com/careers",
+    "dunelm": "https://www.dunelmcareers.com/",
     "dv trading": "https://dvtrading.co/careers/",
+    "dwf": "https://dwfgroup.com/en-au/careers/join-us/early-careers",
+    "dws": "https://www.dws-earlycareers.groupgti.com/",
     "e.on": "https://eonnext.wd3.myworkdayjobs.com/EON_Next_Careers",
+    "ea technology": "https://careers.eatechnology.com/",
+    "earlybird": "https://jobs.earlybird.com/jobs",
     "eastdil secured": "https://spirestanford.org/job-opportunities/",
+    "ebrd": "https://jobs.ebrd.com/",
+    "edenred ventures": "https://www.edenred.com/en/candidates/welcome-edenred",
+    "edf energy": "https://careers.edfenergy.com/",
     "edf trading": "https://careers.edfenergy.com/content/Early-Careers-at-EDF-Energy/?locale=en_GB",
+    "edgewater strategy group": "https://www.edgewaterstrategygroup.com/",
     "edmund & evans": "https://app.loxo.co/job/MTA5MzktN3NoaG13YTJwM2VkdzdxNA==",
+    "eet": "https://careers.essaroil.co.uk/search/",
+    "efg international": "https://bit.ly/3NitVln",
     "efinancialcareers": "https://www.efinancialcareers.co.uk/",
+    "eka ventures": "https://www.ekavc.com/",
+    "elixirr": "https://www.elixirr.com/en-gb/careers/early-careers/",
+    "energy impact partners": "https://www.energyimpactpartners.com/join-the-team/",
+    "engelhart": "https://www.ectp.com/careers",
+    "ensors": "https://www.ensors.co.uk/careers/",
+    "enstar group": "https://careers.enstargroup.com/vacancies/",
+    "epic games": "https://bit.ly/4d2sAcI",
+    "eq": "https://careers.sumer.co.uk/#js-careers-jobs-block",
+    "eqt": "https://eqtgroup.com/about/careers",
+    "equifax": "https://careers.equifax.com/en/jobs/",
+    "equilend": "https://equilend.com/careers/early-careers/",
+    "equinor": "https://www.equinor.com/careers/graduates",
+    "equitix": "https://equitix.com/about/careers/",
+    "esourcing data": "https://esourcingdata.com/",
+    "esr group": "https://www.esr.com/careers/",
+    "essendi": "https://www.essendi.com/en/career?lang=eng",
+    "estari group": "https://www.estarigroup.com/",
     "ethical capital partners": "https://www.ethicalcapitalpartners.com/careers",
+    "eurazeo": "https://www.eurazeo.com/en/talents/career-opportunities",
     "europa capital": "https://www.europacapital.com/",
     "european investment fund": "https://www.eif.org/jobs/",
+    "eurostar": "https://www.eurostar.com/us-en/about-eurostar/careers",
     "evelyn partners": "https://www.evelynpartners.com/careers/",
     "evercore": "https://www.evercore.com/join-our-team/",
+    "everest": "https://www.everestglobal.com/us-en/career-opportunities/early-talent/internship",
+    "everfield": "https://everfield.com/careers",
+    "eversheds sutherland": "https://bit.ly/4e25pAp",
+    "everywhen": "https://careers.everywhen.co.uk/#jobs",
     "exoduspoint": "https://www.exoduspoint.com/about/careers/",
+    "expedia": "https://bit.ly/3GgY0xL",
+    "expedition growth capital": "https://expedition.capital/",
+    "experian": "https://jobs.experian.com/jobs",
+    "exxonmobil": "https://corporate.exxonmobil.com/careers",
     "ey": "https://www.ey.com/en_uk/careers",
+    "ey-parthenon": "https://www.ey.com/en_gl/careers/parthenon",
+    "f5": "https://www.f5.com/company/careers/early-careers",
+    "factset": "https://www.factset.com/careers",
+    "fair football ai": "https://www.fairfootball.ai/",
+    "fairmile partners": "https://www.fairmilepartners.co.uk/",
     "farallon capital": "https://www.faralloncapital.com/careers/",
+    "farrer & co": "https://bit.ly/4gx4xoI",
+    "fasanara capital": "https://www.fasanara.com/careers",
+    "fdm group": "https://www.fdmgroup.com/careers/",
     "fenchurch advisory": "https://www.fenchurchadvisory.com/careers/",
     "fide partners": "https://fidepartners.com/careers/",
+    "fidelio capital": "https://careers.fideliocapital.com/jobs",
     "fidelity": "https://careers.fidelityinternational.com/early-careers-overview/early-careers/",
+    "fidelity international": "https://careers.fidelityinternational.com/early-careers-overview/",
+    "fidelity investments": "https://jobs.fidelity.com/en/",
+    "fieldfisher": "https://www.fieldfisher.com/en/careers",
+    "figma": "https://www.figma.com/careers",
+    "financial conduct authority": "https://www.fca.org.uk/careers/early-careers",
+    "financial times": "https://aboutus.ft.com/careers",
+    "first actuarial": "https://firstactuarial.co.uk/careers/",
+    "first bank of nigeria": "https://www.firstbanknigeria.com/home/careers",
+    "first wealth": "https://www.firstwealth.co.uk/about-us/careers",
+    "fisher investments": "https://bit.ly/4aYwRON",
     "fitch ratings": "https://www.fitchratings.com/careers",
+    "five ai": "https://www.five.ai/",
+    "five arrows": "https://bit.ly/3vbTrCQ",
     "five rings": "http://job-boards.greenhouse.io/fiveringsllc",
+    "five sigma finance": "https://www.fivesigma.co.uk/",
+    "fleek": "https://www.joinfleek.com/home",
     "flow traders": "https://www.flowtraders.com/careers",
+    "foot anstey": "https://www.footanstey.com/careers/early-careers",
+    "forsters": "https://www.forsters.co.uk/vacancies",
     "forvis mazars": "https://www.forvismazars.com/uk/en/careers",
+    "founders factory": "https://foundersfactory.com/join-us/",
+    "foxtons": "https://careers.foxtons.co.uk/vacancies/vacancy-search-results.aspx",
     "framestore": "https://framestore.recruitee.com/",
     "franklin templeton": "https://franklintempleton.wd5.myworkdayjobs.com/Primary-External-1",
+    "frazer-nash consultancy": "https://careers.fnc.co.uk/uk/en",
+    "freeagent": "https://bit.ly/4fA0wi5",
+    "freshfields bruckhaus deringer": "https://www.freshfields.com/en/your-career/united-kingdom/early-careers",
+    "fried frank": "https://www.friedfrank.com/careers/law-students-recent-graduates-and-london-training-applicants",
+    "frontier developments": "https://www.frontier.co.uk/careers",
+    "frontier economics": "https://www.frontier-economics.com/uk/en/careers/working-with-us/",
+    "fsp": "https://bit.ly/3XpDPG5",
     "ft partners": "https://ftpartners.com/careers",
     "fti consulting": "https://www.fticonsulting.com/careers",
+    "fulcrum asset management": "https://www.fulcrumasset.com/about-us/careers/",
+    "future planet capital": "https://futureplanetcapital.com/",
+    "g-p": "https://www.globalization-partners.com/careers",
+    "g-research": "https://www.gresearch.com/students-graduates/graduates/",
+    "gaby hardwicke": "https://www.gabyhardwicke.co.uk/careers/",
+    "galaxy": "https://www.galaxy.com/careers",
+    "gallagher": "https://jobs.ajg.com/ajg-uk",
+    "galliford try": "https://careers.gallifordtry.co.uk/",
+    "gartner": "https://bit.ly/3Oyn745",
+    "gateley": "https://careers.gateleyplc.com/",
     "gcm grosvenor": "https://www.gcmlp.com/careers/",
+    "gearset": "https://gearset.com/careers/",
+    "geldards": "https://careers.geldards.com/#js-careers-jobs-block",
+    "gen re": "https://genre.csod.com/ux/ats/careersite/1/home",
     "general atlantic": "https://www.generalatlantic.com/about/careers/",
+    "general electric": "https://invent.ge/4d5a3MP",
+    "genesis energies (technip energies)": "https://hcxg.fa.em2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs",
+    "genesis global": "https://genesis.global/about/careers",
+    "geneva trading": "https://www.genevatrading.com/career-in-trading/",
+    "gent commodity": "https://gentcommodity.com/careers/",
     "genuit group": "https://polypipe.wd103.myworkdayjobs.com/Careers",
+    "gep": "https://www.gep.com/careers",
+    "gerald edelman": "https://www.geraldedelman.com/work-with-us/",
     "gerald eve": "https://www.geraldeve.com/join-us/",
+    "giant ventures": "https://www.giant.vc/",
+    "gib asset management": "https://gibam.com/who-are-we/careers",
+    "gibson dunn": "https://www.gibsondunn.com/careers",
     "gic": "https://gic.careers/",
+    "girlings solicitors": "https://www.girlings.com/careers",
     "glc advisors & co": "http://job-boards.greenhouse.io/glcadvisors",
     "gleacher shacklock": "https://www.gleachershacklock.com/careers/",
     "glencore": "https://www.glencore.com/careers/",
     "glg": "https://glginsights.com/careers/",
+    "global gate": "https://www.globalgatecapital.com/english/careers/apply-now",
+    "global payments": "https://jobs.globalpayments.com/en/jobs/",
+    "gneiss energy": "https://bit.ly/3CUuQGg",
+    "gocardless": "https://job-boards.greenhouse.io/gocardless",
     "goldman sachs": "https://www.goldmansachs.com/careers/",
+    "goodbody": "https://jobs.aib.ie/goodbody/go/Goodbody-Jobs/9606100/",
+    "goodwin": "https://www.goodwinlaw.com/en/careers-pages/early-careers-in-the-united-kingdom",
     "google": "https://careers.google.com/",
+    "gordon brothers": "https://wd1.myworkdaysite.com/en-US/recruiting/gordonbrothers/Gordon_Brothers_Careers/",
+    "gore street capital": "https://www.gorestreetcap.com/careers",
+    "government economic service": "https://www.gov.uk/government/organisations/civil-service-government-economic-service",
+    "government statistical service": "https://www.civil-service-careers.gov.uk/professions/government-statistical-service",
+    "gowling wlg": "https://gowlingwlg.com/en/careers",
     "gp bullhound": "https://www.gpbullhound.com/careers/",
+    "gpfs": "https://gpfs.com/careers",
     "grant thornton": "https://www.grantthornton.com/careers/early-career.aspx",
     "graphcore": "https://job-boards.greenhouse.io/graphcore/jobs/7664562002",
+    "grayce": "https://www.grayce.co.uk/careers",
+    "greenberg traurig": "https://gtlaw.wd1.myworkdayjobs.com/en-US/GTLAW",
+    "greencap partners": "https://www.greencap-partners.co.uk/careers",
     "greenhill": "https://www.greenhill.com/en/careers",
+    "greystar": "https://jobs.greystar.com/early-careers",
     "grosvenor group": "https://www.grosvenor.com/careers",
+    "growth credit partners": "https://growthcreditpartners.com/",
+    "gs verde": "https://www.gsverde.group/careers",
     "gsa capital": "https://www.gsacapital.com/careers/",
     "gsk": "https://jobs.gsk.com/",
+    "gsr markets": "https://www.gsr.io/careers/",
     "guggenheim partners": "https://www.guggenheimpartners.com/",
+    "guidehouse": "https://guidehouse.com/careers/students",
     "gunvor": "https://gunvor.wd3.myworkdayjobs.com/Gunvor_Careers",
+    "guy carpenter": "https://www.guycarp.com/careers.html",
+    "h.i.g. capital": "https://hig.com/",
+    "hacktron ai": "https://jobs.gem.com/hacktron",
+    "hamilton insurance group": "https://www.hamiltongroup.com/careers/",
+    "hamilton lane": "https://www.hamiltonlane.com/en-us/careers/entry-level-programs",
+    "hampshire trust bank": "https://www.htb.co.uk/careers/career-opportunities",
+    "handelsbanken": "https://jobs.handelsbanken.co.uk/",
+    "hannam & partners": "https://hannam.partners/careers/",
+    "harbor": "https://harborglobal.com/careers",
+    "harbour energy": "https://careers.harbourenergy.com/",
+    "harbourvest": "https://bit.ly/3WDmjyK",
+    "hargreaves lansdown": "https://www.hl.co.uk/error/404",
     "harris williams": "https://www.harriswilliams.com/careers",
+    "harrison street": "https://bit.ly/3Y0dEr5",
+    "hatch": "https://jobs.hatch.com/go/Student-&-New-Graduate-Jobs/2565100/",
+    "hawk-eye innovations": "https://careers.hawkeyeinnovations.com/",
+    "hawksmoor investment management": "https://www.hawksmoorim.co.uk/about-us/join-our-team/",
+    "hawkswell kilvington": "https://hklegal.co.uk/careers/recruitment/",
     "hayfin capital management": "https://www.hayfin.com/careers/",
+    "haysmac": "https://haysmac.com/careers/",
+    "hazlewoods": "https://www.hazlewoods.co.uk/careers/apprenticeships-and-early-careers",
+    "hdi global": "https://ukcareers.hdi.global/",
+    "headford group": "https://workforheadfordgroup.com/",
+    "hec paris": "https://www.hec.edu/en",
+    "heidelberg materials": "https://www.careers.heidelbergmaterials.co.uk/en",
+    "heligan group": "https://heligangroup.com/",
+    "helix law": "https://helix-law.co.uk/about/careers/",
+    "helsing": "https://helsing.ai/jobs",
     "hennepin partners": "https://hennepinpartners.com/careers/",
+    "heptagon capital": "https://heptagon-capital.com/",
+    "herrington carmichael": "https://www.herrington-carmichael.com/careers-4/current-vacancies-2/",
+    "hfw": "https://www.hfw.com/careers/",
+    "hill dickinson": "https://www.hilldickinson.com/",
+    "hilton": "https://jobs.hilton.com/us/en/earlytalent",
     "hines": "https://careers.ihg.com/",
     "hiscox": "https://www.hiscoxgroup.com/careers",
+    "hk law": "https://hklaw.uk/vacancies/",
+    "hme": "https://www.hme.com/careers/",
+    "hmrc": "https://www.civil-service-careers.gov.uk/departments/working-for-hm-revenue-and-customs-landing-page",
+    "hogan lovells": "https://bit.ly/4em1r5r",
     "homes england": "https://www.homesenglandcareers.co.uk/",
     "houlihan lokey": "https://www.hl.com/careers/",
     "howden": "https://howdengroup.com/careers/",
+    "howes percival": "https://careers.howespercival.com/vacancies/vacancy-search-results.aspx",
+    "hp": "https://bit.ly/47ro6Lf",
     "hsbc": "https://hsbcearlycareers.groupgti.com/Home/Guest",
     "https://www.mckinsey.com/careers/students": "https://www.mckinsey.com/careers/students",
+    "hubspot": "https://www.hubspot.com/careers",
     "hudson river trading": "https://www.hudsonrivertrading.com/careers/",
+    "hummingbird": "https://jobs.hummingbird.vc/jobs/hummingbird-ventures",
+    "hymans robertson": "https://www.hymans.co.uk/careers",
+    "iam capital": "https://iamcapital.com/",
     "ibm": "https://www.ibm.com/careers/",
     "icbc standard bank": "https://icbccareers.resourcesolutions.com/gold/iapply/index.cfm?event=jobs.search",
+    "ice": "https://www.ice.com/careers",
+    "icg": "https://bit.ly/3OJIi29",
+    "icon corporate finance": "https://www.iconcorpfin.com/",
     "ig group": "https://careers.iggroup.com/",
+    "ik partners": "https://bit.ly/3RcnXFM",
     "imc trading": "https://careers.imc.com/",
+    "immunocore": "https://peoplecore.my.salesforce-sites.com/recruit/fRecruit__ApplyJobList",
+    "impact cubed": "https://www.impactcubed.com/",
     "impax am": "https://impaxam.com/careers/",
+    "impax asset management": "https://bit.ly/40XNqEu",
+    "imperial college algorithmic trading": "https://www.algosoc.com/",
+    "imperial college london": "https://www.imperial.ac.uk/jobs/",
+    "infinitum capital": "https://infinitumcapital.co.uk/",
+    "infosys": "https://www.infosys.com/careers.html",
+    "infrared capital partners": "https://www.ircp.com/talent/",
+    "ing": "https://careers.ing.com/en",
+    "innovest capital": "https://innovest.uk/en/home",
+    "insight investment": "https://www.insightinvestment.com/corporate/careers/early-careers/",
+    "inspired villages": "https://careers.inspiredvillages.co.uk/",
+    "intera investments": "https://www.interainvest.com/",
+    "interact software": "https://www.interactsoftware.com/careers",
     "internship programme 2024": "https://abrdn.wd3.myworkdayjobs.com/en-US/abrdn?q=internship&locationCountry=29247e57dbaf46fb855b224e03170bc7",
+    "interpath advisory": "https://bit.ly/3OFQAIm",
+    "intesa sanpaolo": "https://group.intesasanpaolo.com/en/careers/current-vacancies",
+    "intriva": "https://www.intriva.com/",
+    "inverto": "https://inverto.com/en/careers/",
+    "invesco": "https://careers.invesco.com/emea/",
     "investec": "https://careers.investec.co.uk/jobs/talentpool/early-careers/255/description/",
+    "ion": "https://iongroup.com/careers",
+    "iqt": "https://www.iqt.org/careers",
+    "iquw": "https://iquwgroup.com/work-with-us/#vacancies",
+    "irwin mitchell": "https://www.irwinmitchell.com/about-us/careers/early-careers",
+    "isembard": "https://www.isembard.com/careers",
+    "isidor": "https://www.isidor.ai/",
     "isio": "https://careers.isio.com/",
+    "ite management": "https://itemgmt.com/",
+    "ithaca energy": "https://www.ithacaenergy.com/careers",
     "ivanhoe cambridge": "https://www.ivanhoecambridge.com/en/careers/",
+    "iwoca": "https://jobs.ashbyhq.com/iwoca.co.uk",
     "j.p. morgan": "https://careers.jpmorgan.com/global/en/students",
+    "jacobs": "https://www.jacobs.com/careers-jacobs",
     "jane street": "https://www.janestreet.com/join-jane-street/",
     "janus henderson": "https://www.janushenderson.com/careers/",
+    "javelin global commodities": "https://www.javelincommodities.com/contact/careers",
     "jefferies": "https://www.jefferies.com/Careers/Careers/cNew/800",
+    "jera global markets": "https://www.jeragm.com/careers",
+    "jetbrains": "https://www.jetbrains.com/careers",
+    "jingdong": "https://corporate.jd.com/careers",
+    "jjj capital management": "https://www.jjjcapital.com/careers",
     "jll": "https://www.jll.co.uk/en/careers/graduate-recruitment/our-schemes",
+    "jmg group": "https://careers.jmg-group.co.uk/",
     "jmi equity": "https://jobs.lever.co/jmi",
+    "johnson & johnson": "https://www.careers.jnj.com/en/locations/emea/uk",
+    "johnston carmichael": "https://johnstoncarmichael.com/careers",
+    "joveo ai": "https://careers.joveo.com/",
     "jp morgan": "https://careers.jpmorgan.com/global/en/students",
     "jpmorgan chase & co.": "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions",
+    "judge & priestley": "https://judge-priestley.pinpointhq.com/#js-careers-jobs-block",
     "julius baer": "https://www.juliusbaer.com/en/career/",
     "jump trading": "https://www.jumptrading.com/jobs.html",
     "jupiter asset management": "https://www.jupiteram.com/Careers/",
+    "just": "http://www.workatjust.co.uk/",
     "k1 investment management": "https://k1.com/careers/",
+    "kae": "https://kae-marketing-intelligence-ltd.breezy.hr/",
+    "kaiser associates": "https://kaiserassociates.com/roles-and-open-positions/",
+    "kappa lab": "https://jobs.gohire.io/kappa-lab-ltd-8jxmdnnt/",
+    "kartesia": "https://kartesia.com/careers",
+    "katalyze data": "https://katalyzedata.com/careers/",
+    "katamaran capital": "https://katamarancapital.com/",
+    "kbr": "https://careers.kbr.com/",
     "kbra uk": "https://builtin.com/job/funds-ratings-director-london/3753902",
+    "kbs corporate": "https://careers.k3capitalgroup.com/jobs",
+    "kearney": "https://bit.ly/3t526X1",
+    "kennedys": "https://bit.ly/4emzev8",
+    "keybridge capital": "https://bit.ly/3YlOKRT",
+    "keyence": "https://www.keyence.co.uk/ss/careers",
+    "keyrock": "https://jobs.ashbyhq.com/Keyrock",
+    "kia": "https://www.kia.com/uk/about/career/job-opportunities/",
+    "kier": "https://jobs.kier.co.uk/jobs/search",
+    "king": "https://careers.king.com/us/en/early-careers",
+    "kingfisher": "https://careers.kingfisher.com/job-search",
+    "kirkland & ellis": "https://bit.ly/40pzpAl",
     "kkr": "https://www.kkr.com/careers",
+    "kla": "https://kla.wd1.myworkdayjobs.com/en-US/Search/job/Summer-Intern---Software-Engineering_2527709",
     "klaviyo": "https://www.klaviyo.com/careers",
     "kline hill partners": "https://career.virginia.edu/employers/sponsors/kline-hill-partners",
     "knight frank": "https://knightfrankearlycareers.com/",
+    "koch": "https://koch.avature.net/en_US/careers/SearchJobs",
+    "konrad": "https://www.konrad.com/careers",
+    "korn ferry": "https://www.kornferry.com/careers",
     "kpmg": "https://www.kpmgcareers.co.uk/undergraduate/vacation-programmes/",
     "kpmg deals advisory": "https://www.kpmgcareers.co.uk/graduate/deal-advisory/",
+    "kr8 advisory": "https://careers.k3capitalgroup.com/jobs",
+    "kraft heinz": "https://careers.kraftheinz.com/early-careers",
+    "kroll": "https://careers.kroll.com/en",
+    "kuit steinart levy": "https://www.kuits.com/careers/",
     "l'oréal": "https://careers.loreal.com/en_US/home",
+    "l.e.k. consulting": "https://www.lek.com/careers",
+    "l3harris technologies": "https://careers.l3harris.com/en/search-jobs",
+    "la caisse": "https://www.lacaisse.com/en/careers",
+    "labman": "https://labmanautomation.com/careers",
+    "laceys solicitors": "https://laceyssolicitors.co.uk/work-with-us/current-vacancies/",
+    "laing o'rourke": "https://www.laingorourke.com/careers",
+    "lancashire insurance group": "https://careers.lancashiregroup.com/",
     "land securities group": "https://landsec.com/careers",
+    "langham hall": "https://www.langhamhall.com/apply/current-vacancies/",
+    "lanyon bowdler": "https://www.lblaw.co.uk/about-us/careers/job-search/",
     "lasalle": "https://www.jll.co.uk/en/careers/graduate-recruitment/our-schemes",
     "laselle": "https://www.jll.co.uk/en/careers/graduate-recruitment/our-schemes",
+    "latham & watkins": "https://www.lwcareers.com/en/beginning-your-legal-career/united-kingdom",
+    "lawrence stephens": "https://www.lawrencestephens.com/careers/current-vacancies/",
     "lazard": "https://www.lazard.com/careers/students/",
     "lazard (ib and am)": "https://www.lazard.com/careers/",
     "lazard (sales, am & er)": "https://www.lazard.com/careers/",
+    "lazard asset management": "https://www.lazardassetmanagement.com/us/en_us/about/careers",
+    "lcp": "https://careers.lcp.com/early-careers",
+    "leathes prior": "https://www.leathesprior.co.uk/careers/work-with-us",
+    "leeds beckett university": "https://www.leedsbeckett.ac.uk/jobs",
+    "leerink partners": "https://leerink.com/careers/",
     "legal & general": "https://www.legalandgeneral.com/careers",
+    "leicestershire police": "https://careers.leics.police.uk/",
+    "lendable": "https://careers.lendable.com/",
+    "lenovo": "https://jobs.lenovo.com/en_US/careers",
     "leonardo": "https://leonardohotels.wd103.myworkdayjobs.com/recruiting_LeonardoHotelsExternalCareers",
+    "levl": "https://www.levl.ch/",
+    "lewis silkin": "https://lewissilkin.app.candidats.io/roles",
+    "lgt": "https://www.lgt.com/global-en/career/jobs",
+    "lgt capital partners": "https://www.lgtcp.com/career",
+    "lgt wealth management": "https://www.lgt.com/global-en/career/jobs",
+    "liberty global": "https://bit.ly/3ZOyICd",
+    "liberty mutual": "https://searchjobs.libertymutualgroup.com/careers",
     "lichfields": "https://lichfields.uk/graduates/",
     "lincoln international": "https://www.lincolninternational.com/careers/",
+    "linklaters": "https://www.linklaters.com/careers",
     "lionsgate": "https://careers.lionsgateent.com/",
     "liontree": "https://www.liontree.com/careers/",
+    "liquidnet": "https://www.liquidnet.com/careers",
     "lloyds banking group": "https://www.lloydsbankinggrouptalent.com/early-careers-hub/",
+    "lmr partners": "https://www.lmrpartners.com/careers",
+    "lockheed martin": "https://www.lockheedmartin.com/en-gb/careers.html",
+    "lockton": "https://careers.lockton.com/gb/en/early-careers",
+    "loizou & co": "https://loizouco.com/careers",
+    "lombard odier": "https://lombardodier.wd3.myworkdayjobs.com/Lombard_Odier_Careers",
+    "london stock exchange group": "https://www.lseg.com/en/careers",
+    "longshot systems": "https://www.longshotsystems.co.uk/",
+    "loomis sayles": "https://www.loomissayles.com/internship-opportunities/",
     "loop capital": "https://www.loopcapital.com/careers/",
     "loreal": "https://careers.loreal.com/en_US/home",
+    "lorien": "https://www.lorienglobal.com/jobs",
+    "lothian pension fund": "https://www.lpf.org.uk/about-us/working-for-us/careers/",
+    "low carbon contracts company": "https://careers.lowcarboncontracts.uk/",
+    "lppi": "https://www.localpensionspartnership.org.uk/Careers",
+    "lse aic": "https://www.lseaic.com/",
     "lse group": "https://www.lseg.com/careers",
+    "lss strategic partners": "https://lss-strategicpartners.com/careers",
+    "lumyna": "https://www.lumyna.com/",
+    "lunar energy": "https://www.lunarenergy.com/careers",
+    "lvmh": "https://www.lvmh.com/join-us/lvmh-graduate-programs?sType=Trackr",
     "lyra health": "https://careers.lyrahealth.com/all-lyra-health-jobs",
     "m capital": "https://jobs.capitalone.co.uk/earlycareers",
     "m&g": "https://www.mandgplc.com/careers",
+    "m7 real estate": "https://bit.ly/3zTEY0s",
+    "mace": "https://macegroup.engageats.co.uk/V2/Vacancy",
+    "macfarlanes": "https://www.macfarlanes.com/join-us/lawyers/",
     "macquarie": "https://www.careers.macquarie.com/en/listing/",
     "macquarie group": "https://www.careers.macquarie.com/",
+    "macro hive": "https://macrohive.com/",
     "mako trading": "https://www.mako.com/early-careers",
     "man group": "https://www.man.com/careers",
+    "management solutions": "https://recruiting.managementsolutions.com/Ofertas.aspx",
+    "manulife": "https://careers.manulife.com/global/en/search-results",
+    "marakon": "https://bit.ly/4evLklQ",
     "marathon capital": "https://marathoncapital.com/who-we-are/careers",
+    "marex": "https://www.marex.com/careers/career-opportunities/",
+    "markel": "https://www.markel.com/about-us/careers",
+    "markerstudy group": "https://markerstudygroup.talosats-careers.com/all-vacancies",
+    "marketaxess": "https://www.marketaxess.com/careers",
+    "marks & spencer": "https://bit.ly/40Y5yOh",
+    "marlborough partners": "https://www.marlboroughpartners.com/",
+    "marriott international": "https://careers.marriott.com/",
+    "mars & co": "https://www.marsandco.com/careers/",
     "marsh mclennan": "https://careers.marshmclennan.com/global/en/student-opportunities",
     "marshall wace": "https://www.mwam.com/join-us/",
     "mastercard": "https://careers.mastercard.com/",
+    "mathworks": "https://bit.ly/3XrJwUb",
     "maven securities": "https://www.mavensecurities.com/graduate-opportunities/",
+    "mavenswood investments": "https://mavenswood.freshteam.com/jobs",
+    "mayar capital": "https://www.mayarcapital.com/",
+    "mayer brown": "https://www.mayerbrown.com/en/careers",
+    "mb energy": "https://mabanaft.wd3.myworkdayjobs.com/en-US/Mabanaft",
+    "mbda": "https://www.mbdacareers.co.uk/early-careers",
+    "mcdermott will & schulte": "https://mws.grad.allhires.com/app/",
+    "mcdonald's": "https://people.mcdonalds.co.uk/opportunities/early-careers",
+    "mcguirewoods": "https://careers.mcguirewoods.com/",
     "mckinsey": "https://www.mckinsey.com/careers/students",
     "mckinsey & company": "https://www.mckinsey.com/careers/students",
     "mclaren": "https://www.mclaren.com/careers/",
+    "mediatek": "https://yourcareers.mediatek.com/en",
+    "mediobanca": "https://www.mediobanca.com/en/work-with-us/open-positions.html",
+    "melotech": "https://www.melotech.ai/",
     "menzies": "https://menziesaviation.com/careers/",
+    "mercedes-amg": "https://karriere.mercedes-amg.com/en/your-start/student",
     "mercer": "https://www.mercer.com/about-mercer/careers/",
+    "mercer & hole": "https://www.mercerhole.co.uk/careers/",
+    "mercuria": "https://mercuria.com/careers",
+    "merqube": "https://merqube.com/about/careers",
+    "meta": "https://www.metacareers.com/careerprograms/students",
+    "metlife": "https://www.metlifecareers.com/en_US/ml/SearchJobs",
+    "metrea": "https://www.metrea.aero/careers",
+    "mewburn ellis": "https://www.mewburn.com/careers-at-mewburn",
+    "mfg solicitors": "https://www.mfgsolicitors.com/site/about/careers/",
+    "mfs": "https://www.mfs.com/corporate/en/about-mfs/careers.html?tabname=inPageNavigation-tab4",
     "mha": "https://mhanational.org/careers/",
+    "michelmores": "https://michelmores.app.candidats.io/roles",
+    "microsoft": "https://careers.microsoft.com/v2/global/en/students",
     "midinfra capital partners llc": "https://www.midinfra.com/",
+    "midland heart": "https://jobs.midlandheartgroup.org.uk/jobs/home",
+    "midsummer energy": "https://midsummerwholesale.co.uk/jobs",
     "millennium management": "https://www.mlp.com/careers/",
+    "mills & co": "https://www.mills-co.com/careers",
+    "mistral ai": "https://mistral.ai/careers",
     "mizuho": "https://cbcareers.mizuho-emea.com/content/Early-Career-Opportunities/?locale=en_GB",
+    "mki global partners": "https://mkpadvisors.com/",
+    "mni": "https://www.mnimarkets.com/careers",
+    "mobeus equity partners": "https://www.mobeus.co.uk/",
+    "moelis & co": "https://bit.ly/3ZIs4ts",
     "moelis & company": "https://www.moelis.com/careers/",
     "moloco": "https://www.moloco.com/careers",
+    "momentum group": "https://www.momentumgroupltd.co.za/about-us/careers",
+    "mondelēz international": "https://www.mondelezinternational.com/careers/jobs/",
+    "money maze podcast": "https://www.moneymazepodcast.com/",
     "mongodb": "https://www.mongodb.com/company/careers",
     "montagu evans": "https://www.montagu-evans.co.uk/careers/",
+    "monument re group": "https://monument-re-insurance.jobs.personio.de/?language=en",
     "monzo": "https://monzo.com/careers/",
     "moody's": "https://careers.moodys.com/",
+    "moore barlow": "https://www.moorebarlow.com/careers/current-opportunities/",
+    "moore kingston smith": "https://mooreks.co.uk/careers/",
+    "morgan lewis": "https://bit.ly/3MGT3BI",
     "morgan stanley": "https://www.morganstanley.com/people-opportunities/students-graduates",
+    "morrinson wealth": "https://bit.ly/3ztyhiv",
+    "morrisons": "https://www.morrisons.jobs/early-careers",
     "motorola solutions": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers",
+    "mott mcdonald": "https://www.mottmac.com/en-gb/careers/explore-our-careers",
+    "ms amlin": "https://msamlin.wd3.myworkdayjobs.com/en-US/MSAmlinCareers",
+    "ms solicitors": "https://www.mssolicitorsglasgow.co.uk/",
+    "msci": "https://careers.msci.com/early-careers",
+    "msd": "https://jobs.msd.com/gb/en",
+    "mthree": "https://mthree.com/careers/",
+    "mubadala capital": "https://www.mubadala.com/en/careers",
     "mufg": "https://www.mufgemea.com/careers/",
     "multiverse": "https://www.multiverse.io/en-GB/careers",
+    "multus": "https://multus.bio/",
+    "munich re": "https://careers.munichre.com/en/search-jobs",
+    "mv credit": "https://clearlake.com/credit/",
+    "mwh treatment": "https://mwhtreatmentweb.eploy.net/vacancies/vacancy-search-results.aspx",
+    "müller": "https://careers.muellergroup.com/Mueller_UK/go/Early-Careers-Jobs/4470501/",
+    "nannie": "https://nannie.ai/",
+    "national audit office": "https://www.nao.org.uk/about-us/jobs/current-vacancies/",
     "national highways": "https://nationalhighways.co.uk/about-us/careers/",
+    "national wealth fund": "https://www.nationalwealthfund.org.uk/careers",
+    "nationwide": "https://nationwide-jobs.co.uk:443/",
     "natixis": "https://careers.natixis.com/",
+    "natixis investment managers": "https://bit.ly/3U3BqAC",
+    "natrium capital": "https://www.natriumcapital.com/careers/",
     "natwest markets": "https://jobs.natwestgroup.com/pages/early-careers",
+    "nbcuniversal": "https://www.nbcunicareers.com/careers",
     "ncr atleos": "https://www.ncratleos.com/careers",
+    "nefs": "https://www.uonnefs.com/",
+    "nera": "https://www.nera.com/open-roles.html",
+    "neso": "https://www.neso.energy/careers",
+    "netcraft": "https://www.netcraft.com/students-and-graduates",
+    "netflix": "https://jobs.netflix.com/",
+    "network rail": "https://www.networkrail.co.uk/careers/early-careers",
     "neuberger berman": "https://www.nb.com/en/global/careers",
+    "newday": "https://newday.wd3.myworkdayjobs.com/en-US/NewDay",
+    "newdock": "https://www.newdock.com/en/team",
+    "newmark": "https://www.nmrk.com/en-gb/careers",
+    "newton": "https://newtonimpact.com/careers/early-careers/graduate-consultant-role/",
+    "next plc": "https://careers.next.co.uk/en/sites/CX_3001/pages/12020",
+    "nextwave consulting": "https://www.nxwave.com/careers",
+    "nfocus": "https://www.nfocus.co.uk/",
+    "nfu mutual": "https://www.nfumutual.co.uk/about-us/careers/",
+    "niantic": "https://www.scopely.com/en/join-us",
+    "ninety one": "https://bit.ly/3GhcMFm",
+    "nockolds": "https://www.nockolds.co.uk/careers/current-vacancies/",
     "nomura": "https://www.nomura.com/europe/careers/",
     "nordea asset management": "https://www.nordea.co.uk/en/private/careers/",
+    "nordic capital": "https://career.nordiccapital.com/",
+    "nordic semiconductor": "https://www.nordicsemi.com/Careers#infotabs",
+    "norges bank": "https://www.nbim.no/en/about-us/career/",
+    "north highland": "https://careers.northhighland.com/jobs/",
+    "northbay capital": "https://www.linkedin.com/company/northbay-capital/",
     "northern trust": "https://careers.northerntrust.com/",
+    "northwood investors": "https://northwoodinvestors.com/careers/",
+    "norton rose fulbright": "https://www.nortonrosefulbright.com/en/careers",
     "notion": "https://www.notion.so/careers",
+    "novuna": "https://careers.novuna.co.uk/",
+    "npl": "https://www.npl.co.uk/careers",
     "numis": "https://www.numis.com/Who-we-are",
+    "nutanix": "https://bit.ly/4e26Ped",
     "nuveen": "https://www.nuveen.com/global/about-us/careers",
+    "nvidia": "https://www.nvidia.com/en-gb/about-nvidia/careers/university-recruiting/",
+    "nxp semiconductors": "https://bit.ly/3B2tFE2",
+    "oak hill advisors": "https://careers-oakhilladvisors.icims.com/",
+    "oaklin": "https://www.oaklin.com/early-careers",
+    "oaknorth": "https://bit.ly/3WzMdU0",
+    "oaktree capital management": "https://www.oaktreecapital.com/careers",
+    "oakwell sports advisory": "https://oakwellsports.com/our-team/",
+    "obsidian security": "https://www.obsidiansecurity.com/careers",
     "oc&c": "https://www.occstrategy.com/en/careers/",
     "ocado group": "https://www.ocadogroup.com/sustainability/our-people/careers",
     "ocbc": "https://ocbc.wd102.myworkdayjobs.com/External",
+    "ocean capital": "https://oceancap.com/",
+    "octopus capital": "https://octopus-capital.com/",
+    "octopus real estate": "https://bit.ly/3BFSB4j",
+    "octopus ventures": "https://www.octopusventures.com/",
+    "odicci": "https://odicci.com/",
+    "old mission": "https://www.oldmissioncapital.com/careers/",
+    "old mutual": "https://oldmutual.wd3.myworkdayjobs.com/en-US/Old_Mutual_Careers",
     "oliver wyman": "https://www.oliverwyman.com/careers.html",
+    "omnam investment group": "https://www.omnamgroup.com/",
+    "onestream": "https://www.onestream.com/careers/",
+    "onyx capital group": "https://apply.workable.com/onyx-capital-group/?lng=en",
     "oppenheimer & co": "https://www.oppenheimer.com/careers",
     "optiver": "https://www.optiver.com/working-at-optiver/career-opportunities/",
+    "opus corporate finance": "https://opuscf.com/careers",
+    "oracle": "https://www.oracle.com/careers/students-grads/",
+    "orbis": "https://www.orbis.com/careers/careers/opportunities/intern-with-us",
     "orbis investment management": "https://www.orbis.com/international/institutional/careers",
+    "osborne clarke": "https://www.osborneclarke.com/careers/careers-in-the-uk",
+    "oscar ip & co": "https://www.oscarip.co.uk/",
+    "otala.markets": "https://otala.markets/career",
+    "otpp": "https://www.otpp.com/en-ca/careers/",
+    "outlook energy": "https://www.outlookenergy.co.uk/careers/",
+    "oxera": "https://www.oxera.com/careers",
+    "oxford economics": "https://www.oxfordeconomics.com/careers/",
+    "oxford finance society": "https://www.oxfordfinancesociety.org/",
     "oxford knight": "https://apply.workable.com/oxford-knight/",
+    "oxford nanopore technologies": "https://ejnh.fa.em2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?keyword=intern&lastSelectedFacet=CATEGORIES&mode=location&selectedCategoriesFacet=300000001348885%3B300000001348906",
     "oxford properties group": "https://www.oxfordproperties.com/corp/Careers",
+    "oxygen conservation": "https://www.oxygenconservation.com/career-landing-page/",
     "p&g": "https://pg.wd5.myworkdayjobs.com/1000",
     "pa consulting": "https://www.paconsulting.com/careers/",
+    "pacific asset management": "https://www.pacificam.co.uk/",
+    "pacific life re": "https://www.pacificlifere.com/home/careers.html",
+    "pai partners": "https://bit.ly/sfjdgfkjsgdf",
+    "paladin capital group": "https://www.paladincapgroup.com/",
     "palantir": "https://www.palantir.com/careers/",
     "panmure gordon": "https://panmure.com/careers/",
+    "panmure liberum": "https://panmureliberum.com/people/careers/",
+    "pantheon capital management": "https://pantheon-capital.com/",
+    "paragon banking group": "https://www.paragonbankinggroup.co.uk/careers/overview",
     "paragon bc": "https://paragonbc.co.uk/working-with-us/current-vacancies",
+    "pareto securities": "https://paretosecurities.teamtailor.com/jobs",
+    "park place technologies": "https://www.parkplacetechnologies.com/careers",
     "parthenon": "https://www.ey.com/en_gl/careers/parthenon/join/uk",
     "partners group": "https://www.partnersgroup.com/en/careers/",
     "patrizia": "https://www.patrizia.ag/en/career/people-development-talent-philosophy/early-career/",
+    "paul hastings": "https://www.paulhastings.com/en-GB/careers",
+    "payne hicks beach": "https://www.phb.co.uk/careers/vacancies/",
+    "paypal": "https://bit.ly/404zY4a",
     "peel hunt": "https://www.peelhunt.com/internships",
+    "pegasus group": "https://pegasusgroupcareers.tal.net/vx/lang-en-GB/mobile-0/appcentre-ext/brand-4/candidate/jobboard/vacancy/3/adv/",
+    "pem": "https://www.pem.co.uk/about-us/careers",
+    "pemberton asset management": "https://pembertonam.com/careers",
+    "penfida": "https://www.xpsgroup.com/what-we-do/covenant-advisory/",
+    "pension protection fund": "https://www.ppf.co.uk/about-us/careers",
+    "pepsico": "https://www.pepsicojobs.com/applicant-help",
+    "perch group": "https://www.perchgroup.co.uk/careers/",
+    "peregrine": "https://peregrine.global/careers/",
     "perella weinberg partners": "https://pwpartners.com/careers/intern-graduate-recruitment/",
+    "permira": "https://www.permira.com/people/life-at-permira",
+    "perplexity": "https://www.perplexity.ai/hub/careers",
+    "persimmon homes": "https://www.persimmonhomes.com/corporate/careers",
+    "peters & peters": "https://petersandpeters.grad.allhires.com/app/",
+    "petroineos": "https://careers.petroineos.com/",
+    "pexip": "https://www.pexip.com/careers",
     "pfizer": "https://www.pfizer.com/about/careers",
     "pgim": "https://www.pgim.com/fixed-income/careers",
+    "pharus": "https://pharus.com/careers/",
+    "phasecraft": "https://phasecraft.io/careers",
+    "phoenix group": "https://www.standardlifeplc.com/careers",
+    "pi labs": "https://pilabs.vc/careers",
     "pictet": "https://www.group.pictet/careers/students-graduates",
+    "pictet asset management": "https://bit.ly/3m4gifh",
     "pimco": "https://www.pimco.co.uk/en-gb/our-firm/careers",
     "pinion": "https://careers.smartrecruiters.com/PinionSoftware",
+    "pinsent masons": "https://www.pinsentmasons.com/careers/early-talent",
     "piper sandler": "http://www.pipersandler.com/careers",
+    "pitchbook": "https://bit.ly/3K9RXgi",
     "pjt partners": "https://pjtpartners.com/careers",
+    "pkf francis clark": "https://apply.pkf-francisclark.co.uk/jobs/home/",
     "pkf littlejohn": "https://pkflittlejohn.com/careers",
+    "pkf smith cooper": "https://pkfsmithcooper.teamtailor.com/",
+    "platform_": "https://platform.life/",
+    "playfair": "https://playfair.vc/",
+    "plexe ai": "https://www.plexe.ai/",
+    "plural strategy": "https://www.pluralstrategy.com/careers/",
+    "pmsi": "https://pmsi-consulting.com/careers",
     "point72": "https://point72.com/students-early-career/",
+    "polen capital": "https://www.polencapital.com/careers",
+    "police scotland": "https://www.scotland.police.uk/jobs",
+    "porsche": "https://www.porsche.com/international/aboutporsche/jobs",
+    "poten & partners": "https://www.poten.com/join-us/",
+    "pqshield": "https://pqshield.com/careers/",
+    "predictx": "https://jobs.lever.co/pibenchmark",
+    "premium credit": "https://careers.premiumcredit.com/view-all-vacancies",
+    "principal asset management": "https://www.principal.com/about-us/careers",
+    "private equity insights": "https://pe-insights.com/careers",
+    "prodigy finance": "https://prodigyfinance.com/careers/",
     "propeterra": "https://www.propeterra.com/investments",
     "protiviti": "https://www.protiviti.com/us-en/careers",
+    "proxima": "https://proximagroup.com/careers",
+    "proxisense": "https://proxisense.com/",
     "psp investments": "https://www.investpsp.com/en/work/careers/",
+    "punter southall": "https://careers.puntersouthallgroup.com/vacancies",
+    "putnam": "https://www.putassoc.com/join-putnam",
     "pwc": "https://www.pwc.co.uk/careers/early-careers/our-programmes/graduate-opportunities/deals.html",
     "pwc deals advisory": "https://www.pwc.co.uk/careers/student-careers/undergraduate-graduate-careers/our-programmes/graduate-opportunities/deals.html",
     "q5 partners": "https://q5partners.com/careers/",
     "qatalyst partners": "https://qatalyst.com/",
+    "qinetiq": "https://careers.qinetiq.com/content/Early-Careers/",
+    "quadrature": "https://quadrature.ai/careers/join-us/",
+    "quadreal": "https://quadreal.com/careers",
+    "qualcomm": "https://careers.qualcomm.com/careers",
     "quantbot technologies": "https://www.quantbot.com/careers/",
+    "quantcast": "https://www.quantcast.com/careers/",
+    "quantum dice": "https://quantum-dice.com/careers",
+    "quantum light": "https://apply.workable.com/quantumlight/?lng=en",
+    "quantuma": "https://www.k3capitalgroup.com/careers/quantuma-early-careers/",
     "qube rt": "https://www.qube-rt.com/careers",
+    "queueco": "https://www.queueco.com/",
+    "quilter": "https://careers.quilter.com/",
+    "raine group": "https://jobs.lever.co/raine",
+    "ranmore fund management": "https://ranmorefunds.com/",
+    "rathbones": "https://yourcareer.rathbones.com/content/Careers-at-Rathbones/?locale=en_GB",
     "raymond james": "https://www.raymondjames.com/careers/",
+    "rbb economics": "https://www.rbbecon.com/careers/",
     "rbc capital markets": "https://www.rbccm.com/en/careers/campus-recruiting.page",
     "record cm": "https://www.recordcm.com/early-careers/why-join-record",
+    "red bull": "https://jobs.redbull.com/gb-en/microsite/graduate-program",
+    "redalpine": "https://www.redalpine.com/career",
+    "redburn": "https://bit.ly/3ZAI0hy",
+    "rede partners": "https://bit.ly/3MknKh4",
+    "redevco": "https://bit.ly/4iC4XeS",
+    "redgate": "https://www.red-gate.com/our-company/careers/interns/",
     "redington": "https://redington.co.uk/about/careers-at-redington/",
+    "related argent": "https://relatedargent.co.uk/",
+    "relay": "https://www.relaytech.co/careers#jobs_list",
+    "relx": "https://www.relx.com/careers",
+    "renishaw": "https://www.renishaw.com/en/careers--6417",
+    "reply": "https://www.reply.com/en/about/careers",
+    "retail insights": "https://job-boards.greenhouse.io/retailinsights",
+    "revaia": "https://careers.smartrecruiters.com/Revaia",
+    "revolut": "https://bit.ly/47CaJIv",
+    "rigpa.ai": "https://www.rigpa.ai/",
     "ripple": "https://ripple.com/careers/all-jobs/",
+    "risktec solutions": "https://risktec.tuv.com/join-risktec/",
+    "riverlane": "https://www.riverlane.com/jobs",
     "robinhood": "https://careers.robinhood.com/",
     "rockefeller capital management": "https://www.rockefellercapital.com/careers/",
     "rokos capital management": "https://www.rokoscapital.com/home#careers",
+    "roku": "https://www.weareroku.com/",
     "roland berger": "https://www.rolandberger.com/en/Join/Your-Opportunity/Career-Starter/",
+    "rolls-royce": "https://bit.ly/47wKIKE",
+    "rossera": "https://www.rossera.com/=",
+    "rothesay": "https://www.rothesay.com/about-us/working-here/careers/",
     "rothschild & co": "https://www.rothschildandco.com/en/careers/students-and-graduates/programmes/",
     "rothschild & co.": "https://www.rothschildandco.com/en/careers/",
     "royal bank of canada": "https://rbc.wd3.myworkdayjobs.com/RBCEARLYTALENT1",
+    "royal caribbean group": "https://jobs.royalcaribbeangroup.com/",
+    "royal london": "https://jobs.royallondon.com/",
+    "royal park partners": "https://www.royalparkpartners.com/",
+    "rpc": "https://www.rpclegal.com/careers/",
+    "rsk group": "https://rskgroup.com/careers/",
     "rsm": "https://www.rsmuk.com/careers",
+    "rsm uk": "https://careers.rsmuk.com/uk/en",
     "ruffer": "https://www.ruffer.co.uk/About/Careers",
+    "runna": "https://www.runna.com/",
+    "russell investments": "https://russellinvestments.com/content/ri/us/en/about-us/careers.html",
+    "rwe": "https://www.rwe.com/en/rwe-careers-portal/",
+    "ryan specialty": "https://ryanspecialty.com/careers",
+    "ryanair": "https://careers.ryanair.com/jobs/",
     "rystad energy": "https://apply.workable.com/rystad-energy/",
     "s&p global": "https://www.spglobal.com/en/careers/overview/",
+    "s&w": "https://www.swgroup.com/careers/early-careers/",
+    "saffery": "https://www.saffery.com/careers/early-careers/",
+    "safran": "https://www.safran-group.com/jobs",
+    "salesforce": "https://www.salesforce.com/company/careers/locations/emea/uk/?bc=OTH",
+    "saltgate": "https://saltgate.com/careers/",
+    "samsara": "https://www.samsara.com/uk/company/careers/roles",
+    "samsung": "https://www.samsung.com/uk/aboutsamsung/careers/emerging-talent/graduate-opportunities/",
+    "sanctuary group": "https://jobs.sanctuary-group.co.uk/go/Sanctuary-Group/1176301/",
+    "sandbrook capital": "https://sandbrook.com/",
     "santander": "https://www.santander.com/en/careers/where-you-want-to-create-an-impact/students-recent-graduates/early-careers",
+    "sap": "https://jobs.sap.com/content/students",
     "savills": "https://www.savills.co.uk/contact-us/careers.aspx",
     "savills investment management": "https://www.savills.com/why-savills/careers.aspx",
     "sbf advisors": "https://sorren.com/firm/careers/recent-grads-interns/",
+    "scania financial services": "https://www.scania.com/uk-finance/en/home/career.html",
     "schneider downs": "https://schneiderdowns.com/careers/",
+    "schonfeld": "https://www.schonfeld.com/careers/",
     "schroders": "https://schroders.referrals.selectminds.com/careers",
     "scotiabank": "https://www.scotiabank.com/careers/en/careers.html",
+    "scottishpower": "https://www.scottishpower.com/pages/careers.aspx",
     "sculptor capital": "https://www.sculptor.com/careers",
+    "sculptor capital management": "https://www.sculptor.com/careers/internships",
+    "seabury capital": "https://www.seaburycapital.com/careers/",
+    "seb group": "https://sebgroup.com/career",
+    "secretariat": "https://secretariat-intl.com/careers",
     "segro": "https://www.segro.com/careers",
     "selby jennings": "https://www.selbyjennings.com/en-us/jobs",
+    "serafin group": "https://www.serafin-gruppe.de/en/career/",
+    "seraphim space": "https://seraphim.vc/about/team/",
+    "severn trent": "https://bit.ly/3ZaFTTh",
+    "shakespeare martineau": "https://careers.ampa.co.uk/en/shma#js-careers-jobs-block",
+    "shawbrook": "https://www.shawbrook.co.uk/about-us/careers/",
     "shell": "https://www.shell.co.uk/careers.html",
+    "shephard & co.": "https://www.shepherdandco.com/vacancies/",
+    "shoosmiths": "https://www.shoosmiths.com/careers/careers-legal-professionals",
+    "shop circle": "https://shopcircle.co/pages/careers",
+    "siemens": "https://www.siemens.com/en-us/company/jobs/",
+    "siemens energy": "https://www.siemens-energy.com/global/en/home/careers/early-career-programs.html",
     "sig": "https://sig.com/campus-programs/trading/",
+    "sigma labs": "https://www.sigmalabs.co.uk/our-careers",
+    "silverpeak": "https://www.silverpeakib.com/careers/",
+    "silvertide": "https://www.silvertidefinancial.com/",
+    "simmons & simmons": "https://www.simmons-simmons.com/en/about-us/careers",
     "simon-kucher": "https://www.simon-kucher.com/en?page=2",
+    "singer capital markets": "https://www.singercm.com/careers/",
+    "siriuspoint": "https://job-boards.eu.greenhouse.io/siriuspoint",
+    "situsamc": "https://careers.situsamc.com/",
+    "sixth street": "https://sixthstreet.com/careers",
+    "skarbek": "https://www.skarbek.com/careers/",
+    "skill capital": "https://www.skillcapital.com/",
     "sky": "https://careers.sky.com/",
+    "skybound wealth management": "https://www.skyboundwealth.com/careers/job-listings",
     "slate asset management": "https://slateasset.com/careers/",
+    "slaughter and may": "https://www.slaughterandmay.com/careers/",
+    "slb": "https://careers.slb.com/early-careers",
+    "smartestenergy": "https://smartestenergy.teamtailor.com/jobs",
     "smbc": "https://www.smbcgroup.com/careers",
+    "snap": "https://careers.snap.com/jobs",
+    "snyk": "https://snyk.io/careers/",
     "soci\u00e9t\u00e9 g\u00e9n\u00e9rale": "https://www.societegenerale.co.uk/en/careers/",
+    "société générale": "https://careers.societegenerale.com/en/students-graduates",
+    "softcat": "https://www.softcat.com/careers",
     "softwire": "https://www.softwire.com/careers/",
     "solomon partners": "https://www.solomonpartners.com/about-us/careers/",
     "sompo international": "https://www.somepo-intl.com/en/about/careers/",
+    "sona asset management": "https://bit.ly/4fYs5Sa",
+    "soros fund management": "https://bit.ly/3NVa3F7",
+    "south wales police": "https://bit.ly/406oihc",
+    "southern housing": "https://southernhousing.current-vacancies.com/Careers/Optivo%20VSP-2019",
+    "southern water": "https://www.southernwater.co.uk/about-us/careers/",
     "spaice": "https://jobs.ashbyhq.com/spaice-tech",
+    "sparklayer": "https://www.sparklayer.io/",
+    "speechmatics": "https://www.speechmatics.com/company/careers",
+    "spence & partners": "https://spenceandpartnerscareers-3173.icims.com/jobs/search?ss=1%3F",
+    "spirax group": "https://www.spiraxgroup.com/en/life-at-spirax/careers",
+    "spirit aerosystems": "https://careers.spiritaero.com/jobs",
     "splunk": "https://www.splunk.com/en_us/careers.html",
+    "sportlight technology": "https://www.sportlight.ai/",
+    "sportrader": "https://sportradar.com/careers/",
     "spotify": "https://www.lifeatspotify.com/",
+    "spreadex": "https://careers.spreadex.com/",
     "squarepoint capital": "https://www.squarepointcap.com/careers",
+    "squire patton boggs": "https://www.squirepattonboggs.com/en/careers",
+    "srlv": "https://www.srlv.co.uk/careers",
     "st james's place": "https://www.sjp.co.uk/careers",
     "st. modwen": "https://www.forcesfamiliesjobs.co.uk/employer-directory/st-modwen-properties/129/",
     "standard chartered": "https://www.sc.com/en/global-careers/",
     "standard life aberdeen": "https://www.abrdn.com/corporate/careers/early-careers",
+    "stantec": "https://www.stantec.com/uk/careers",
+    "starling bank": "https://apply.workable.com/starling-bank/",
+    "starlizard": "https://starlizard.com/join-our-team",
+    "state street": "https://careers.statestreet.com/global/en/state-street-early-careers",
     "state street corporation": "https://careers.statestreet.com/",
     "stax": "https://apply.workable.com/staxpayments/",
     "stellex": "https://stellexcapital.pinpointhq.com/",
     "stephens": "https://www.stephens.com/careers/",
+    "stephenson harwood": "https://www.stephensonharwood.com/careers",
+    "stepstone group": "https://www.stepstonegroup.com/who-we-are/working-at-stepstone-culture/",
+    "stfc": "https://stfccareers.co.uk/",
     "stifel": "https://stifelinstitutional.com/careers/campus-entry-level/",
+    "stj advisors": "https://www.stjadvisors.com/careers",
+    "stmicroelectronics": "https://www.st.com/content/st_com/en/about/careers.html",
+    "stolt-nielsen": "https://bit.ly/49eyBly",
+    "stonex": "https://uk-stonex.icims.com/",
+    "stout": "https://www.stout.com/en/careers",
     "strategy&": "https://www.strategyand.pwc.com/uk/en/careers/graduates-and-interns.html",
     "stripe": "https://stripe.com/jobs",
+    "sunrise real estate": "https://www.sunrise-re.com/",
     "superbet": "http://job-boards.eu.greenhouse.io/superbet",
     "susquehanna international group": "https://sig.com/campus-programs/",
+    "svv": "https://www.svv.ai/",
+    "sweco": "https://careers.sweco.co.uk/Home/Job",
     "sweeney conrad": "https://www.sweeneyconrad.com/careers/",
+    "symphony": "https://symphony.com/company/careers/",
+    "syntagma labs": "https://syntagmalabs.com/",
+    "synthesis": "https://www.linkedin.com/company/synthesisim",
     "t rowe price": "https://www.troweprice.com/corporate/uk/en/careers/early-career.html",
     "t. rowe price": "https://troweprice.wd5.myworkdayjobs.com/TRowePrice",
+    "t.capital": "https://www.t.capital/#careers",
     "talos": "https://jobs.ashbyhq.com/Talos-Trading",
+    "tarmac": "https://tarmaccareers.com/early-careers/",
+    "tata consultancy services": "https://www.tcs.com/careers",
     "taylor root": "https://www.taylorroot.com/jobs/",
+    "td cowen": "https://www.tdsecurities.com/ca/en",
     "td securities": "https://www.tdsecurities.com/ca/en/careers",
+    "te connectivity": "https://careers.te.com/",
+    "tech mahindra": "https://www.techmahindra.com/careers",
+    "tekever": "https://careers.tekever.com/",
+    "telent": "https://telent.com/careers/early-careers",
     "temasek": "https://www.temasek.com.sg/en/careers",
+    "tempocap": "https://www.tempocap.com/",
     "tencent": "https://careers.tencent.com/",
+    "teneo": "https://bit.ly/40D1X8E",
+    "tenzing": "https://tenzing.pe/careers/",
+    "tesco": "https://www.tesco.com/careers/en-GB",
+    "textron": "https://careers.textron.com/",
+    "teza technologies": "https://www.teza.com/careers/",
+    "tgw logistics": "https://www.tgw-group.com/en/career/jobs",
+    "thales": "https://careers.thalesgroup.com/global/en/studentandgraduates2",
+    "the brattle group": "https://www.brattle.com/careers/",
     "the carlyle group": "https://www.carlyle.com/about-carlyle/careers",
     "the coast partnership ltd": "https://mycareer.aicpa-cima.com/job/14392673/financial-adviser/?TrackID=6&utm_source=rss&utm_medium=feed&utm_campaign=general",
+    "the dot group": "https://www.thedotgroup.com/",
+    "the economist": "https://www.economist.com/topics/economist-jobs",
     "the guardian": "http://workwithus.theguardian.com/job-search",
+    "the trade desk": "https://careers.thetradedesk.com/jobs",
+    "the very group": "https://theverygroup.jobs/",
+    "the wall street journal": "https://wsj.jobs/jobs/",
+    "the walt disney company": "https://www.disneycareers.com/en/students-and-recent-graduates",
+    "thecityuk": "https://thecityuk.teamtailor.com/jobs",
+    "thermo fisher": "https://jobs.thermofisher.com/global/en/c/students-internships-jobs",
+    "third bridge": "https://bit.ly/3OJHEmB",
+    "thought machine": "https://www.thoughtmachine.net/",
+    "threataware": "https://threataware.com/careers",
+    "tiaa": "https://careers.tiaa.org/earlytalent",
     "tidal partners": "https://tidalpartners.breezy.hr/",
+    "tide insurance": "https://tideinsurance.com/",
     "tikehau capital": "https://www.tikehaucapital.com/careers/working-at-tikehau-capital",
     "tiktok": "https://careers.tiktok.com/",
+    "tioopo capital": "https://www.tioopocapital.com/careers",
+    "tishman speyer": "https://www.tishmanspeyer.com/careers",
+    "titanbay": "https://app.screenloop.com/careers/titanbay/",
+    "tjx": "https://jobs.tjx.com/global/en/earlycareer",
+    "tlt": "https://www.tlt.com/careers/early-careers",
     "torch partners": "https://www.torchpartners.com/enquiries",
+    "torq commodities": "https://careers.torqcommodities.com/jobs/Careers",
     "tower peak partners": "http://job-boards.greenhouse.io/towerpeak",
     "tower research capital": "https://www.tower-research.com/careers",
     "towerbrook capital partners": "https://www.towerbrook.com/careers",
     "tp icap": "https://careers.tpicap.com/",
     "tpp": "https://tpp-careers.com/",
+    "tpt retirement solutions": "https://www.tpt.co.uk/careers/",
+    "tradeweb": "https://bit.ly/3ZiodXJ",
+    "trading 212": "https://app.trading212.com/",
+    "tradition": "https://www.tradition.com/careers/launching-your-career.aspx",
+    "trainline": "https://www.trainlinegroup.com/careers/en/",
+    "transport for london": "https://tfl.gov.uk/corporate/careers",
+    "travelers": "https://careers.travelers.com/",
+    "travelport": "https://www.travelport.com/careers",
+    "travers smith": "https://www.traverssmith.com/join-us/vacancies/",
     "trillium trading": "https://careers.rhsmith.umd.edu/jobs/trillium-trading-llc-experienced-equity-trader/",
+    "trinity life sciences": "https://trinitylifesciences.com/company/careers/early-talent/",
+    "triodos bank": "https://www.triodos.co.uk/careers",
+    "triton": "https://tritonpartners.wd3.myworkdayjobs.com/External",
+    "trowers & hamlins": "https://www.trowers.com/careers",
+    "tsg": "https://www.tsg.com/careers",
+    "ttp": "https://www.ttp.com/careers/experienced-professionals",
+    "tudor group": "https://www.tudorfunds.com/home",
+    "turner & townsend": "https://www.turnerandtownsend.com/join-us/early-careers/",
     "turner and townsend": "https://www.turnerandtownsend.com/en/careers/",
+    "twm solicitors": "https://careers.twmsolicitors.com/vacancies/",
     "two sigma": "https://www.twosigma.com/careers/",
+    "tws partners": "https://www.tws-partners.com/career/",
     "ubs": "https://www.ubs.com/global/en/careers.html",
+    "ufenau capital partners": "https://ucp.ch/en",
+    "uipath": "https://www.uipath.com/careers",
+    "uk atomic energy authority": "https://careers.ukaea.uk/current-vacancies/",
+    "ultra i&c": "https://www.ultra-ic.com/careers",
+    "uncapped": "https://www.weareuncapped.com/gb/careers",
+    "unilever": "https://careers.unilever.com/early-careers-at-unilever",
+    "united trust bank": "https://utbank.livevacancies.co.uk/#/",
+    "united utilities": "https://www.unitedutilities.com/corporate/careers",
+    "universal music group": "https://www.universalmusic.com/careers/",
+    "ups": "https://www.jobs-ups.com/uk/en",
     "upsilon family": "https://upsilonfamily.com/",
+    "urban jungle": "https://myurbanjungle.com/explore/careers",
+    "urenco": "https://bit.ly/4iETATh",
+    "us bancorp": "https://careers.usbank.com/global/en/home",
+    "uss": "https://www.usscareers.co.uk/london/",
+    "valor real estate partners": "https://valorrep.com/",
+    "valsoft corporation": "https://www.valsoftcorp.com/careers/",
+    "valtari": "https://www.valtari.com/about/careers",
+    "valyu": "https://www.valyu.ai/careers",
+    "van lanschot kempen": "https://careers.vanlanschotkempen.com/en-nl/vacancies",
     "vanguard": "https://www.vanguardjobs.com/early-talent/",
     "vantedge partners": "https://www.lvepartners.com/careers/",
     "vcmt": "https://v-cmt.com/careers",
+    "veeva": "https://careers.veeva.com/job-search-results/?search=&remote=false&ts=&regions=&office_locations=",
+    "vela software": "https://velasoftwaregroup.com/jobs/",
+    "vencap": "https://www.vencap.com/careers/",
+    "venero capital advisors": "https://www.venerocapitaladvisors.com/careers",
+    "ventus industrial partners": "https://www.ventusindustrial.com/",
+    "verdane": "https://bit.ly/3DB3wgB",
+    "vericor capital": "https://vericorcapital.co.uk/",
     "verisk": "https://www.verisk.com/careers/",
     "veritas education recruitment ltd": "https://careers.tesol.org/job/89434/english-teacher-blackburn/",
     "verition fund management": "https://builtin.com/company/verition-fund-management/jobs",
+    "viasat": "https://careers.viasat.com/earlycareers",
+    "viator": "https://www.viator.com/en-GB/careers",
+    "vinci construction": "https://www.vinci-building.co.uk/work-with-us/vacancies",
     "virgin media o2": "https://careers.virginmediao2.co.uk/",
+    "virtu financial": "https://www.virtu.com/careers/",
     "virtus talent": "https://www.virtustalent.co.uk/vacancies",
+    "visa": "https://bit.ly/3KbGX1H",
+    "vitec": "https://www.vitec.com/about/careers",
+    "vitol": "https://www.vitol.com/vitol-early-careers/",
+    "vixio": "https://www.vixio.com/careers",
+    "vodafone": "https://bit.ly/3VwCJZ3",
     "volcore": "https://www.volcore.co.uk/careers",
     "voloridge investment management": "https://www.voloridge.com/join-our-team",
+    "vwfs": "https://www.vwfs.com/en/career.html",
+    "w. p. carey": "https://www.wpcarey.com/about-us/working-at-wpc",
+    "wahed": "https://www.wahed.com/global/career",
+    "walker morris": "https://www.walkermorris.co.uk/join-us/vacancies",
     "walter scott": "https://www.walterscott.com/careers/",
+    "warburg pincus": "https://warburgpincus.com/careers/",
     "warner bros. discovery": "https://careers.wbd.com/",
+    "warwick finance societies": "https://www.warwickfinancesocieties.org/",
+    "waterland private equity": "https://bit.ly/3MiYsA8",
+    "watkins jones group": "https://watkinjonesplc.com/careers",
+    "watson farley & williams": "https://www.wfw.com/careers",
+    "watson woodhouse & macks solicitors": "https://watsonwoodhousegroup.hrpartner.io/jobs",
+    "wealthtime": "https://careers.wealthtime.com/vacancies.html",
+    "weatherbys private bank": "https://www.weatherbys.bank/about-us/careers/internships/",
+    "weightmans": "https://www.weightmans.com/careers",
     "wellington management": "https://www.wellington.com/en/careers/",
     "wells fargo": "https://www.wellsfargojobs.com/en/",
+    "welltower": "https://bit.ly/49fIRue",
+    "welsh power": "https://www.welshpower.com/",
+    "west hill capital": "https://westhillcapital.co.uk/",
+    "westgrove": "https://westgrove.com/",
+    "whitbread": "https://www.whitbreadcareers.com/search-and-apply/",
+    "white & case": "https://bit.ly/3ZiakJ2",
+    "white fire technologies": "https://whitefiretechnologies.com/careers",
+    "wilkin chapman rollits": "https://www.wilkinchapmanrollits.co.uk/careers#list",
     "william blair": "https://www.williamblair.com/Careers.aspx",
     "willis tower watson": "https://careers.willistowerswatson.com/early-careers/",
+    "wilmington trust": "https://www.wilmingtontrust.com/careers",
+    "wilsons llp": "https://www.wilsonsllp.com/careers/current-vacancies",
     "wincent": "https://jobs.ashbyhq.com/wincent",
+    "winterflood securities": "https://www.winterflood.com/contact-us",
+    "wintermute": "https://www.wintermute.com/company",
     "winton capital": "https://www.winton.com/working-at-winton",
+    "wise": "https://wise.jobs/",
+    "withers": "https://www.withersworldwide.com/en-gb/careers",
+    "withsecure": "https://www2.withsecure.com/en/about-us/careers-at-withsecure",
+    "wizecap": "https://www.wizecap.net/",
+    "womble bond dickinson": "https://bit.ly/3zisHmr",
+    "wood mackenzie": "https://www.woodmac.com/careers/overview/",
+    "woozle research": "https://apply.workable.com/woozle-research/",
     "wtw": "https://careers.wtwco.com/",
     "xantium": "https://job-boards.greenhouse.io/xantium/jobs/7094436",
+    "xmg": "http://thexmg.com/",
+    "xtx markets": "https://www.xtxmarkets.com/#careers",
+    "yfm equity partners": "https://yfmep.com/",
+    "yh2 capital": "https://bit.ly/4g10nV8",
+    "yorkshire water": "https://mycareers.yorkshirewater.com/",
+    "zaoui & co": "https://zaoui-co.sainoo.com/careers",
     "ziegler": "https://zieglercat.wd1.myworkdayjobs.com/en-us/zieglercat/job/sales-account-manager---ag_2026-1159",
+    "zopa": "https://careers.zopa.com/",
     "zs": "https://www.zs.com/careers",
-    "zurich insurance": "https://www.zurich.com/en/about-us/careers"
+    "zurich insurance": "https://www.zurich.com/en/about-us/careers",
+    "ørsted": "https://orsted.com/en/careers/vacancies-list"
   };
+
+  const _LOGO_OVERRIDES = {
+    'mckinsey & company': '/static/mckinsey-company.png',
+    'mckinsey':           '/static/mckinsey-company.png',
+    'ardian':             '/static/ardian.png',
+  };
+  function getLogoUrl(job) {
+    const key = (job.company || '').toLowerCase().trim();
+    if (_LOGO_OVERRIDES[key]) return _LOGO_OVERRIDES[key];
+    const raw = job.careers_site || '';
+    const site = (raw && !raw.includes('bit.ly')) ? raw : (getCareerSite(job.company) || '');
+    try {
+      const domain = new URL(site).hostname.replace(/^www\./, '');
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+    } catch { return ''; }
+  }
 
   function getCareerSite(company) {
     const key = (company || '').toLowerCase().trim();
@@ -1767,6 +2855,7 @@
         <div class="card-row">
           <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
           <div class="card-left">
+            ${(() => { const lu = getLogoUrl(job); return lu ? `<img class="card-logo" src="${lu}" alt="" onerror="this.outerHTML='<span class=\\'card-logo-placeholder\\'></span>'">` : '<span class="card-logo-placeholder"></span>'; })()}
             <span class="card-company">${esc(job.company)}</span>
             <span class="card-programme">${esc(job.programme)}</span>
           </div>
@@ -1865,6 +2954,44 @@
   }
 
   // ── Select a lead → render email draft ──
+
+  async function personaliseDraft(lead, job) {
+    const btn   = document.getElementById('personalise-btn');
+    const badge = document.getElementById('ai-confirmed');
+    if (!btn || btn.disabled) return;
+    btn.innerHTML = '<span class="btn-spinner-sm"></span>';
+    btn.disabled  = true;
+    if (badge) badge.style.display = 'none';
+
+    try {
+      const r = await apiFetch('/api/draft/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          match_id:     null,
+          person_name:  lead.name   || '',
+          person_title: lead.title  || '',
+          company:      job.company || '',
+          job_title:    job.programme || job.title || '',
+          is_alumni:    !!lead.is_alumni,
+        }),
+      });
+      if (r && r.ok) {
+        const { subject, body, personalised } = await r.json();
+        const subjEl = document.getElementById('draft-subject');
+        const bodyEl = document.getElementById('draft-body-text');
+        if (subject && subjEl) subjEl.value = subject;
+        if (body    && bodyEl) bodyEl.value = body;
+        if (badge) badge.style.display = personalised ? '' : 'none';
+      }
+    } catch (e) {
+      console.error('Personalise failed:', e);
+    } finally {
+      btn.innerHTML = 'Personalise ✨';
+      btn.disabled  = false;
+    }
+  }
+
   function selectLead(lead, job) {
     selectedLeadId = lead.id;
     leadsBody.querySelectorAll('.lead-card').forEach(c =>
@@ -1878,11 +3005,12 @@
     const bio         = (currentUser?.bio || '').trim();
     const myFirstName = currentUser?.name ? currentUser.name.trim().split(/\s+/)[0] : '';
 
-    const msgBodyA = `Hi ${firstName},\n\nI hope you don't mind the message. I came across your profile while researching opportunities at ${job.company} and was impressed by your background in ${lead.title || 'the industry'}.\n\n${bio ? bio + '\n\n' : ''}I'm currently applying for the ${job.programme} role and would love any insight you could share about the team or application process, even a 15-minute call would be incredibly helpful.\n\nThanks so much${myFirstName ? '\n' + myFirstName : ''}`;
+    const msgBodyA = `Hi ${firstName},\n\nI hope you don't mind the message. I came across your profile while researching opportunities at ${job.company} and was impressed by your background in ${lead.title || 'the industry'} at ${job.company}.\n\n${bio || `I have a keen interest in the ${job.programme || 'sector'}`}.\n\nI'm currently applying for the ${job.programme} role.\nWould you be open to sharing any insight on the team or what you look for in candidates?\n\nThanks so much${myFirstName ? ',\n' + myFirstName : ''}`;
 
-    const msgBodyB = `Dear ${firstName},\nI know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.\n${bio || `I'm a student with a keen interest in ${job.company}.`}\n\nWhat do you think are the most critical skills or qualities that an aspiring researcher should possess, given the current market dynamics? Specifically, what attributes do you look for in your team?\n\nI totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.\nAll the best${myFirstName ? '\n' + myFirstName : ''}`;
+    const msgBodyB = `Dear ${firstName},\n\nI know you are incredibly busy and get a lot of emails so this will only take 30 seconds to read.\n\n${bio || `I have a keen interest in ${job.company || 'this area'}`}.\n\nWhat do you think are the most critical skills or qualities that an aspiring professional should possess, given the current market dynamics? Specifically, what attributes do you look for in your team?\n\nI totally understand if you are too busy to reply. Even a 1 or 2 line response will completely make my day.\n\nAll the best${myFirstName ? ',\n' + myFirstName : ''}`;
 
-    const msgBody = ((lead.id || 0) % 2 === 0) ? msgBodyA : msgBodyB;
+    const leadIndex = (job.leads || []).findIndex(l => l.id === lead.id);
+    const msgBody = (leadIndex % 2 === 0) ? msgBodyA : msgBodyB;
 
     draftPanelTitle.textContent = `Draft to ${firstName}`;
 
@@ -1906,12 +3034,12 @@
 
     const toFieldHtml = to ? `
       <div class="draft-field">
-        <div class="draft-label" style="display:flex;align-items:center;gap:6px;">To ${tooltipHtml}</div>
+        <div class="draft-label">To</div>
         ${emailVisible
           ? `<input class="draft-input" id="draft-to" value="${esc(to)}">`
           : `<div class="email-reveal-wrap">
                <input class="draft-input email-blurred" id="draft-to" value="${esc(to)}" readonly tabindex="-1">
-               ${!locked ? `<button class="btn-reveal" id="reveal-btn">Reveal email</button>` : ''}
+               ${!locked ? `<span class="tooltip-wrap"><button class="btn-reveal" id="reveal-btn">Reveal email</button><span class="tooltip-box tooltip-box--left">This is the expected email based on ${esc(job.company)}'s standard format. inroad does not store personal employee data.</span></span>` : ''}
              </div>`}
       </div>` : '';
 
@@ -1926,12 +3054,14 @@
     // Show all 3 action buttons even when locked (they appear blurred)
     const actionsHtml = `
       <div class="draft-actions">
+        <button class="btn-personalise" id="personalise-btn">Personalise ✨</button>
         <button class="btn-copy" id="copy-btn">Copy to clipboard</button>
         ${to ? `<a href="mailto:${esc(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msgBody)}" class="btn-mailto" id="mailto-btn">Open in email app</a>` : ''}
         ${(locked && !revealed)
           ? `<button class="btn-outlook" disabled>Send via Outlook</button>`
           : `<span id="outlook-btn-wrap"></span>`}
         <span class="copy-confirm" id="copy-confirm">Copied!</span>
+        <span class="ai-confirmed" id="ai-confirmed">✨ AI personalised</span>
       </div>`;
 
     // Blur the draft content only when locked AND this lead's email hasn't been revealed
@@ -1978,6 +3108,9 @@
     document.getElementById('mailto-btn')?.addEventListener('click', () => {
       if (!draftLocked) incrementReveal(lead.id);
     });
+
+    // Personalise ✨ — calls Gemini via /api/draft/regenerate
+    document.getElementById('personalise-btn')?.addEventListener('click', () => personaliseDraft(lead, job));
 
     // Copy to clipboard — no counter increment (reveal is the gate)
     document.getElementById('copy-btn')?.addEventListener('click', () => {
@@ -2040,6 +3173,7 @@
         wrap.innerHTML = `<a href="/login?next=/opportunities" class="btn-outlook-connect">Connect Outlook</a>`;
       }
     });
+
   }
 
   // ── Blurred profile photo pool ──
@@ -2100,13 +3234,76 @@
   // ── Shared helpers ──
   const LI_ICON = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`;
 
+  // Company names that must never appear as university tags (with or without
+  // a trailing " University" / " College" suffix scraped from LinkedIn).
+  const _KNOWN_FIRMS = new Set([
+    'goldman sachs', 'goldman', 'gs',
+    'jpmorgan chase', 'jpmorgan', 'j.p. morgan', 'jp morgan',
+    'morgan stanley',
+    'barclays', 'barclays capital', 'barcap',
+    'deutsche bank', 'db',
+    'credit suisse', 'cs',
+    'hsbc', 'hsbc holdings',
+    'ubs',
+    'jefferies',
+    'blackrock',
+    'citadel', 'citadel securities',
+    'two sigma',
+    'jane street', 'jane street capital',
+    'mckinsey & company', 'mckinsey', 'mck',
+    'boston consulting group', 'bcg',
+    'bain & company', 'bain',
+    'oliver wyman',
+    'deloitte',
+    'kpmg',
+    'ey', 'ernst & young',
+    'pwc', 'pricewaterhousecoopers',
+    'accenture',
+    'google', 'alphabet',
+    'meta', 'facebook',
+    'apple',
+    'amazon', 'aws',
+    'microsoft',
+    'stripe',
+    'revolut',
+    'monzo',
+    'wise',
+    'palantir',
+    'databricks',
+    'scale ai',
+    'openai',
+    'anthropic',
+    'canva',
+    'figma',
+    'sequoia capital',
+    'index ventures',
+    'andreessen horowitz', 'a16z',
+    'general catalyst',
+    'clifford chance',
+    'linklaters',
+    'allen & overy',
+    'freshfields',
+    'slaughter and may',
+    'astrazeneca',
+    'glaxosmithkline', 'gsk',
+    'pfizer',
+    'unilever',
+    'bytedance',
+    'shell',
+    'tikehau capital',
+    'l.e.k. consulting',
+  ]);
+
   function isValidUniversity(name) {
     if (!name) return false;
-    const lower = name.toLowerCase();
+    const lower = name.toLowerCase().trim();
     // Filter out degree descriptions masquerading as university names
     if (/\bbsc\b|\bhons\b|\bba\b|\bma\b|\bmsc\b|\bphd\b|\bdegree\b|\bgraduate\b|\brecent\b|\bstudent\b|\beconomics\b/.test(lower)) return false;
     if (name.trim().split(/\s+/).length > 7) return false;
     if (lower === 'university of york' || lower === 'york university') return false;
+    // Reject company names (exact match or with "University"/"College" suffix)
+    const stem = lower.replace(/\s+university$|\s+college$/, '').trim();
+    if (_KNOWN_FIRMS.has(stem) || _KNOWN_FIRMS.has(lower)) return false;
     return true;
   }
 
@@ -2136,17 +3333,9 @@
 
   // ── Pipeline right-click context menu ──
   const CTX_STAGES = [
-    { id: 'applied',  label: 'Applied and Pending',    color: '#E8960C' },
-    { id: 'hirevue',  label: 'HireVue / Tested',       color: '#D4C31E' },
-    { id: 'int1',     label: 'Interview #1',            color: '#9CC87A' },
-    { id: 'int2',     label: 'Interview #2',            color: '#72B050' },
-    { id: 'ac',       label: 'Assessment Centre',       color: '#3A7246' },
-    { id: 'offer',    label: 'Offer',                   color: '#1F4530' },
-    { id: 'rej-out',  label: 'Rejected Outright',       color: '#7F1D1D' },
-    { id: 'rej-hv',   label: 'Rejected after HV',       color: '#78716C' },
-    { id: 'rej-int1', label: 'Rejected after Int. #1',  color: '#78716C' },
-    { id: 'rej-int2', label: 'Rejected after Int. #2',  color: '#78716C' },
-    { id: 'rej-ac',   label: 'Rejected after AC',       color: '#78716C' },
+    { id: 'applied',  label: 'Applied & Pending',  color: '#E8960C' },
+    { id: 'hirevue',  label: 'Hirevue & Tested',   color: '#D4C31E' },
+    { id: 'int1',     label: 'Interview 1',         color: '#9CC87A' },
   ];
 
   const ctxMenu = document.getElementById('ctx-menu');
@@ -2187,11 +3376,13 @@
         closeCtxMenu();
       });
     });
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const mw = 200, mh = 40 * (CTX_STAGES.length + 2);
-    ctxMenu.style.left = (e.clientX + mw > vw ? e.clientX - mw : e.clientX) + 'px';
-    ctxMenu.style.top  = (e.clientY + mh > vh ? e.clientY - mh : e.clientY) + 'px';
     ctxMenu.classList.add('open');
+    const r = ctxMenu.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const left = e.clientX + r.width > vw ? e.clientX - r.width : e.clientX;
+    const top  = e.clientY + r.height > vh ? e.clientY - r.height : e.clientY;
+    ctxMenu.style.left = Math.max(0, left) + 'px';
+    ctxMenu.style.top  = Math.max(0, top) + 'px';
   }
 
   listingsEl.addEventListener('contextmenu', e => {
