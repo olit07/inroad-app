@@ -2358,7 +2358,7 @@ def api_opportunities():
             "region":         extract_region(r.get("raw") or ""),
             "opening_date":   r.get("opening_date") or "",
             "closing_date":   r.get("closing_date") or "",
-            "apply_url":      r.get("url") or "",
+            "apply_url":      r.get("url") or r.get("careers_site") or "",
             "careers_site":   r.get("careers_site") or "",
             "industry_label": _IND_LABEL.get(r.get("industry") or "", ""),
             "leads":          leads,
