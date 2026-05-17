@@ -96,6 +96,19 @@ UNI_ALIASES: dict[str, list[str]] = {
     "rhul":             ["royal holloway university of london", "royal holloway"],
     "goldsmiths":       ["goldsmiths university of london", "goldsmiths"],
     "open":             ["open university", "the open university"],
+    "queens_canada":    ["queen's university", "queens university", "queensu"],
+    # ── European / international ─────────────────────────────────────────────
+    "st_gallen":        ["university of st gallen", "university of st. gallen", "st gallen", "hsg"],
+    "escp":             ["escp business school", "escp europe", "escp"],
+    "hec":              ["hec paris", "hec"],
+    "bocconi":          ["bocconi university", "universita bocconi", "università bocconi"],
+    "sciences_po":      ["sciences po", "sciencespo"],
+    "insead":           ["insead"],
+    "ie":               ["ie business school", "ie university"],
+    "rotterdam":        ["erasmus university rotterdam", "erasmus university", "erasmus"],
+    "cbs":              ["copenhagen business school", "cbs"],
+    "whu":              ["whu otto beisheim school of management", "whu"],
+    "mannheim":         ["university of mannheim", "mannheim business school"],
     # ── US ───────────────────────────────────────────────────────────────────
     "harvard":          ["harvard university", "harvard"],
     "yale":             ["yale university", "yale"],
@@ -230,6 +243,21 @@ class LinkedInMatcher:
         self.serper_key   = os.environ.get("SERPER_API_KEY", "")    # primary
         self.serper_key_2 = os.environ.get("SERPER_API_KEY_2", "") # backup 1
         self.serper_key_3 = os.environ.get("SERPER_API_KEY_3", "") # backup 2
+
+        # Build ordered key pool: env vars first, then any Available keys from Notion
+        from pipeline.serper_keys import fetch_available_keys as _fetch_notion_keys
+        _env_keys = [k for k in [self.serper_key, self.serper_key_2, self.serper_key_3] if k]
+        try:
+            _notion_keys = _fetch_notion_keys()
+        except Exception:
+            _notion_keys = []
+        # Deduplicate — Notion may list keys already present as env vars
+        _seen = set(_env_keys)
+        _extra = [k for k in _notion_keys if k not in _seen]
+        self._serper_keys: list[str] = _env_keys + _extra
+        if _extra:
+            logger.info(f"Loaded {len(_extra)} additional Serper key(s) from Notion")
+        self.searxng_url = os.environ.get("SEARXNG_URL", "").rstrip("/")  # self-hosted, free
         self.brave_key   = os.environ.get("BRAVE_SEARCH_API_KEY", "") # fallback
         self.serp_key    = os.environ.get("SERPAPI_KEY", "")       # fallback
         # Warn if someone has the old dead Bing key set
@@ -324,11 +352,8 @@ class LinkedInMatcher:
         # ── Fallback: snippet search (Serper / Brave / SerpAPI) ─────────────
         # Only fires when primary sources (PDL/Apollo) returned nothing at all.
         # One call per company max — results cached for the session lifetime.
-        if not (self.serper_key or self.brave_key or self.serp_key):
-            logger.warning(
-                "No search API key set. Set SERPER_API_KEY as fallback."
-            )
-            return all_leads[:n]
+        if not (self.serper_key or self.searxng_url or self.brave_key or self.serp_key):
+            logger.info("No search backend configured — falling back to DDG (free).")
 
         cache_key = company.lower().strip()
         if cache_key in self._snippet_cache:
@@ -354,6 +379,8 @@ class LinkedInMatcher:
             results = self._brave_search(query, count=10)
         elif self.serp_key:
             results = self._serp_search(query, n=10)
+        else:
+            results = self._ddg_search(query, count=20)
 
         fresh_leads = []
         for r in results:
@@ -570,8 +597,8 @@ class LinkedInMatcher:
                 "university":       education[0]["school_name"] if education else "",
                 "linkedin_url":     linkedin_url,
                 "tenure_months":    tenure_months,
-                "location_country": (rec.get("location_country") or "").lower().strip(),
-                "location_city":    (rec.get("location_locality") or "").lower().strip(),
+                "location_country": (str(rec.get("location_country") or "")).lower().strip(),
+                "location_city":    (str(rec.get("location_locality") or "")).lower().strip(),
                 "is_alumni":        any(
                     is_alumni(e["school_name"], student_university)
                     for e in education
@@ -762,7 +789,8 @@ class LinkedInMatcher:
         Falls back to SERPER_API_KEY_2 if primary key is exhausted.
         """
         import urllib.request
-        keys_to_try = [k for k in [self.serper_key, self.serper_key_2, self.serper_key_3] if k]
+        from pipeline.serper_keys import mark_exhausted as _mark_exhausted
+        keys_to_try = list(self._serper_keys)  # snapshot for this call
         for i, key in enumerate(keys_to_try):
             self._throttle()
             payload = json.dumps({
@@ -781,6 +809,8 @@ class LinkedInMatcher:
                 if data.get("credits") == 0 or "insufficient credits" in str(data).lower():
                     label = "primary" if i == 0 else "backup"
                     logger.critical(f"🚨 SERPER CREDITS EXHAUSTED on {label} key")
+                    _mark_exhausted(key)
+                    self._serper_keys = [k for k in self._serper_keys if k != key]
                     if i + 1 < len(keys_to_try):
                         logger.info("Switching to backup Serper key...")
                         continue
@@ -812,6 +842,8 @@ class LinkedInMatcher:
                         body = ""
                     if e.code == 402 or "not enough credits" in body.lower() or "insufficient" in body.lower():
                         logger.critical(f"🚨 SERPER CREDITS EXHAUSTED (HTTP {e.code}) on {label} key: {body}")
+                        _mark_exhausted(key)
+                        self._serper_keys = [k for k in self._serper_keys if k != key]
                         if i + 1 < len(keys_to_try):
                             logger.info("Switching to backup Serper key...")
                             continue
@@ -822,6 +854,104 @@ class LinkedInMatcher:
                 logger.error(f"Serper search failed: {e}")
                 return []
         return []
+
+    # ── Unified search dispatcher ─────────────────────────────────────────────
+    def _search(self, query: str, count: int = 10, page: int = 1) -> list[dict]:
+        """Route: Serper (if keys) → SearXNG (if URL set) → DDG (free fallback)."""
+        if self._serper_keys:
+            return self._serper_search(query, count=count, page=page)
+        if self.searxng_url:
+            return self._searxng_search(query, count=count, page=page)
+        return self._ddg_search(query, count=count)
+
+    def _search_two_pages(self, query: str) -> list[dict]:
+        """Two pages of results: Serper p1+p2, SearXNG p1+p2, or DDG max_results=20."""
+        if self._serper_keys:
+            return self._serper_search_two_pages(query)
+        if self.searxng_url:
+            return self._searxng_search_two_pages(query)
+        return self._ddg_search_two_pages(query)
+
+    # ── SearXNG backend (self-hosted, free) ──────────────────────────────────
+    def _searxng_search(self, query: str, count: int = 10, page: int = 1) -> list[dict]:
+        """
+        Query a self-hosted SearXNG instance. No API key needed.
+        Set SEARXNG_URL env var to e.g. https://searxng-production-xxx.up.railway.app
+        Returns same format as _serper_search: [{name, url, snippet}]
+        """
+        self._throttle()
+        params = urllib.parse.urlencode({
+            "q":       query,
+            "format":  "json",
+            "engines": "google,bing,duckduckgo",
+            "pageno":  page,
+            "language": "en-GB",
+        })
+        url = f"{self.searxng_url}/search?{params}"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "inroad/1.0"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                data = json.loads(r.read().decode("utf-8", errors="replace"))
+            seen, results = set(), []
+            for it in data.get("results", []):
+                u = it.get("url", "")
+                if u in seen:
+                    continue
+                seen.add(u)
+                results.append({
+                    "name":    it.get("title", ""),
+                    "url":     u,
+                    "snippet": it.get("content", ""),
+                })
+            return results[:count]
+        except Exception as e:
+            logger.error(f"SearXNG search failed: {e}")
+            return []
+
+    def _searxng_search_two_pages(self, query: str) -> list[dict]:
+        """Fetch pages 1 and 2 from SearXNG, deduplicated."""
+        p1 = self._searxng_search(query, count=10, page=1)
+        p2 = self._searxng_search(query, count=10, page=2)
+        seen, combined = set(), []
+        for r in p1 + p2:
+            u = r.get("url", "")
+            if u and u not in seen:
+                seen.add(u)
+                combined.append(r)
+        return combined
+
+    # ── DuckDuckGo backend (free, no API key) ─────────────────────────────────
+    def _ddg_search(self, query: str, count: int = 20) -> list[dict]:
+        """
+        DuckDuckGo search via duckduckgo-search library. Free, no API key.
+        Returns same format as _serper_search: [{name, url, snippet}]
+        """
+        try:
+            try:
+                from ddgs import DDGS
+            except ImportError:
+                from duckduckgo_search import DDGS
+            self._throttle()
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=count, region="uk-en"))
+            return [
+                {"name": r.get("title", ""), "url": r.get("href", ""), "snippet": r.get("body", "")}
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"DDG search failed: {e}")
+            return []
+
+    def _ddg_search_two_pages(self, query: str) -> list[dict]:
+        """Fetch up to 20 DDG results and deduplicate by URL."""
+        results = self._ddg_search(query, count=20)
+        seen, combined = set(), []
+        for r in results:
+            u = r.get("url", "")
+            if u and u not in seen:
+                seen.add(u)
+                combined.append(r)
+        return combined
 
     def _serper_search_two_pages(self, query: str) -> list[dict]:
         """Fetch pages 1 and 2 from Serper (up to 20 results). Deduplicates by URL."""
@@ -929,22 +1059,32 @@ class LinkedInMatcher:
 def _extract_university(text: str) -> str:
     """Try to find a university name in a snippet."""
     text_lower = text.lower()
+    # Alias lookup (run on original lowercase — aliases already include apostrophe variants)
     for canonical, aliases in UNI_ALIASES.items():
         for alias in aliases:
             pattern = r'\b' + re.escape(alias) + r'\b'
             if re.search(pattern, text_lower):
                 return alias.title()
     # Generic patterns: "University of X", "X University", "X College"
-    # Restrict word counts to avoid greedily absorbing preceding company names.
+    # Normalise possessive apostrophes (e.g. "queen's" → "queens") so the
+    # character class [a-z]+ matches without breaking on the apostrophe.
+    text_norm = re.sub(r"'s\b", "s", text_lower)
     m = re.search(
         r"\b(university of (?:[a-z]+ ){1,4}[a-z]+|(?:[a-z]+ ){1,3}university|(?:[a-z]+ ){1,2}college)\b",
-        text_lower,
+        text_norm,
     )
     if m:
         result = m.group(0).strip().title()
         _generic = {"The University", "A University", "The College", "A College", "The School"}
         if result in _generic:
             return ""
+        # Reject company names with "University" / "College" appended
+        for suffix in (" University", " College"):
+            if result.endswith(suffix):
+                stem = result[: -len(suffix)].strip().lower()
+                if stem in _NON_UNI_COMPANIES:
+                    return ""
+                break
         return result
     return ""
 
@@ -1124,6 +1264,14 @@ COMPANY_VARIANTS: dict[str, list[str]] = {
     "Palantir":              ["Palantir", "Palantir Technologies"],
     "Databricks":            ["Databricks"],
 }
+
+# Flat set of all company name variants (lowercased) — used to reject false-positive
+# university extractions like "Morgan Stanley University".
+_NON_UNI_COMPANIES: frozenset[str] = frozenset(
+    v.lower()
+    for variants in COMPANY_VARIANTS.values()
+    for v in variants
+)
 
 COMPANY_PRESTIGE: dict[str, int] = {
     # Tier 1 — highest brand recognition for students

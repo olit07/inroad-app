@@ -730,8 +730,8 @@ def build_leads(
         if uni_full:
             query_a = _build_query_alumni(company, search_location, uni_full, dept_keyword)
             logger.info(f"  Query A: {query_a[:100]}")
-            raw_a_p1 = matcher._serper_search(query_a, count=10, page=1)
-            raw_a_p2 = matcher._serper_search(query_a, count=10, page=2)
+            raw_a_p1 = matcher._search(query_a, count=10, page=1)
+            raw_a_p2 = matcher._search(query_a, count=10, page=2)
             for i, r in enumerate(raw_a_p1): r["_rank"] = i + 1
             for i, r in enumerate(raw_a_p2): r["_rank"] = i + 11
             raw_a    = _dedup(raw_a_p1 + raw_a_p2)
@@ -745,8 +745,8 @@ def build_leads(
         query_b = _build_query_broad(company, search_location, dept_keyword)
         logger.info(f"  Query B: {query_b[:100]}")
         try:
-            raw_b_p1 = matcher._serper_search(query_b, count=10, page=1)
-            raw_b_p2 = matcher._serper_search(query_b, count=10, page=2)
+            raw_b_p1 = matcher._search(query_b, count=10, page=1)
+            raw_b_p2 = matcher._search(query_b, count=10, page=2)
         except RuntimeError as e:
             if "SERPER_CREDITS_EXHAUSTED" in str(e):
                 logger.critical("🚨 SERPER CREDITS EXHAUSTED during Query B — stopping")
@@ -768,8 +768,8 @@ def build_leads(
             query_rg = _build_query_alumni(company, search_location, rg_uni, dept_keyword)
             logger.debug(f"  Query RG ({rg_uni}): {query_rg[:100]}")
             try:
-                raw_rg_p1 = matcher._serper_search(query_rg, count=10, page=1)
-                raw_rg_p2 = matcher._serper_search(query_rg, count=10, page=2)
+                raw_rg_p1 = matcher._search(query_rg, count=10, page=1)
+                raw_rg_p2 = matcher._search(query_rg, count=10, page=2)
             except RuntimeError as e:
                 if "SERPER_CREDITS_EXHAUSTED" in str(e):
                     logger.critical("🚨 SERPER CREDITS EXHAUSTED during RG queries — stopping")
@@ -852,7 +852,7 @@ def build_leads(
             q_exec = f'site:linkedin.com/in "{exec_kw}" "{company}" "{search_location}"'
             for pg in [1, 2]:
                 try:
-                    raw_exec = matcher._serper_search(q_exec, count=10, page=pg)
+                    raw_exec = matcher._search(q_exec, count=10, page=pg)
                 except RuntimeError as e:
                     if "SERPER_CREDITS_EXHAUSTED" in str(e):
                         logger.critical("🚨 SERPER CREDITS EXHAUSTED during exec queries — stopping")
@@ -881,7 +881,7 @@ def build_leads(
         q_hr = f'site:linkedin.com/in "recruiter" "{company}" "{search_location}"'
         for pg in [1, 2]:
             try:
-                raw_hr = matcher._serper_search(q_hr, count=10, page=pg)
+                raw_hr = matcher._search(q_hr, count=10, page=pg)
             except RuntimeError as e:
                 if "SERPER_CREDITS_EXHAUSTED" in str(e):
                     logger.critical("🚨 SERPER CREDITS EXHAUSTED during HR queries — stopping")
@@ -912,7 +912,7 @@ def build_leads(
                 if len(all_leads) >= 25:
                     break
                 try:
-                    raw_gen = matcher._serper_search(q_gen, count=10, page=pg)
+                    raw_gen = matcher._search(q_gen, count=10, page=pg)
                 except RuntimeError as e:
                     if "SERPER_CREDITS_EXHAUSTED" in str(e):
                         logger.critical("🚨 SERPER CREDITS EXHAUSTED during general fallback — stopping")
@@ -945,7 +945,7 @@ def build_leads(
                 if len(all_leads) >= 25:
                     break
                 try:
-                    raw_noloc = matcher._serper_search(q_noloc, count=10, page=pg)
+                    raw_noloc = matcher._search(q_noloc, count=10, page=pg)
                 except RuntimeError as e:
                     if "SERPER_CREDITS_EXHAUSTED" in str(e):
                         logger.critical("🚨 SERPER CREDITS EXHAUSTED during no-location fallback — stopping")
@@ -975,7 +975,7 @@ def build_leads(
                     if len(all_leads) >= 25:
                         break
                     try:
-                        raw_bare = matcher._serper_search(q_bare, count=10, page=pg)
+                        raw_bare = matcher._search(q_bare, count=10, page=pg)
                     except RuntimeError as e:
                         if "SERPER_CREDITS_EXHAUSTED" in str(e):
                             return total_upserted
@@ -1007,7 +1007,7 @@ def build_leads(
                 if len(all_leads) >= 25:
                     break
                 try:
-                    raw_broad = matcher._serper_search(q_broad, count=10, page=pg)
+                    raw_broad = matcher._search(q_broad, count=10, page=pg)
                 except RuntimeError as e:
                     if "SERPER_CREDITS_EXHAUSTED" in str(e):
                         logger.critical("🚨 SERPER CREDITS EXHAUSTED during broadened fallback — stopping")
