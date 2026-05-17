@@ -641,9 +641,10 @@ def build_leads(
     from config.settings import RUSSELL_GROUP_UNIS
 
     matcher = LinkedInMatcher()
-    if not matcher.serper_key:
-        logger.error("SERPER_API_KEY not set — cannot build leads")
-        return 0
+    if not matcher.serper_key and not matcher.searxng_url and not matcher.brave_key and not matcher.serp_key:
+        logger.warning("No search backend configured — will use DDG (free fallback)")
+    elif not matcher.serper_key:
+        logger.info(f"Serper key not set — using {'SearXNG' if matcher.searxng_url else 'DDG'} backend")
 
     # Select top_n most recent distinct companies from trackr
     where_clauses = ["source = 'trackr'", "lower(company) != 'trackr'", "company IS NOT NULL", "company != ''"]
