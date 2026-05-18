@@ -1,3 +1,7 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "searxng/Dockerfile"
+
 [deploy]
 startCommand = "python3 -m searx.webapp"
 restartPolicyType = "ON_FAILURE"
