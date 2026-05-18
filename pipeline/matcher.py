@@ -857,19 +857,29 @@ class LinkedInMatcher:
 
     # ── Unified search dispatcher ─────────────────────────────────────────────
     def _search(self, query: str, count: int = 10, page: int = 1) -> list[dict]:
-        """Route: Serper (if keys) → SearXNG (if URL set) → DDG (free fallback)."""
+        """Route: SearXNG (primary) → Serper (fallback) → DDG (last resort)."""
+        if self.searxng_url:
+            try:
+                results = self._searxng_search(query, count=count, page=page)
+                if results:
+                    return results
+            except Exception as exc:
+                logger.warning("SearXNG failed (%s), falling back to Serper/DDG", exc)
         if self._serper_keys:
             return self._serper_search(query, count=count, page=page)
-        if self.searxng_url:
-            return self._searxng_search(query, count=count, page=page)
         return self._ddg_search(query, count=count)
 
     def _search_two_pages(self, query: str) -> list[dict]:
-        """Two pages of results: Serper p1+p2, SearXNG p1+p2, or DDG max_results=20."""
+        """Two pages of results: SearXNG p1+p2, Serper p1+p2, or DDG max_results=20."""
+        if self.searxng_url:
+            try:
+                results = self._searxng_search_two_pages(query)
+                if results:
+                    return results
+            except Exception as exc:
+                logger.warning("SearXNG failed (%s), falling back to Serper/DDG", exc)
         if self._serper_keys:
             return self._serper_search_two_pages(query)
-        if self.searxng_url:
-            return self._searxng_search_two_pages(query)
         return self._ddg_search_two_pages(query)
 
     # ── SearXNG backend (self-hosted, free) ──────────────────────────────────
