@@ -4,9 +4,11 @@ FROM ghcr.io/searxng/searxng:latest
 ADD https://github.com/krallin/tini/releases/download/v0.19.0/tini-static-amd64 /sbin/tini
 RUN chmod +x /sbin/tini
 
-# Find Python and install missing msgspec dependency
-RUN find /usr -name "python3" -o -name "python" 2>/dev/null | head -5
-RUN find /usr -name "pip3" -o -name "pip" 2>/dev/null | head -5
+# Install missing msgspec dependency into the SearXNG virtualenv
+RUN ls /usr/local/searxng/bin/ && \
+    (. /usr/local/searxng/bin/activate && pip install --no-cache-dir msgspec) || \
+    /usr/local/searxng/bin/pip3 install --no-cache-dir msgspec || \
+    /usr/local/searxng/bin/pip install --no-cache-dir msgspec
 
 COPY searxng/settings.yml /etc/searxng/settings.yml
 EXPOSE 8080
