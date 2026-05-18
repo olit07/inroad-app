@@ -1,4 +1,8 @@
-use_default_settings: true
+use_default_settings:
+  engines:
+    keep_only:
+      - bing
+      - yahoo
 
 server:
   bind_address: "0.0.0.0"
@@ -14,22 +18,12 @@ search:
     - json
 
 engines:
-  - name: google
-    engine: google
-    shortcut: g
-    disabled: false
-
   - name: bing
     engine: bing
     shortcut: bi
     disabled: false
 
-  - name: duckduckgo
-    engine: duckduckgo
-    shortcut: d
-    disabled: false
-
-  - name: brave
-    engine: brave
-    shortcut: br
+  - name: yahoo
+    engine: yahoo
+    shortcut: yh
     disabled: false
