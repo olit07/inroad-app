@@ -1,8 +1,4 @@
-use_default_settings:
-  engines:
-    keep_only:
-      - bing
-      - yahoo
+use_default_settings: true
 
 server:
   bind_address: "0.0.0.0"
@@ -17,13 +13,40 @@ search:
     - html
     - json
 
+outgoing:
+  request_timeout: 10.0
+  max_request_timeout: 15.0
+  pool_connections: 100
+  pool_maxsize: 2
+  enable_http2: true
+
 engines:
+  - name: google
+    engine: google
+    shortcut: g
+    disabled: false
+    timeout: 10.0
+
   - name: bing
     engine: bing
     shortcut: bi
     disabled: false
+    timeout: 8.0
+
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: d
+    disabled: false
+    timeout: 8.0
+
+  - name: brave
+    engine: brave
+    shortcut: br
+    disabled: false
+    timeout: 10.0
 
   - name: yahoo
     engine: yahoo
     shortcut: yh
     disabled: false
+    timeout: 8.0
