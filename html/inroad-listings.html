@@ -529,7 +529,8 @@
         </div>
         <div class="region-wrap">
           <select class="region-select" id="region-select">
-            <option value="UK" selected>🇬🇧 UK</option>
+            <option value="" selected>🌍 All</option>
+            <option value="UK">🇬🇧 UK</option>
             <option value="US">🇺🇸 US</option>
             <option value="EU">🇪🇺 EU</option>
           </select>
@@ -565,7 +566,7 @@
   let activeFilters    = new Set();
   let activeProgFilters = new Set();
   let searchQuery    = '';
-  let regionFilter   = 'UK';
+  let regionFilter   = '';
   let selectedJobId  = null;
   let userStatus     = null;
   let currentUser    = null;
