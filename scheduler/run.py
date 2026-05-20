@@ -39,11 +39,12 @@ from pipeline.daily_cards import generate_all_students_cards
 
 SCRAPE_HOUR    = 5   # scrape + leads run at 05:00 UTC
 PIPELINE_HOUR  = 6   # cards + notify run at 06:00 UTC
+WTTJ_HOUR      = 5   # WTTJ scrape runs daily at 05:00 UTC
 SCRAPE_ENABLED = os.environ.get("SCRAPE_ENABLED", "false").lower() == "true"
 SCRAPE_INTERVAL_HOURS = 72   # scrape + leads refresh every 72 hours
 
 # Trackr runs 3x daily at these UTC (hour, minute) slots
-TRACKR_SCHEDULE = [(5, 45), (10, 45), (16, 45)]
+TRACKR_SCHEDULE = [(5,0),(7,10),(9,15),(11,20),(13,25),(15,30),(17,45),(20,0)]
 TRACKR_LEADS_THRESHOLD = 25   # run lead builder if company has fewer leads than this
 
 
@@ -78,6 +79,9 @@ def run_trackr_scrape_job() -> tuple[int, set]:
         TrackrSummerInternshipsScraper, TrackrSpringWeeksScraper,
         TrackrOffCycleScraper, TrackrIndustrialPlacementsScraper,
         TrackrGradProgrammesScraper, TrackrEventsScraper, TrackrScraper,
+        TrackrEA27SummerInternshipsScraper, TrackrEA27SpringWeeksScraper,
+        TrackrEA27OffCycleScraper, TrackrEA27IndustrialPlacementsScraper,
+        TrackrEA27GradProgrammesScraper, TrackrEA27EventsScraper,
     )
     from pipeline.ingest import run_single_scraper
     scrapers = [
@@ -87,6 +91,12 @@ def run_trackr_scrape_job() -> tuple[int, set]:
         TrackrIndustrialPlacementsScraper(),
         TrackrGradProgrammesScraper(),
         TrackrEventsScraper(),
+        TrackrEA27SummerInternshipsScraper(),
+        TrackrEA27SpringWeeksScraper(),
+        TrackrEA27OffCycleScraper(),
+        TrackrEA27IndustrialPlacementsScraper(),
+        TrackrEA27GradProgrammesScraper(),
+        TrackrEA27EventsScraper(),
         TrackrScraper(),
     ]
     new_total = 0
@@ -179,6 +189,64 @@ def run_trackr_pipeline():
         logger.error(f"Trackr leads check crashed: {e}", exc_info=True)
     elapsed = round((time.time() - start) / 60, 1)
     logger.info(f"TRACKR PIPELINE done in {elapsed} min")
+
+
+def run_wttj_job():
+    """Scrape WTTJ internship listings and upsert into the DB. Runs daily at 05:00 UTC."""
+    logger.info("─" * 60)
+    logger.info("WTTJ SCRAPE JOB starting")
+    from scripts.wttj_internship_local import scrape_jobs
+    from db.database import get_conn, upsert_job
+
+    try:
+        jobs = scrape_jobs()
+    except Exception as e:
+        logger.error(f"WTTJ scrape failed: {e}", exc_info=True)
+        return
+
+    if not jobs:
+        logger.info("WTTJ SCRAPE JOB — no jobs returned")
+        return
+
+    new_count = updated_count = 0
+    with get_conn() as conn:
+        # Remove WTTJ jobs older than 72h so the DB stays fresh
+        from db.database import _exec
+        _exec(conn,
+            "DELETE FROM jobs WHERE source = 'wttj' "
+            "AND opening_date < ?",
+            ((datetime.utcnow() - timedelta(hours=72)).strftime("%Y-%m-%d"),)
+        )
+        for j in jobs:
+            job_dict = {
+                "company_name":        j.get("company_name", ""),
+                "title":               j.get("title", ""),
+                "url":                 j.get("job_url", ""),
+                "industries":          [j.get("sector", "Other")],
+                "region":              j.get("region", ""),
+                "source_id":           "wttj",
+                "source_name":         "Welcome to the Jungle",
+                "company_size":        j.get("company_size", ""),
+                "posted_date":         j.get("date_posted", ""),
+                "opening_date":        j.get("date_posted", ""),
+                "role_type":           "internship_grad",
+                "programme_type":      j.get("programme_type", ""),
+                "logo_url":            j.get("logo_url", ""),
+                "wttj_url":            j.get("wttj_url", ""),
+                "company_url":         j.get("company_url", ""),
+                "recruitment_process": j.get("recruitment_process", ""),
+                "location":            j.get("location", ""),
+                "country":             j.get("country", ""),
+            }
+            if not job_dict["company_name"] or not job_dict["title"]:
+                continue
+            _, is_new = upsert_job(conn, job_dict)
+            if is_new:
+                new_count += 1
+            else:
+                updated_count += 1
+
+    logger.info(f"WTTJ SCRAPE JOB done — {new_count} new, {updated_count} updated, {len(jobs)} total")
 
 
 def run_cards_job():
@@ -313,15 +381,22 @@ def run_daemon():
         hour=SCRAPE_HOUR, minute=0, second=0, microsecond=0
     ) + timedelta(days=1)
     next_trackr  = _next_trackr_datetime()
+    next_wttj    = datetime.utcnow().replace(
+        hour=WTTJ_HOUR, minute=5, second=0, microsecond=0
+    )
+    if next_wttj <= datetime.utcnow():
+        next_wttj += timedelta(days=1)
     logger.info(f"First scrape+leads run scheduled for {next_scrape.strftime('%Y-%m-%d %H:%M')} UTC")
     logger.info(f"First Trackr pipeline run scheduled for {next_trackr.strftime('%Y-%m-%d %H:%M')} UTC")
+    logger.info(f"First WTTJ scrape scheduled for {next_wttj.strftime('%Y-%m-%d %H:%M')} UTC")
 
     while not stop["flag"]:
         wait_scrape   = seconds_until(SCRAPE_HOUR)
         wait_pipeline = seconds_until(PIPELINE_HOUR)
         now           = datetime.utcnow()
         wait_trackr   = max((next_trackr - now).total_seconds(), 0)
-        wait = min(wait_scrape, wait_pipeline, wait_trackr)
+        wait_wttj     = max((next_wttj - now).total_seconds(), 0)
+        wait = min(wait_scrape, wait_pipeline, wait_trackr, wait_wttj)
         logger.info(
             f"Next wake in {wait/3600:.1f}h — "
             f"Trackr at {next_trackr.strftime('%H:%M')} UTC, "
@@ -337,6 +412,17 @@ def run_daemon():
             break
 
         now = datetime.utcnow()
+
+        # WTTJ scrape — daily at 05:05 UTC
+        if now >= next_wttj:
+            try:
+                run_wttj_job()
+            except Exception as e:
+                logger.error(f"WTTJ job crashed: {e}", exc_info=True)
+            next_wttj = now.replace(
+                hour=WTTJ_HOUR, minute=5, second=0, microsecond=0
+            ) + timedelta(days=1)
+            logger.info(f"Next WTTJ scrape scheduled for {next_wttj.strftime('%Y-%m-%d %H:%M')} UTC")
 
         # Trackr pipeline — 3x daily at TRACKR_SCHEDULE slots
         if now >= next_trackr:
@@ -382,6 +468,8 @@ if __name__ == "__main__":
 
     if "--once" in args:
         run_full_pipeline()
+    elif "--wttj" in args:
+        run_wttj_job()
     elif "--trackr" in args:
         run_trackr_pipeline()
     elif "--scrape" in args:

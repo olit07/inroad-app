@@ -832,9 +832,31 @@
     font-family: 'Lato', sans-serif;
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s;
+    min-width: 110px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .btn-regenerate:hover { border-color: var(--border-md); color: var(--text); }
+
+  @keyframes btn-spin { to { transform: rotate(360deg); } }
+  .btn-spinner {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border: 2px solid var(--border);
+    border-top-color: var(--muted);
+    border-radius: 50%;
+    animation: btn-spin 0.65s linear infinite;
+  }
+
+  .ai-badge {
+    font-size: 0.72rem;
+    color: #7c3aed;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
 
   .btn-copy {
     background: var(--white);
@@ -1136,6 +1158,34 @@
     color: var(--green);
   }
 
+  /* ── Industry filter pills ───────────────────────────────── */
+  .industry-filters {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: -8px 0 18px;
+  }
+  .industry-filter {
+    padding: 5px 13px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .industry-filter.active {
+    background: var(--green-lite);
+    border-color: var(--green);
+    color: var(--green-deep);
+  }
+  .industry-filter:hover:not(.active) {
+    border-color: var(--green);
+    color: var(--green);
+  }
+
   /* ── Search view ─────────────────────────────────────────── */
   .search-bar {
     display: flex;
@@ -1281,6 +1331,16 @@
     <button class="view-tab" id="tab-search" onclick="switchTab('search')" style="display:none">Search roles</button>
   </div>
 
+  <!-- Industry filters -->
+  <div class="industry-filters" id="industry-filters">
+    <button class="industry-filter active" data-industry="">All</button>
+    <button class="industry-filter" data-industry="Finance">💰 Finance</button>
+    <button class="industry-filter" data-industry="Technology">💻 Technology</button>
+    <button class="industry-filter" data-industry="Consulting">🧠 Consulting</button>
+    <button class="industry-filter" data-industry="Marketing">📣 Marketing</button>
+    <button class="industry-filter" data-industry="Law">⚖️ Law</button>
+  </div>
+
   <!-- Section label -->
   <p class="section-label">Today's matches</p>
 
@@ -1420,10 +1480,11 @@
     <div class="modal-footer">
       <div class="modal-footer-left">
         <span class="word-count" id="word-count">0 words</span>
+        <span class="ai-badge" id="ai-badge" style="display:none">✨ AI personalised</span>
         <a class="view-role-link" id="modal-role-link" href="#" target="_blank" rel="noopener noreferrer">View role ↗</a>
       </div>
       <div class="modal-actions">
-        <button class="btn-regenerate" onclick="regenerate()">↺ Regenerate</button>
+        <button class="btn-regenerate" onclick="regenerate()">Personalise ✨</button>
         <button class="btn-copy" id="btn-copy" onclick="copyEmail()">Copy email</button>
         <button class="btn-open-mail" id="btn-open-mail" onclick="openInMail()">Open in Mail ↗</button>
         <button class="btn-mark-sent" id="btn-mark-sent" onclick="markAsSent()">Mark as sent</button>
@@ -1611,6 +1672,14 @@
     // 2. Load student profile
     let student = null;
     try {
+      // Feature flag — hide Personalise ✨ button if not enabled in this environment
+      fetch('/api/flags').then(r => r.ok ? r.json() : {}).then(f => {
+        if (!f.personalise) {
+          const btn = document.querySelector('.btn-regenerate');
+          if (btn) btn.style.display = 'none';
+        }
+      }).catch(() => {});
+
       const meResp = await apiFetch('/api/me');
       if (meResp.ok) {
         const meData = await meResp.json();
@@ -1657,6 +1726,23 @@
   } // end _initInner
 
   document.addEventListener('DOMContentLoaded', init);
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.industry-filter').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.industry-filter').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const industry = this.dataset.industry;
+        document.querySelectorAll('.match-card').forEach(card => {
+          if (!industry || card.dataset.industry === industry) {
+            card.style.display = '';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+  });
 
   // Save token to sessionStorage before navigating to settings
   document.getElementById('settings-link').addEventListener('click', function() {
@@ -1746,7 +1832,7 @@
         : `<button class="draft-btn" onclick="openModal('${cardId}')">Draft email →</button>`;
 
       container.insertAdjacentHTML('beforeend', `
-        <div class="match-card${isSent ? ' sent collapsed' : ''}" id="${cardId}" style="animation-delay:${idx*0.06}s">
+        <div class="match-card${isSent ? ' sent collapsed' : ''}" id="${cardId}" data-industry="${m.industry || ''}" style="animation-delay:${idx*0.06}s">
           <div class="card-main">
             <div class="avatar"><img src="${avatarUrl}" alt="" loading="lazy"></div>
             <div class="card-body">
@@ -1930,6 +2016,8 @@ Alex`
     document.getElementById('btn-open-mail').style.display    = '';
     document.querySelector('.btn-regenerate').style.display   = '';
     document.getElementById('modal-to-input').readOnly        = false;
+    const badge = document.getElementById('ai-badge');
+    if (badge) badge.style.display = 'none';
     activeCard = null;
   }
 
@@ -1952,12 +2040,14 @@ Alex`
 
   async function regenerate() {
     const btn = document.querySelector('.btn-regenerate');
-    btn.textContent = '↺ Regenerating…';
+    const badge = document.getElementById('ai-badge');
+    btn.innerHTML = '<span class="btn-spinner"></span>';
     btn.disabled = true;
+    if (badge) badge.style.display = 'none';
 
     const card = matches[activeCard];
     if (!card) {
-      btn.textContent = '↺ Regenerate';
+      btn.innerHTML = 'Personalise ✨';
       btn.disabled = false;
       return;
     }
@@ -1977,7 +2067,7 @@ Alex`
         }),
       });
       if (r.ok) {
-        const { subject, body } = await r.json();
+        const { subject, body, personalised } = await r.json();
         if (subject) {
           document.getElementById('modal-subject-input').value = subject;
           card.subject = subject;
@@ -1988,12 +2078,13 @@ Alex`
           card.body = cleanedBody;
           updateWordCount();
         }
+        if (badge) badge.style.display = personalised ? '' : 'none';
       }
     } catch (e) {
-      console.error('Regenerate failed:', e);
+      console.error('Personalise failed:', e);
     }
 
-    btn.textContent = '↺ Regenerate';
+    btn.innerHTML = 'Personalise ✨';
     btn.disabled = false;
   }
 
@@ -2324,7 +2415,7 @@ Alex`
     // Hide actions that require a DB match_id; show copy/open-in-mail only
     document.getElementById('btn-mark-sent').style.display    = 'none';
     document.getElementById('btn-send-outlook').style.display = 'none';
-    document.querySelector('.btn-regenerate').style.display   = 'none';
+    document.querySelector('.btn-regenerate').style.display   = '';
     document.getElementById('btn-copy').style.display        = '';
     document.getElementById('btn-open-mail').style.display   = '';
 

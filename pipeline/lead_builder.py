@@ -646,8 +646,10 @@ def build_leads(
     elif not matcher.serper_key:
         logger.info(f"Serper key not set — using {'SearXNG' if matcher.searxng_url else 'DDG'} backend")
 
-    # Select top_n most recent distinct companies from trackr
-    where_clauses = ["source = 'trackr'", "lower(company) != 'trackr'", "company IS NOT NULL", "company != ''"]
+    # Select top_n most recent distinct companies from trackr (or any source when filtering by company)
+    where_clauses = ["lower(company) != 'trackr'", "company IS NOT NULL", "company != ''"]
+    if not company_filter:
+        where_clauses.append("source = 'trackr'")
     params: list = []
     if company_filter:
         where_clauses.append("lower(company) = lower(?)" if not USE_POSTGRES else "lower(company) = lower(%s)")
