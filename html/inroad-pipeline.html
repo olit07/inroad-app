@@ -545,6 +545,14 @@
             </select>
           </div>
         </div>
+        <div class="filter-wrap" id="sector-filter-wrap">
+          <button class="filter-btn sector-filter-btn" data-div="Finance">💰 Finance</button>
+          <button class="filter-btn sector-filter-btn" data-div="Consulting">📊 Consulting</button>
+          <button class="filter-btn sector-filter-btn" data-div="Tech">💻 Tech</button>
+          <button class="filter-btn sector-filter-btn" data-div="Marketing">📣 Marketing</button>
+          <button class="filter-btn sector-filter-btn" data-div="Law">⚖️ Law</button>
+          <button class="filter-btn sector-filter-btn" data-div="Miscellaneous">🗂️ Other</button>
+        </div>
         <div class="filter-wrap" id="filter-wrap">
           <!-- Stage filter pills rendered by JS -->
         </div>
@@ -798,7 +806,8 @@
   // ── State ─────────────────────────────────────────────────────────────────
   const PIPELINE_KEY = 'inroad_pipeline_v1';
   let allJobs = [];
-  let activeFilters = new Set();
+  let activeFilters       = new Set();
+  let activeSectorFilters = new Set();
   let searchQuery   = '';
   let regionFilter  = 'UK';
   const collapsedSections = new Set();
@@ -982,6 +991,7 @@
         const stage = stageForJob(j.id);
         if (!activeFilters.has(stage || '__none__')) return false;
       }
+      if (activeSectorFilters.size > 0 && !activeSectorFilters.has(j.division)) return false;
       if (regionFilter && (j.region || 'UK') !== regionFilter) return false;
       if (searchQuery && !(j.company + ' ' + j.programme).toLowerCase().includes(searchQuery)) return false;
       return true;
@@ -1126,6 +1136,14 @@
       wrap.appendChild(btn);
     });
   })();
+  document.querySelectorAll('.sector-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const div = btn.dataset.div;
+      if (activeSectorFilters.has(div)) { activeSectorFilters.delete(div); btn.classList.remove('on'); }
+      else                              { activeSectorFilters.add(div);    btn.classList.add('on'); }
+      renderListings();
+    });
+  });
   searchEl.addEventListener('input', () => {
     searchQuery = searchEl.value.trim().toLowerCase();
     renderListings();

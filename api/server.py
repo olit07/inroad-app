@@ -2196,6 +2196,7 @@ def api_opportunities():
         "Finance":    "Finance",
         "Technology": "Tech",
         "Law":        "Law",
+        "Marketing":  "Marketing",
     }
 
     def infer_firm_type(industry: str, raw_json: str = "") -> str:
