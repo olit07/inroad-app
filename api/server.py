@@ -2298,7 +2298,7 @@ def api_opportunities():
     rows = fetchall(
         "SELECT id, title, company, url, opening_date, closing_date, industry, created_at, raw, careers_site "
         "FROM jobs WHERE company IS NOT NULL AND company != '' "
-        f"AND title IS NOT NULL AND title != '' AND source = 'trackr' "
+        f"AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj') "
         f"AND lower(company) != 'trackr' {order_clause} LIMIT 10000"
     )
 
