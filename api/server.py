@@ -2364,6 +2364,11 @@ def api_opportunities():
             })
 
         _IND_LABEL = {"Finance": "Finance", "Law": "Law", "Technology": "Consulting"}
+        import json as _json
+        try:
+            _raw_data = _json.loads(r.get("raw") or "{}")
+        except Exception:
+            _raw_data = {}
         jobs.append({
             "id":             r.get("id"),
             "company":        company,
@@ -2375,6 +2380,7 @@ def api_opportunities():
             "closing_date":   r.get("closing_date") or "",
             "apply_url":      r.get("url") or "",
             "careers_site":   r.get("careers_site") or "",
+            "logo_url":       _raw_data.get("logo_url") or "",
             "industry_label": _IND_LABEL.get(r.get("industry") or "", ""),
             "leads":          leads,
         })
