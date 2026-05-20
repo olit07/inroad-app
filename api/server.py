@@ -2250,18 +2250,25 @@ def api_opportunities():
         "events":                "Events",
     }
 
+    _WTTJ_PROG_TYPES = {
+        "Summer Internship", "Spring Week", "Off-Cycle Internship",
+        "Industrial Placement", "Graduate Programme",
+    }
+
     def infer_programme_type(title: str, raw_json: str = "") -> str:
         import json as _json
-        # Use the authoritative trackr_type stored in raw JSON when available
         if raw_json:
             try:
                 raw_data = _json.loads(raw_json)
                 tt = raw_data.get("trackr_type", "")
                 if tt and tt in _TRACKR_TYPE_LABEL:
                     return _TRACKR_TYPE_LABEL[tt]
+                pt = raw_data.get("programme_type", "")
+                if pt in _WTTJ_PROG_TYPES:
+                    return pt
             except Exception:
                 pass
-        # Title-based fallback for legacy rows without trackr_type
+        # Title-based fallback for legacy rows without trackr_type or programme_type
         t = title.lower()
         if any(k in t for k in ['spring week', 'spring insight', 'spring into', 'spring programme', 'spring internship']):
             return 'Spring Week'
