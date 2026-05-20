@@ -88,6 +88,7 @@ def _start_background_scheduler():
 
     TRACKR_SLOTS = [(5,0),(7,10),(9,15),(11,20),(13,25),(15,30),(17,45),(20,0)]
     PIPELINE_HOUR = 6
+    WTTJ_HOUR = 5
 
     def _next_slot(slots):
         now = datetime.utcnow()
@@ -107,13 +108,17 @@ def _start_background_scheduler():
         return t
 
     def _loop():
-        from scheduler.run import run_trackr_pipeline, run_cards_job, run_notify_job
+        from scheduler.run import run_trackr_pipeline, run_cards_job, run_notify_job, run_wttj_job
         log = _log.getLogger("scheduler")
-        log.info("Background scheduler started — Trackr at 05:45/10:45/16:45 UTC, pipeline at 06:00 UTC")
+        log.info("Background scheduler started — Trackr slots, WTTJ at 05:05 UTC, pipeline at 06:00 UTC")
 
-        next_trackr  = _next_slot(TRACKR_SLOTS)
+        next_trackr   = _next_slot(TRACKR_SLOTS)
         next_pipeline = _next_hour(PIPELINE_HOUR)
+        next_wttj = datetime.utcnow().replace(hour=WTTJ_HOUR, minute=5, second=0, microsecond=0)
+        if next_wttj <= datetime.utcnow():
+            next_wttj += timedelta(days=1)
         log.info(f"First Trackr run: {next_trackr.strftime('%Y-%m-%d %H:%M')} UTC")
+        log.info(f"First WTTJ run: {next_wttj.strftime('%Y-%m-%d %H:%M')} UTC")
         log.info(f"First pipeline run: {next_pipeline.strftime('%Y-%m-%d %H:%M')} UTC")
 
         while True:
@@ -121,10 +126,19 @@ def _start_background_scheduler():
             wait = min(
                 max((next_trackr - now).total_seconds(), 0),
                 max((next_pipeline - now).total_seconds(), 0),
+                max((next_wttj - now).total_seconds(), 0),
             )
             time.sleep(max(wait, 30))
 
             now = datetime.utcnow()
+
+            if now >= next_wttj:
+                try:
+                    run_wttj_job()
+                except Exception as exc:
+                    log.error(f"WTTJ job crashed: {exc}", exc_info=True)
+                next_wttj = now.replace(hour=WTTJ_HOUR, minute=5, second=0, microsecond=0) + timedelta(days=1)
+                log.info(f"Next WTTJ run: {next_wttj.strftime('%Y-%m-%d %H:%M')} UTC")
 
             if now >= next_trackr:
                 try:
