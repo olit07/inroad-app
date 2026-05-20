@@ -546,6 +546,13 @@
             <span class="search-icon">⌕</span>
             <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
           </div>
+          <div class="region-wrap">
+            <select class="region-select" id="region-select">
+              <option value="UK" selected>🇬🇧 UK</option>
+              <option value="US">🇺🇸 US</option>
+              <option value="EU">🇪🇺 EU</option>
+            </select>
+          </div>
         </div>
         <div class="filter-wrap" id="sector-filter-wrap">
           <button class="filter-btn sector-filter-btn" data-div="Finance">💰 Finance</button>
@@ -1149,6 +1156,10 @@
   });
   searchEl.addEventListener('input', () => {
     searchQuery = searchEl.value.trim().toLowerCase();
+    renderListings();
+  });
+  document.getElementById('region-select').addEventListener('change', function() {
+    regionFilter = this.value;
     renderListings();
   });
   // ── Load jobs ─────────────────────────────────────────────────────────────
