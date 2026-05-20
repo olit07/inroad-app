@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>inroad</title>
+<title>inroad - A smarter path into the workforce</title>
 <meta name="description" content="Find live job openings and connect directly with the people who can get you in. Personalised outreach tied to real opportunities.">
 <meta property="og:title" content="inroad">
 <meta property="og:description" content="Find live job openings and connect directly with the people who can get you in. Personalised outreach tied to real opportunities.">
@@ -68,20 +68,6 @@
 
   .wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 
-  .wm-icon {
-    width: 30px; height: 30px;
-    background: var(--green);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.95rem; flex-shrink: 0;
-  }
-
-  .wm-text {
-    font-family: 'Lora', Georgia, serif;
-    font-size: 1.25rem; font-weight: 700;
-    color: var(--text); letter-spacing: -0.02em;
-  }
-
   .nav-center {
     display: flex; align-items: center; gap: 32px; list-style: none;
     position: absolute; left: 50%; transform: translateX(-50%);
@@ -89,10 +75,11 @@
 
   .nav-center a {
     font-size: 0.85rem; font-weight: 400;
-    color: rgba(255,255,255,0.65); text-decoration: none; transition: color 0.15s;
+    color: rgba(255,255,255,0.7); text-decoration: none; transition: color 0.15s;
   }
 
   .nav-center a:hover { color: #fff; }
+  .nav-center a.active { color: #fff; font-weight: 700; }
 
   .nav-right { display: flex; align-items: center; gap: 10px; }
 
@@ -108,18 +95,19 @@
 
   .btn-nav-cta {
     font-size: 0.83rem; font-weight: 700; font-family: 'Lato', sans-serif;
-    color: var(--green-deep); background: #fff; border: none;
-    padding: 8px 18px; border-radius: 8px; text-decoration: none;
+    color: #fff; background: var(--green);
+    border: none; padding: 8px 18px;
+    border-radius: 8px; text-decoration: none;
     transition: background 0.15s, transform 0.1s; white-space: nowrap;
   }
 
-  .btn-nav-cta:hover { background: #F0FFF4; transform: translateY(-1px); }
+  .btn-nav-cta:hover { background: var(--green-deep); transform: translateY(-1px); }
 
   /* ── HERO NEW — full-width dark ── */
   .hero-new {
     min-height: 100vh;
     background: var(--green-deep);
-    padding: calc(62px + 56px) 52px 36px;
+    padding: calc(62px + 26px) 52px 36px;
     display: flex;
     align-items: center;
   }
@@ -175,7 +163,7 @@
     font-family: 'Lora', Georgia, serif;
     font-style: italic;
     font-size: 1rem;
-    color: rgba(255,255,255,0.72);
+    color: #fff;
     line-height: 1.74;
     font-weight: 400;
     max-width: 400px;
@@ -275,7 +263,7 @@
   .hero-strip {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: 24px;
     align-items: stretch;
     opacity: 0; animation: rise 0.6s ease 0.32s forwards;
   }
@@ -285,6 +273,13 @@
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 16px;
     overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.4s cubic-bezier(0.25,0.46,0.45,0.94), border-color 0.4s;
+  }
+
+  .strip-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    border-color: rgba(255,255,255,0.22);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.28), 0 20px 50px rgba(0,0,0,0.2), 0 36px 80px rgba(0,0,0,0.12);
   }
 
   .strip-card-head {
@@ -858,33 +853,104 @@
     .carousel-wrap { padding: 14px 0; }
     .ticker-label { padding: 0 16px 0 24px; }
   }
+
+  @media (max-width: 600px) {
+    /* Nav: show CTA only, hide login button */
+    .btn-login { display: none; }
+
+    /* Hide hero CTA block — nav button serves as the CTA on mobile */
+    .deck-actions-col { display: none; }
+  }
   .nav-user { display: flex; align-items: center; gap: 12px; }
-  nav.nav-logged-in { background: var(--green); border-bottom-color: transparent; }
-  nav.nav-logged-in .wordmark span { color: #fff !important; }
-  nav.nav-logged-in .nav-center a { color: rgba(255,255,255,0.7); }
-  nav.nav-logged-in .nav-center a:hover { color: #fff; }
   .nav-initials {
     width: 32px; height: 32px; border-radius: 50%;
     background: rgba(255,255,255,0.15);
     border: 1.5px solid rgba(255,255,255,0.35);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.72rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    font-size: 0.72rem; font-weight: 700; color: #fff; flex-shrink: 0; cursor: pointer;
   }
-  .btn-settings {
-    font-size: 0.82rem; font-weight: 500; font-family: var(--sans);
-    color: rgba(255,255,255,0.75); background: transparent;
-    border: none; padding: 0; text-decoration: none; cursor: pointer;
-    transition: color 0.15s;
+  .nav-initials-wrap { position: relative; }
+  .nav-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 140px;
+    overflow: hidden; display: none; z-index: 200;
   }
-  .btn-settings:hover { color: #fff; }
+  .nav-dropdown.open { display: block; }
+  .nav-dropdown a, .nav-dropdown button {
+    display: block; width: 100%; text-align: left;
+    padding: 10px 16px; font-size: 0.85rem; font-weight: 500;
+    font-family: 'Lato', sans-serif; color: #374151; background: transparent;
+    border: none; cursor: pointer; text-decoration: none;
+    transition: background 0.12s; box-sizing: border-box;
+  }
+  .nav-dropdown a:hover, .nav-dropdown button:hover { background: #f3f4f6; color: #374151; }
+  .nav-dropdown .dropdown-logout { color: #ef4444; }
+  .nav-dropdown .dropdown-logout:hover { background: #fef2f2; color: #dc2626; }
   .nav-refer-btn {
     background: rgba(255,255,255,0.15); color: #fff;
     border: 1px solid rgba(255,255,255,0.4); border-radius: 100px;
-    padding: 6px 16px; font-size: 12px; font-weight: 700; font-family: var(--sans);
+    padding: 6px 16px; font-size: 12px; font-weight: 700; font-family: 'Lato', sans-serif;
     cursor: pointer; white-space: nowrap; letter-spacing: 0.01em; text-decoration: none;
     transition: background 0.15s, border-color 0.15s;
   }
   .nav-refer-btn:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); }
+
+  .hero-rotating-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    vertical-align: baseline;
+    position: relative;
+    font-style: italic;
+    font-weight: 400;
+    color: #A8D8B8;
+  }
+  .hero-rotating-wrap::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0; right: 0;
+    height: 2px;
+    background: rgba(168,216,184,0.55);
+    border-radius: 1px;
+  }
+  .hero-rotating-word {
+    flex-shrink: 0;
+    transition: color 0.35s ease;
+  }
+  .hero-period {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .hero-rotating-word.fading { color: transparent; }
+
+  .refer-modal-backdrop {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.45); align-items: center; justify-content: center;
+  }
+  .refer-modal-backdrop.open { display: flex; }
+  .refer-modal {
+    background: #fff; border-radius: 14px; width: 100%; max-width: 420px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18); margin: 16px;
+  }
+  .refer-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px 0;
+  }
+  .refer-modal-title { font-size: 1.1rem; font-weight: 700; color: #1A1714; }
+  .refer-modal-close {
+    background: none; border: none; cursor: pointer; font-size: 1.1rem;
+    color: #9C9389; padding: 4px; line-height: 1;
+  }
+  .refer-modal-close:hover { color: #1A1714; }
+  .refer-modal-body { padding: 20px 24px; }
+  .btn-refer-copy {
+    font-size: 0.8rem; font-weight: 700; font-family: 'Lato', sans-serif;
+    padding: 8px 16px; border-radius: 8px; border: 1.5px solid #C8C0B8;
+    background: #fff; color: #1A1714; cursor: pointer; white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-refer-copy:hover { border-color: #1F4530; color: #1F4530; }
 </style>
 <script src="/static/auth.js"></script>
 </head>
@@ -892,11 +958,11 @@
 
 <!-- NAV -->
 <nav>
-  <a href="/" class="wordmark">
+  <a href="/?home=1" class="wordmark">
     <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
     <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:#fff;">inroad</span>
   </a>
-  <ul class="nav-center">
+  <ul class="nav-center" id="nav-center">
     <li><a href="/opportunities">Opportunities</a></li>
     <li><a href="#how">How it works</a></li>
     <li><a href="#features">Features</a></li>
@@ -909,8 +975,10 @@
 </nav>
 <script>
 (async function () {
+  const bypassRedirect = new URLSearchParams(location.search).has('home');
   let token = getAccessToken();
   if (!token) { const ok = await _tryRefresh(); if (!ok) return; token = getAccessToken(); }
+  if (!bypassRedirect) { window.location.replace('/opportunities'); return; }
   let d = null;
   try {
     let resp = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
@@ -925,15 +993,29 @@
     ? parseInt(d.daily_cards_override, 10) : 3;
   const name = d.name || '';
   const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('') || '?';
-  const nav = document.querySelector('nav');
-  if (nav) nav.classList.add('nav-logged-in');
+  const navCenter = document.getElementById('nav-center');
+  if (navCenter) navCenter.innerHTML = `
+    <li><a href="/listings">Listings</a></li>
+    <li><a href="/opportunities">Opportunities</a></li>
+    <li><a href="/pipeline">Pipeline</a></li>`;
   const navRight = document.getElementById('nav-right');
   if (navRight) navRight.innerHTML = `
     <div class="nav-user">
-      <a href="/opportunities" class="nav-refer-btn">Get ${lim} daily emails</a>
-      <a href="/settings" class="btn-settings">Settings</a>
-      <div class="nav-initials">${initials}</div>
+      ${d.referral_code ? `<button class="nav-refer-btn" onclick="openReferModal()">Get ${lim} daily emails</button>` : ''}
+      <div class="nav-initials-wrap" id="nav-initials-wrap">
+        <div class="nav-initials" onclick="toggleNavDropdown(event)">${initials}</div>
+        <div class="nav-dropdown" id="nav-dropdown">
+          <a href="/settings">Settings</a>
+          <button class="dropdown-logout" onclick="authLogout()">Log out</button>
+        </div>
+      </div>
     </div>`;
+  if (d.referral_code) {
+    const inp = document.getElementById('refer-link-input');
+    if (inp) inp.value = `https://www.the-inroad.com/signup?ref=${d.referral_code}`;
+  }
+  window.toggleNavDropdown = function(e) { e.stopPropagation(); document.getElementById('nav-dropdown').classList.toggle('open'); };
+  document.addEventListener('click', function() { const dd = document.getElementById('nav-dropdown'); if (dd) dd.classList.remove('open'); });
 })();
 </script>
 
@@ -941,7 +1023,7 @@
 <div class="hero-new">
   <div class="hero-new-inner">
     <div class="hero-eyebrow">A smarter path into the workforce <span class="eyebrow-dash"></span></div>
-    <h1>Make your<br><em>inroad.</em></h1>
+    <h1>Your inroad<br>to <span class="hero-rotating-wrap"><span class="hero-rotating-word" id="hero-rotating-word">internships</span><span class="hero-period">.</span></span></h1>
     <div class="deck-row">
       <p class="hero-deck" style="grid-column: span 2;">Stop applying into the void.<br>The graduate job market is broken.<br>inroad gives you personalised outreach tied to the newest openings and the people who can get you in.</p>
       <div class="deck-actions-col">
@@ -1069,7 +1151,7 @@
       <div class="strip-card">
         <div class="strip-card-head">
           <span class="pp-title">Pipeline</span>
-          <span class="pp-meta">Jobs applied to: 4</span>
+          <span class="pp-meta">Jobs applied to: 6</span>
         </div>
         <div class="strip-kanban">
           <div class="sk-col">
@@ -1255,6 +1337,22 @@
   <p class="footer-copy">© 2026 Inroad</p>
 </footer>
 
+<div class="refer-modal-backdrop" id="refer-modal-overlay" onclick="if(event.target===this)closeReferModal()">
+  <div class="refer-modal">
+    <div class="refer-modal-header">
+      <div class="refer-modal-title">Get 5 daily emails</div>
+      <button class="refer-modal-close" onclick="closeReferModal()">✕</button>
+    </div>
+    <div class="refer-modal-body">
+      <p style="font-size:0.88rem;color:#6B6560;line-height:1.65;margin:0 0 16px">Share your link. When a friend signs up, you unlock <strong style="color:#1A1714">5 daily emails</strong> instead of 3.</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="refer-link-input" type="text" readonly style="flex:1;padding:8px 12px;border:1.5px solid #D8D0C8;border-radius:8px;font-size:0.8rem;font-family:'Lato',sans-serif;color:#6B6560;background:#F9F7F5;outline:none;">
+        <button class="btn-refer-copy" onclick="copyReferLink()" id="copy-refer-btn">Copy link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -1270,6 +1368,48 @@
   setTimeout(() => {
     document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('visible'));
   }, 1500);
+
+function openReferModal() {
+  document.getElementById('refer-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeReferModal() {
+  document.getElementById('refer-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function copyReferLink() {
+  const val = document.getElementById('refer-link-input').value;
+  navigator.clipboard.writeText(val).then(() => {
+    const btn = document.getElementById('copy-refer-btn');
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
+  });
+}
+</script>
+<script>
+(function() {
+  var words = ['internships', 'grad schemes', 'spring weeks', 'a career'];
+  var idx = 0;
+  var el = document.getElementById('hero-rotating-word');
+  if (!el) return;
+  var wrap = el.parentElement;
+  // Lock wrap width to widest word (+ period) so ::after underline never resizes
+  var maxW = 0;
+  words.forEach(function(w) {
+    el.textContent = w;
+    maxW = Math.max(maxW, wrap.offsetWidth);
+  });
+  wrap.style.minWidth = maxW + 'px';
+  el.textContent = words[0];
+  setInterval(function() {
+    el.classList.add('fading');
+    setTimeout(function() {
+      idx = (idx + 1) % words.length;
+      el.textContent = words[idx];
+      el.classList.remove('fading');
+    }, 350);
+  }, 3000);
+})();
 </script>
 </body>
 </html>
