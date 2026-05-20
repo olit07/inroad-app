@@ -549,6 +549,7 @@
         <button class="filter-btn prog-filter-btn" data-pt="Off-Cycle Internship">Off-Cycle Internship</button>
         <button class="filter-btn prog-filter-btn" data-pt="Industrial Placement">Industrial Placement</button>
         <button class="filter-btn prog-filter-btn" data-pt="Graduate Programme">Graduate Programme</button>
+        <button class="filter-btn prog-filter-btn" data-pt="Events">Events</button>
       </div>
     </div>
     <div class="panel-body" id="listings">
@@ -695,10 +696,14 @@
   });
 
   // ── Load data ──
-  fetch('/api/opportunities')
+  fetch('/api/opportunities?slim=1')
     .then(r => r.json())
     .then(data => {
-      allJobs = data.jobs || [];
+      const jobs = data.jobs || [];
+      const cutoff = Date.now() - 72 * 3600 * 1000;
+      const fresh  = jobs.filter(j => j.opening_date && new Date(j.opening_date).getTime() >= cutoff);
+      const rest   = jobs.filter(j => !j.opening_date || new Date(j.opening_date).getTime() < cutoff);
+      allJobs = [...fresh, ...rest];
       listingCount.textContent = allJobs.length;
       render();
     })
@@ -2333,7 +2338,7 @@
             <span class="card-programme">${esc(job.programme)}</span>
           </div>
           <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-            ${(() => { const cs = getCareerSite(job.company); return cs ? `<a href="${esc(cs)}" target="_blank" rel="noopener" class="careers-btn-inline">Careers Site</a>` : ''; })()}
+            ${(() => { const cs = job.careers_site || getCareerSite(job.company); return cs ? `<a href="${esc(cs)}" target="_blank" rel="noopener" class="careers-btn-inline">Company Site</a>` : ''; })()}
             ${job.apply_url ? `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>` : ''}
           </div>
         </div>
@@ -2361,6 +2366,7 @@
     'aqr':                '/static/aqr.png',
   };
   function getLogoUrl(job) {
+    if (job.logo_url) return job.logo_url;
     const key = (job.company || '').toLowerCase().trim();
     if (_LOGO_OVERRIDES[key]) return _LOGO_OVERRIDES[key];
     const raw = job.careers_site || '';
