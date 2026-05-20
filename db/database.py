@@ -143,6 +143,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     source       TEXT,
     raw          TEXT,
     role_type    TEXT,
+    careers_site TEXT,
     created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -251,6 +252,13 @@ CREATE TABLE IF NOT EXISTS company_email_formats (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS site_visits (
+    visitor_id   TEXT NOT NULL,
+    visited_date DATE NOT NULL,
+    created_at   TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (visitor_id, visited_date)
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token   ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email   ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student      ON matches(student_id);
@@ -259,6 +267,8 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token   ON refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_student ON refresh_tokens(student_id);
 CREATE INDEX IF NOT EXISTS idx_card_queue_student_date ON card_queue(student_id, queued_for);
 CREATE INDEX IF NOT EXISTS idx_leads_company ON leads (lower(company));
+CREATE INDEX IF NOT EXISTS idx_jobs_source ON jobs(source);
+CREATE INDEX IF NOT EXISTS idx_jobs_source_dates ON jobs(source, opening_date DESC NULLS LAST, created_at DESC NULLS LAST);
 """
 
 SCHEMA_SQLITE = """
@@ -306,6 +316,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     source       TEXT,
     raw          TEXT,
     role_type    TEXT,
+    careers_site TEXT,
     created_at   TEXT DEFAULT (datetime('now'))
 );
 
@@ -414,6 +425,13 @@ CREATE TABLE IF NOT EXISTS company_email_formats (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS site_visits (
+    visitor_id   TEXT NOT NULL,
+    visited_date TEXT NOT NULL,
+    created_at   TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (visitor_id, visited_date)
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student    ON matches(student_id);
@@ -430,7 +448,12 @@ def init_db():
     schema = SCHEMA_POSTGRES if USE_POSTGRES else SCHEMA_SQLITE
     with get_conn() as conn:
         cur = conn.cursor()
-        # Postgres needs statements run individually
+        if USE_POSTGRES:
+            # Transaction-level advisory lock: only one worker runs DDL at a time
+            cur.execute("SELECT pg_try_advisory_xact_lock(987654321)")
+            if not cur.fetchone()["pg_try_advisory_xact_lock"]:
+                print("[db] Another worker is running init_db — skipping.")
+                return
         for statement in [s.strip() for s in schema.split(";") if s.strip()]:
             cur.execute(statement)
     print("[db] Schema initialised.")
@@ -451,6 +474,18 @@ def _run_migrations():
 
 def _run_migrations_postgres():
     """Postgres migrations — uses ADD COLUMN IF NOT EXISTS and column rename."""
+    # Transaction-level advisory lock: second worker skips rather than deadlocking
+    with get_conn() as _lock_conn:
+        _lock_cur = _lock_conn.cursor()
+        _lock_cur.execute("SELECT pg_try_advisory_xact_lock(987654322)")
+        if not _lock_cur.fetchone()["pg_try_advisory_xact_lock"]:
+            print("[db] Another worker is running migrations — skipping.")
+            return
+        _run_migrations_postgres_statements(_lock_cur)
+        return
+
+
+def _run_migrations_postgres_statements(cur):
     migrations = [
         # Rename contact_name -> person_name if old column still exists
         """DO $$ BEGIN
@@ -557,14 +592,23 @@ def _run_migrations_postgres():
         """UPDATE jobs SET role_type = COALESCE(raw::json->>'role_type', 'entry_level')
            WHERE role_type IS NULL AND raw IS NOT NULL AND raw != '' AND raw != '{}'""",
         "UPDATE jobs SET role_type = 'entry_level' WHERE role_type IS NULL",
+        # Feature: page-visit tracking for DAU metrics
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ",
+        # Trackr: resolved company careers page URL
+        "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS careers_site TEXT",
+        # Feature: anonymous visitor tracking (logged-in + non-logged-in)
+        """CREATE TABLE IF NOT EXISTS site_visits (
+            visitor_id   TEXT NOT NULL,
+            visited_date DATE NOT NULL,
+            created_at   TIMESTAMPTZ DEFAULT NOW(),
+            PRIMARY KEY (visitor_id, visited_date)
+        )""",
     ]
-    with get_conn() as conn:
-        cur = conn.cursor()
-        for stmt in migrations:
-            try:
-                cur.execute(stmt)
-            except Exception as e:
-                print(f"[db] Migration warning (postgres): {e}")
+    for stmt in migrations:
+        try:
+            cur.execute(stmt)
+        except Exception as e:
+            print(f"[db] Migration warning (postgres): {e}")
 
 
 def _run_migrations_sqlite():
@@ -648,6 +692,12 @@ def _run_migrations_sqlite():
             except Exception as e:
                 print(f"[db] Migration warning (jobs.role_type): {e}")
 
+        if "careers_site" not in existing_jobs_cols:
+            try:
+                cur.execute("ALTER TABLE jobs ADD COLUMN careers_site TEXT")
+            except Exception as e:
+                print(f"[db] Migration warning (jobs.careers_site): {e}")
+
         # Feature: Outlook OAuth + daily match snapshot
         cur.execute("PRAGMA table_info(students)")
         existing_student_cols = {row[1] for row in cur.fetchall()}
@@ -663,6 +713,7 @@ def _run_migrations_sqlite():
             ("match3_linkedin",       "TEXT"),
             ("matches_updated_date",  "TEXT"),
             ("notify_sent_date",      "TEXT"),
+            ("last_seen",             "TEXT"),
         ]:
             if col not in existing_student_cols:
                 try:
@@ -967,6 +1018,7 @@ def upsert_job(conn, job: dict) -> tuple:
     source       = job.get("source_id") or job.get("source_name") or ""
     company_sz   = job.get("company_size") or ""
     role_type    = job.get("role_type") or "entry_level"
+    careers_site = (job.get("careers_site") or "").strip()
     raw          = _json.dumps(job)
 
     # Check if already exists by url (primary) or company+title
@@ -986,10 +1038,10 @@ def upsert_job(conn, job: dict) -> tuple:
         _exec(
             conn,
             f"UPDATE jobs SET title=?, company=?, url=?, location=?, "
-            f"industry=?, company_size=?, opening_date=?, closing_date=?, source=?, raw=?, role_type=?, created_at={now_expr} "
+            f"industry=?, company_size=?, opening_date=?, closing_date=?, source=?, raw=?, role_type=?, careers_site=?, created_at={now_expr} "
             f"WHERE id=?",
             (title, company, url, location, industry, company_sz,
-             opening_date, closing_date, source, raw, role_type, job_id)
+             opening_date, closing_date, source, raw, role_type, careers_site, job_id)
         )
         return job_id, False
     else:
@@ -997,10 +1049,10 @@ def upsert_job(conn, job: dict) -> tuple:
             cur = _exec(
                 conn,
                 "INSERT INTO jobs (title, company, url, location, industry, company_size, "
-                "opening_date, closing_date, source, raw, role_type) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
+                "opening_date, closing_date, source, raw, role_type, careers_site) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
                 (title, company, url, location, industry, company_sz,
-                 opening_date, closing_date, source, raw, role_type)
+                 opening_date, closing_date, source, raw, role_type, careers_site)
             )
             row = cur.fetchone()
             job_id = row["id"] if isinstance(row, dict) else row[0]
@@ -1008,10 +1060,10 @@ def upsert_job(conn, job: dict) -> tuple:
             cur = _exec(
                 conn,
                 "INSERT INTO jobs (title, company, url, location, industry, company_size, "
-                "opening_date, closing_date, source, raw, role_type) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "opening_date, closing_date, source, raw, role_type, careers_site) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 (title, company, url, location, industry, company_sz,
-                 opening_date, closing_date, source, raw, role_type)
+                 opening_date, closing_date, source, raw, role_type, careers_site)
             )
             job_id = cur.lastrowid
         return job_id, True

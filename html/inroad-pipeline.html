@@ -234,8 +234,8 @@
     padding: 3px 9px; cursor: pointer; white-space: nowrap;
     transition: all 0.15s; flex-shrink: 0; opacity: 0.55;
   }
-  .filter-btn:hover { opacity: 0.8; }
-  .filter-btn.on { opacity: 1; color: #fff; }
+  .filter-btn:hover { border-color: var(--border-md); color: var(--text-mid); opacity: 1; }
+  .filter-btn.on { background: var(--green-lite); border-color: var(--green); color: var(--green-deep); opacity: 1; }
 
   .region-wrap { flex-shrink: 0; }
   .region-select {
@@ -327,6 +327,15 @@
     transition: background 0.12s;
   }
   .apply-btn-inline:hover { background: var(--green-deep); }
+
+  .careers-btn-inline {
+    font-size: 0.6rem; font-weight: 700;
+    background: transparent; color: var(--green);
+    border: 1px solid var(--green); border-radius: 4px;
+    padding: 2px 7px; cursor: pointer; text-decoration: none; white-space: nowrap;
+    transition: background 0.12s, color 0.12s;
+  }
+  .careers-btn-inline:hover { background: var(--green); color: #fff; }
 
   .stage-badge {
     font-size: 0.55rem; font-weight: 700; border-radius: 4px;
@@ -537,14 +546,6 @@
             <span class="search-icon">⌕</span>
             <input type="text" class="search-input" id="search" placeholder="Search company or role…" autocomplete="off">
           </div>
-          <div class="region-wrap">
-            <select class="region-select" id="region-select">
-              <option value="" selected>🌍 All</option>
-              <option value="UK">🇬🇧 UK</option>
-              <option value="US">🇺🇸 US</option>
-              <option value="EU">🇪🇺 EU</option>
-            </select>
-          </div>
         </div>
         <div class="filter-wrap" id="sector-filter-wrap">
           <button class="filter-btn sector-filter-btn" data-div="Finance">💰 Finance</button>
@@ -746,6 +747,7 @@
     'aqr':                '/static/aqr.png',
   };
   function getLogoUrl(job) {
+    if (job.logo_url) return job.logo_url;
     const key = (job.company || '').toLowerCase().trim();
     if (_LOGO_OVERRIDES[key]) return _LOGO_OVERRIDES[key];
     let site = job.careers_site || '';
@@ -781,15 +783,15 @@
     },
     {
       active:    { id: 'hirevue',  label: 'HireVue and Tested',    bg: '#D4C31E', fg: '#1A1714' },
-      rejection: { id: 'rej-hv',   label: 'Rejected after HV',     bg: '#FFAAAA', fg: '#7F1D1D'    },
+      rejection: { id: 'rej-hv',   label: 'Rejected after HireVue', bg: '#FFAAAA', fg: '#7F1D1D'    },
     },
     {
       active:    { id: 'int1',     label: 'Interview #1',          bg: '#9CC87A', fg: '#1A1714' },
-      rejection: { id: 'rej-int1', label: 'Rejected after Int. #1',bg: '#FFAAAA', fg: '#7F1D1D'    },
+      rejection: { id: 'rej-int1', label: 'Rejected after Int. #1', bg: '#FFAAAA', fg: '#7F1D1D'    },
     },
     {
       active:    { id: 'int2',     label: 'Interview #2',          bg: '#72B050', fg: '#fff'    },
-      rejection: { id: 'rej-int2', label: 'Rejected after Int. #2',bg: '#FFAAAA', fg: '#7F1D1D'    },
+      rejection: { id: 'rej-int2', label: 'Rejected after Int. #2', bg: '#FFAAAA', fg: '#7F1D1D'    },
     },
     {
       active:    { id: 'ac',       label: 'Assessment Center',     bg: '#3A7246', fg: '#fff'    },
@@ -810,7 +812,7 @@
   let activeFilters       = new Set();
   let activeSectorFilters = new Set();
   let searchQuery   = '';
-  let regionFilter  = '';
+  let regionFilter  = 'UK';
   const collapsedSections = new Set();
 
   function loadPipeline() {
@@ -1103,7 +1105,7 @@
             </div>
           </div>
           <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
-          <div class="card-right">${stageBadge}</div>
+          <div class="card-right" style="display:flex;gap:4px;align-items:center">${stageBadge}</div>
         </div>
       </div>`;
   }
@@ -1149,11 +1151,6 @@
     searchQuery = searchEl.value.trim().toLowerCase();
     renderListings();
   });
-  document.getElementById('region-select').addEventListener('change', function() {
-    regionFilter = this.value;
-    renderListings();
-  });
-
   // ── Load jobs ─────────────────────────────────────────────────────────────
   fetch('/api/opportunities')
     .then(r => r.json())

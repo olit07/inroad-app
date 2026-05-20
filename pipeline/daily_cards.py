@@ -389,16 +389,159 @@ Rules:
     return None
 
 
+def _clean_draft_body(body: str) -> str:
+    """Strip grammatical artifacts that arise when the bio already starts with 'I'm a'
+    and the prompt or template adds another 'I'm a' prefix."""
+    import re as _re
+    # Normalise curly/smart apostrophes to straight so regex matches Groq output
+    body = body.replace('’', "'").replace('‘', "'")
+    # "I'm a I'm a ..." → "I'm a ..."
+    body = _re.sub(r"I'm a\s+I'm a\s*", "I'm a ", body, flags=_re.IGNORECASE)
+    # "I'm a I'm ..." → "I'm ..."
+    body = _re.sub(r"I'm a\s+I'm\s+", "I'm ", body, flags=_re.IGNORECASE)
+    # "I am a I'm a ..." → "I'm a ..."
+    body = _re.sub(r"I am a\s+I'm a\s*", "I'm a ", body, flags=_re.IGNORECASE)
+    # Collapse stray triple-newlines to double
+    body = _re.sub(r"\n{3,}", "\n\n", body)
+    return body.strip()
+
+
+def _generate_with_groq(student: dict, lead: dict, job: dict) -> tuple[str, str] | None:
+    """
+    Generate a personalised cold-email draft via Groq (llama3-8b-8192).
+    Returns (subject, body) or None if generation fails.
+    """
+    import os
+    import json as _json
+    import requests as _requests
+
+    api_key = os.environ.get("GROQ_API_KEY") or os.environ.get("GROQ_EMAILLLM_API_KEY")
+    if not api_key:
+        return None
+
+    name_parts    = (lead.get("name") or "").split()
+    first_name    = name_parts[0] if name_parts else "there"
+    student_name  = (student.get("name") or "").strip()
+    university    = (student.get("university") or "").strip()
+    bio           = (student.get("bio") or "").strip()
+    company       = (lead.get("company") or job.get("company_name") or "the company").strip()
+    department    = _job_department(job.get("title", ""))
+    industry_hint = _get_industry_tone(job)
+    is_alumni     = bool(lead.get("is_alumni"))
+
+    identity_line = f"I'm a{' ' + university if university else ''} student"
+    if bio:
+        identity_line = bio
+    alumni_note = f" (I noticed you also studied at {university})" if is_alumni and university else ""
+
+    job_title   = (job.get("title") or "").strip()
+    lead_title  = (lead.get("title") or "").strip()
+
+    import random as _random
+    if lead_title and _random.random() < 0.5:
+        intro_instruction = (
+            f"Use this exact opening: 'I hope you don't mind the message. "
+            f"I came across your profile while researching opportunities at {company} "
+            f"and was impressed by your background in {lead_title} at {company}.'"
+            f"\n\nThen on a new paragraph: one sentence starting with 'I'm a' that introduces the student using their bio."
+            f"{(' ' + alumni_note) if alumni_note else ''}"
+        )
+    else:
+        intro_instruction = (
+            f"2-3 sentences: start with 'I'm a', introduce the student using their bio, "
+            f"reference the '{job_title or department}' programme at {company}, "
+            f"say why reaching out directly.{(' ' + alumni_note) if alumni_note else ''}"
+        )
+
+    prompt = f"""Write a cold outreach email from a student to a finance professional. Be direct, genuine, and concise — not sycophantic.
+
+RECIPIENT: {first_name}, {lead_title or department} at {company}
+STUDENT: {student_name or 'student'}{(' at ' + university) if university else ''}
+BIO: {bio or identity_line}{(' ' + alumni_note) if alumni_note else ''}
+PROGRAMME: {job_title or department} at {company}
+
+STYLE EXAMPLES — do not copy, vary freely:
+
+Style A:
+"Dear [Name],
+I know you are incredibly busy so I will keep this short.
+I'm a [bio]. Something about [company]'s approach to [field] caught my attention and I wanted to reach out to someone actually doing the work.
+What is the most common misconception students have about working in [field]?
+Even a line or two would mean a lot.
+All the best, [Student]"
+
+Style B:
+"Hi [Name],
+I hope you don't mind the message. I came across your profile while researching opportunities at [company] and was impressed by your background in [title] at [company].
+I'm a [bio].
+Is there anything you wish you had known going into your first [field] role?
+Really appreciate your time either way.
+[Student]"
+
+Style C:
+"Hi [Name],
+Quick one. I'm a [bio], applying for the [programme] role. I came across your profile and thought reaching out directly made more sense than hoping my application stands out on its own.
+Would you be open to sharing any insight on what you look for in candidates?
+Thanks so much, [Student]"
+
+RULES:
+- Open with "Hi {first_name}," or "Dear {first_name}," — vary naturally
+- Always introduce the student with "I'm a..." (first or second paragraph)
+- Reference {company} and {job_title or department} specifically
+- End with ONE specific question — vary from: skills they look for, advice for breaking in, what surprised them in the role, an interesting team challenge, common misconceptions, what drew them to the field. Never ask for a call, meeting, or referral.
+- Sign-off varies naturally: "All the best," / "Thanks for reading," / "Really appreciate your time," / "Thanks so much," — match the tone of the email
+- No hyphens or em dashes anywhere
+- No flattery, no "I hope this finds you well"
+- Under 130 words
+
+Output JSON only: {{"subject": "...", "body": "..."}}
+Subject: short and natural, e.g. "Quick question about {department} at {company}"
+Use \\n for line breaks."""
+
+    try:
+        resp = _requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "llama3-8b-8192",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.8,
+                "max_tokens": 550,
+            },
+            timeout=15,
+        )
+        resp.raise_for_status()
+        raw = resp.json()["choices"][0]["message"]["content"].strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        data = _json.loads(raw)
+        subject = (data.get("subject") or "").strip()
+        body    = _clean_draft_body((data.get("body") or "").strip())
+        if subject and body and len(body.split()) <= 200:
+            return subject, body
+    except Exception as e:
+        logger.debug(f"Groq draft generation failed: {e}")
+    return None
+
+
 def generate_email_draft(
     student: dict,
     lead:    dict,
     job:     dict,
-) -> tuple[str, str]:
+) -> tuple[str, str, bool]:
     """
-    Generate subject + body for a cold-email draft using the standard template.
-    Returns (subject, body).
+    Generate subject + body for a cold-email draft.
+    Tries Groq first; falls back to a randomly chosen static template.
+    Returns (subject, body, is_personalised).
     """
-    from pipeline.email_templates import template_standard
+    import random as _rand
+    from pipeline.email_templates import TEMPLATES
+
+    result = _generate_with_groq(student, lead, job)
+    if result:
+        return result[0], result[1], True
 
     name_parts = (lead.get("name") or "").split()
     ctx = {
@@ -406,11 +549,15 @@ def generate_email_draft(
         "student_university":   student.get("university") or "",
         "student_bio":          student.get("bio") or "",
         "recipient_first_name": name_parts[0] if name_parts else "there",
+        "recipient_title":      lead.get("title") or "",
         "recipient_company":    lead.get("company") or job.get("company_name") or "your company",
+        "is_alumni":            bool(lead.get("is_alumni")),
+        "job_title":            job.get("title") or "",
         "job_department":       _job_department(job.get("title", "")),
         "industry_hint":        _get_industry_tone(job),
     }
-    return template_standard(ctx)
+    subject, body = _rand.choice(TEMPLATES)(ctx)
+    return subject, _clean_draft_body(body), False
 
 
 # ── Industry → dept_tag mapping for lead filtering ────────────────────────────
@@ -629,7 +776,7 @@ def generate_daily_cards(student_id: int, db_path=DB_PATH,
             )
 
         # Generate email draft
-        subject, body = generate_email_draft(student, best_lead, job)
+        subject, body, _ = generate_email_draft(student, best_lead, job)
 
         card = {
             "student_id":          student_id,

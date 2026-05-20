@@ -308,12 +308,20 @@
     border-color: var(--border);
     background: var(--white);
     cursor: not-allowed;
-    opacity: 0.55;
+    opacity: 0.65;
+    pointer-events: none;
   }
-  .industry-pill.locked:hover {
-    border-color: var(--border);
-    background: var(--white);
-    color: var(--subtle);
+  .coming-soon-chip {
+    display: inline-block;
+    margin-left: 5px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #9ca3af;
+    vertical-align: middle;
+    letter-spacing: 0.01em;
   }
 
   .industry-hint {
@@ -385,14 +393,14 @@
     top: -10px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--green);
-    color: white;
+    background: #f3f4f6;
+    color: #9ca3af;
     font-size: 0.62rem;
-    font-weight: 700;
+    font-weight: 600;
     padding: 2px 9px;
     border-radius: 100px;
     white-space: nowrap;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.01em;
   }
 
   /* ─── ERROR MSG ─── */
@@ -750,9 +758,9 @@
         <span class="industry-pill" onclick="togglePill(this)">Strategy</span>
         <span class="industry-pill" onclick="togglePill(this)">Marketing</span>
         <span class="industry-pill" onclick="togglePill(this)">Healthcare</span>
-        <span class="industry-pill locked" title="Coming soon">Media &amp; Journalism</span>
-        <span class="industry-pill locked" title="Coming soon">Real Estate</span>
-        <span class="industry-pill locked" title="Coming soon">Non-profit &amp; Policy</span>
+        <span class="industry-pill locked">Media &amp; Journalism<span class="coming-soon-chip">Coming soon</span></span>
+        <span class="industry-pill locked">Real Estate<span class="coming-soon-chip">Coming soon</span></span>
+        <span class="industry-pill locked">Non-profit &amp; Policy<span class="coming-soon-chip">Coming soon</span></span>
       </div>
       <p class="industry-hint">Select all that apply</p>
 
@@ -773,17 +781,17 @@
 
       <div class="size-grid">
         <div class="size-card locked" data-group="size" data-value="startup">
-          <div class="recommended-tag">Recommended</div>
+          <div class="recommended-tag">Coming soon</div>
           <span class="size-icon">🚀</span>
           <span class="size-label">Startup</span>
           <span class="size-desc">Under 200 people. Fast, broad roles.</span>
         </div>
-        <div class="size-card" data-group="size" data-value="mid" onclick="selectChoice(this)">
+        <div class="size-card" data-group="size" data-value="mid" onclick="toggleSize(this)">
           <span class="size-icon">🏢</span>
           <span class="size-label">Mid-size</span>
           <span class="size-desc">200–2,000. Structure with room to grow.</span>
         </div>
-        <div class="size-card" data-group="size" data-value="large" onclick="selectChoice(this)">
+        <div class="size-card" data-group="size" data-value="large" onclick="toggleSize(this)">
           <span class="size-icon">🌐</span>
           <span class="size-label">Large</span>
           <span class="size-desc">2,000+ people. Brand and stability.</span>
@@ -998,6 +1006,11 @@
     clearError(current);
   }
 
+  function toggleSize(el) {
+    el.classList.toggle('selected');
+    clearError(current);
+  }
+
   function togglePill(el) {
     el.classList.toggle('selected');
     clearError(current);
@@ -1037,7 +1050,7 @@
     const age         = document.getElementById('age-input').value;
     const status      = document.querySelector('[data-group="status"].selected')?.dataset.value;
     const industries  = [...document.querySelectorAll('#industry-grid .industry-pill.selected')].map(p => p.textContent);
-    const companySize = document.querySelector('[data-group="size"].selected')?.dataset.value;
+    const companySize = [...document.querySelectorAll('[data-group="size"].selected')].map(c => c.dataset.value);
     const bio         = document.getElementById('bio-input').value.trim();
 
     // Show loading overlay immediately

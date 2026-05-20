@@ -27,12 +27,12 @@
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Lato',sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
 
-  nav{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 52px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:50}
+  nav{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 52px;border-bottom:none;background:rgba(18,43,30,0.97);position:sticky;top:0;z-index:50;backdrop-filter:blur(16px)}
   .wordmark{display:flex;align-items:center;gap:9px;text-decoration:none}
-  .wordmark-text{font-family:'Lora',Georgia,serif;font-size:1.25rem;font-weight:700;color:var(--text);letter-spacing:-0.02em}
-  .wordmark-text em{font-style:normal;color:var(--green)}
-  .nav-back{font-size:0.83rem;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.15s}
-  .nav-back:hover{color:var(--text)}
+  .wordmark-text{font-family:'Lora',Georgia,serif;font-size:1.25rem;font-weight:700;color:#fff;letter-spacing:-0.02em}
+  .wordmark-text em{font-style:normal;color:#fff}
+  .nav-back{font-size:0.83rem;color:rgba(255,255,255,0.7);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.15s}
+  .nav-back:hover{color:#fff}
 
   .page{max-width:620px;margin:0 auto;padding:24px 52px 60px}
   h1{font-size:1.35rem;font-weight:900;letter-spacing:-0.02em;color:var(--text);margin-bottom:2px}
@@ -62,7 +62,9 @@
     cursor:pointer;transition:all 0.15s;user-select:none
   }
   .industry-pill.selected{border-color:var(--green);background:var(--green-lite);color:var(--green-deep)}
-  .industry-pill.locked{color:var(--subtle);border-color:var(--border);background:var(--bg);cursor:not-allowed;opacity:0.55;pointer-events:none}
+  .industry-pill.locked{color:var(--subtle);border-color:var(--border);background:var(--bg);cursor:not-allowed;opacity:0.65;pointer-events:none;position:relative}
+  .coming-soon-chip{display:inline-block;margin-left:5px;padding:1px 6px;border-radius:4px;font-size:0.62rem;font-weight:600;background:#f3f4f6;color:#9ca3af;vertical-align:middle;letter-spacing:0.01em}
+  .size-card-soon{display:inline-block;padding:2px 7px;border-radius:5px;font-size:0.6rem;font-weight:700;background:#f3f4f6;color:#9ca3af;letter-spacing:0.04em;text-transform:uppercase;margin-top:4px}
 
   .size-row{display:flex;gap:8px}
   .size-card{
@@ -104,8 +106,8 @@
 <body>
 
 <nav>
-  <a href="/" class="wordmark">
-    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
+  <a href="/?home=1" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg><span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:#fff;">inroad</span>
   </a>
   <a href="/opportunities" class="nav-back" id="back-btn">← Back</a>
 </nav>
@@ -172,6 +174,7 @@
         <div class="size-card locked" data-value="startup">
           <div class="size-card-label">🚀 Startup</div>
           <div class="size-card-desc">Under 200 people</div>
+          <div class="size-card-soon">Coming soon</div>
         </div>
         <div class="size-card" data-value="mid" onclick="selectSize(this)">
           <div class="size-card-label">🏢 Mid-size</div>
@@ -186,6 +189,20 @@
   </div>
 
   <button class="btn-save" id="save-btn" onclick="saveSettings()">Save changes</button>
+
+  <!-- Integrations -->
+  <div class="section" id="integrations-section" style="margin-top:20px;display:none">
+    <div class="section-label">Integrations</div>
+    <div class="section-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <div>
+          <div style="font-size:0.82rem;font-weight:700;color:var(--text-mid);margin-bottom:2px">Microsoft Outlook</div>
+          <div style="font-size:0.76rem;color:var(--muted)" id="outlook-status-text">Checking…</div>
+        </div>
+        <button class="btn-danger" id="outlook-disconnect-btn" style="display:none;white-space:nowrap" onclick="disconnectOutlook()">Disconnect</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Danger zone -->
   <div class="section" style="margin-top:20px">
@@ -238,7 +255,7 @@ INDUSTRIES.forEach(ind => {
   pill.dataset.value = ind;
   if (LOCKED_INDUSTRIES.has(ind)) {
     pill.className = 'industry-pill locked';
-    pill.title = 'Coming soon';
+    pill.innerHTML = ind + '<span class="coming-soon-chip">Coming soon</span>';
   } else {
     pill.className = 'industry-pill';
     pill.onclick = () => { pill.classList.toggle('selected'); };
@@ -247,8 +264,7 @@ INDUSTRIES.forEach(ind => {
 });
 
 function selectSize(el) {
-  document.querySelectorAll('.size-card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
+  el.classList.toggle('selected');
 }
 
 function selectStage(el) {
@@ -285,14 +301,46 @@ async function loadSettings() {
     const stageEl = document.querySelector(`[data-stage="${data.status}"]`);
     if (stageEl) selectStage(stageEl);
 
-    const sizeEl = document.querySelector(`[data-value="${data.company_size}"]`);
-    if (sizeEl) selectSize(sizeEl);
+    const sizes = Array.isArray(data.company_size) ? data.company_size :
+      (data.company_size ? JSON.parse(data.company_size) : []);
+    sizes.forEach(v => {
+      const el = document.querySelector(`[data-value="${v}"]`);
+      if (el) el.classList.add('selected');
+    });
 
     document.getElementById('page-sub').textContent =
       `Signed in as ${data.email}`;
+
+    // Outlook integration status
+    const intSection = document.getElementById('integrations-section');
+    intSection.style.display = '';
+    const statusText = document.getElementById('outlook-status-text');
+    const discBtn = document.getElementById('outlook-disconnect-btn');
+    if (data.outlook_connected) {
+      statusText.textContent = 'Connected ✓';
+      statusText.style.color = 'var(--green)';
+      discBtn.style.display = '';
+    } else {
+      statusText.textContent = 'Not connected';
+    }
   } catch(e) {
     document.getElementById('page-sub').textContent = 'Could not load settings.';
   }
+}
+
+async function disconnectOutlook() {
+  if (!confirm('Disconnect your Outlook account?')) return;
+  try {
+    const r = await apiFetch('/api/auth/outlook/disconnect', { method: 'POST' });
+    if (r.ok) {
+      document.getElementById('outlook-status-text').textContent = 'Not connected';
+      document.getElementById('outlook-status-text').style.color = '';
+      document.getElementById('outlook-disconnect-btn').style.display = 'none';
+      showToast('Outlook disconnected');
+    } else {
+      showToast('Failed to disconnect — please try again');
+    }
+  } catch(_) { showToast('Failed to disconnect — please try again'); }
 }
 
 function updateBioCount() {
@@ -305,7 +353,7 @@ document.getElementById('bio').addEventListener('input', updateBioCount);
 
 async function saveSettings() {
   const industries = [...document.querySelectorAll('.industry-pill.selected')].map(p => p.dataset.value);
-  const size = document.querySelector('.size-card.selected')?.dataset.value || '';
+  const size = [...document.querySelectorAll('.size-card.selected')].map(c => c.dataset.value);
 
   const stage = document.querySelector('[data-stage].selected')?.dataset.stage || '';
 

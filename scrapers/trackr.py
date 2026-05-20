@@ -21,9 +21,11 @@ run, tested and monitored independently:
 TrackrScraper handles remaining buckets (pre-uni, Technology, Law, NA, EU).
 """
 import logging
+import urllib.request
 from datetime import date
 from pathlib import Path
 from typing import Iterator
+from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -48,9 +50,11 @@ INDUSTRY_MAP = {
 TYPE_MAP = {
     "summer-internships":    "internship",
     "spring-weeks":          "internship",
+    "insight-programmes":    "internship",
     "off-cycle-internships": "internship",
     "industrial-placements": "internship",
     "graduate-programmes":   "full-time",
+    "full-time-programmes":  "full-time",
     "training-contracts":    "full-time",
     "pre-uni":               "internship",
     "events":                "event",
@@ -59,15 +63,105 @@ TYPE_MAP = {
 TRACKR_TYPE_LABEL = {
     "summer-internships":    "Summer Internship",
     "spring-weeks":          "Spring Week",
+    "insight-programmes":    "Spring Week",
     "off-cycle-internships": "Off-Cycle Internship",
     "industrial-placements": "Industrial Placement",
     "graduate-programmes":   "Graduate Programme",
+    "full-time-programmes":  "Graduate Programme",
     "training-contracts":    "Graduate Programme",
     "pre-uni":               "Pre-Uni",
     "events":                "Events",
 }
 
 _ACTIVE_SEASONS = ["2026", "2027"]
+
+
+# ── URL helpers ───────────────────────────────────────────────────────────────
+
+_careers_site_cache: dict[str, str] = {}
+
+# Fallback careers URLs for companies where Trackr uses bit.ly or has no URL.
+# Keys are lowercase company names exactly as Trackr returns them.
+_CAREERS_SITE_OVERRIDES: dict[str, str] = {
+    "ardian":              "https://www.ardian.com/join-us",
+    "ubs":                 "https://www.ubs.com/global/en/careers.html",
+    "rothschild & co":     "https://www.rothschildandco.com/en/careers/",
+    "rothschild & co.":    "https://www.rothschildandco.com/en/careers/",
+    "jpmorgan chase & co.":"https://careers.jpmorgan.com/",
+    "barclays":            "https://home.barclays/careers/",
+    "blackstone":          "https://www.blackstone.com/careers/",
+    "citi":                "https://jobs.citi.com/",
+    "ey":                  "https://www.ey.com/en_uk/careers",
+    "deloitte":            "https://www2.deloitte.com/uk/en/pages/careers/",
+    "deutsche bank":       "https://careers.db.com/",
+    "goldman sachs":       "https://www.goldmansachs.com/careers/",
+    "morgan stanley":      "https://www.morganstanley.com/people/careers",
+    "hsbc":                "https://www.hsbc.com/careers",
+    "bank of england":     "https://www.bankofengland.co.uk/careers",
+    "wells fargo":         "https://www.wellsfargo.com/about/careers/",
+    "pimco":               "https://www.pimco.com/en-us/our-firm/careers",
+    "blackrock":           "https://careers.blackrock.com/",
+    "citadel":             "https://www.citadel.com/careers/",
+    "evercore":            "https://www.evercore.com/careers/",
+    "lazard":              "https://www.lazard.com/careers/",
+    "man group":           "https://www.man.com/careers",
+    "marshall wace":       "https://www.marshallwace.com/careers",
+    "mckinsey & company":  "https://www.mckinsey.com/careers",
+    "millennium management":"https://www.mlp.com/careers/",
+    "natwest markets":     "https://jobs.natwestgroup.com/",
+}
+
+def _resolve_url(url: str) -> str:
+    """Follow redirects and return the final URL. Returns original on failure."""
+    if not url:
+        return url
+    if url in _careers_site_cache:
+        return _careers_site_cache[url]
+    try:
+        req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            resolved = resp.url
+    except Exception:
+        resolved = url
+    _careers_site_cache[url] = resolved
+    return resolved
+
+
+_TRACKR_SOURCE_VALUES = {"trackr", "Trackr", "TRACKR"}
+
+def _clean_url(url: str) -> str:
+    """
+    Strip Trackr tracking parameters from job listing URLs.
+    Only removes a param when its value is a known Trackr identifier, so the
+    function is idempotent. Preserves all functional query parameters.
+    """
+    if not url:
+        return url
+
+    parsed = urlparse(url)
+    params = parse_qs(parsed.query, keep_blank_values=True)
+
+    if not params:
+        return url
+
+    def _is_trackr(values):
+        return any(v in _TRACKR_SOURCE_VALUES for v in values)
+
+    had_trackr_source   = _is_trackr(params.get("utm_source", []))
+    had_trackr_campaign = _is_trackr(params.get("utm_campaign", []))
+
+    cleaned_params = {}
+    for k, v in params.items():
+        if k in ("utm_source", "utm_medium") and had_trackr_source:
+            continue
+        if k == "utm_campaign" and (had_trackr_source or had_trackr_campaign):
+            continue
+        if k in ("gh_src", "source", "codes") and _is_trackr(v):
+            continue
+        cleaned_params[k] = v
+
+    cleaned = parsed._replace(query=urlencode(cleaned_params, doseq=True))
+    return urlunparse(cleaned)
 
 
 # ── Shared helpers ────────────────────────────────────────────────────────────
@@ -82,7 +176,14 @@ def _parse_programme(raw: dict, region: str, industry: str, prog_type: str) -> d
     if not company_name:
         return None
 
-    url          = (raw.get("url") or "").strip()
+    careers_bitly = (company_obj.get("careersSite") or "").strip()
+    careers_site  = _resolve_url(careers_bitly) if careers_bitly else ""
+    if "bit.ly" in careers_site:
+        careers_site = ""
+    if not careers_site:
+        careers_site = _CAREERS_SITE_OVERRIDES.get(company_name.lower().strip(), "")
+
+    url          = _clean_url((raw.get("url") or "").strip())
     opening_date = clean_date(raw.get("openingDate") or "")
     closing_date = clean_date(raw.get("closingDate") or "")
     locations    = raw.get("locations") or []
@@ -107,6 +208,7 @@ def _parse_programme(raw: dict, region: str, industry: str, prog_type: str) -> d
     job["location"]          = ", ".join(locations) if locations else ""
     job["trackr_type"]       = prog_type
     job["source_identifier"] = trackr_id
+    job["careers_site"]      = careers_site
     categories = raw.get("categories") or []
     job["trackr_categories"] = categories  # stored in raw JSON; used to derive vertical
     return job
@@ -118,6 +220,7 @@ def _scrape_bucket(
     industry: str,
     prog_type: str,
     seasons: list[str] = _ACTIVE_SEASONS,
+    list_id: str = "",
 ) -> Iterator[dict]:
     """Yield open jobs for one (region, industry, prog_type) across all seasons."""
     seen: set = set()
@@ -125,6 +228,8 @@ def _scrape_bucket(
 
     for season in seasons:
         url = f"{API_BASE}?region={region}&industry={industry}&season={season}&type={prog_type}"
+        if list_id:
+            url += f"&listId={list_id}"
         try:
             data = scraper.fetch_json(url, headers={
                 "Accept":  "application/json",
@@ -212,6 +317,60 @@ class TrackrEventsScraper(_TrackrUKFinanceBase):
     PROG_TYPE = "events"
 
 
+# ── UK Finance 2027 early-access scrapers ────────────────────────────────────
+# https://app.the-trackr.com/uk-finance-2027-early-access-x/<prog_type>
+# Same API endpoint; listId param future-proofs against exclusive early-access content.
+
+_EA27_LIST_ID = "uk-finance-2027-early-access-x"
+_EA27_SEASONS = ["2027"]
+
+
+class _TrackrEarlyAccess2027Base(BaseScraper):
+    source_name = "Trackr"
+    tier        = 1
+    PROG_TYPE: str
+
+    def scrape(self) -> Iterator[dict]:
+        yield from _scrape_bucket(self, "UK", "Finance", self.PROG_TYPE,
+                                   seasons=_EA27_SEASONS, list_id=_EA27_LIST_ID)
+
+
+class TrackrEA27SummerInternshipsScraper(_TrackrEarlyAccess2027Base):
+    """https://app.the-trackr.com/uk-finance-2027-early-access-x/summer-internships"""
+    source_id = "trackr_ea27_summer_internships"
+    PROG_TYPE = "summer-internships"
+
+
+class TrackrEA27SpringWeeksScraper(_TrackrEarlyAccess2027Base):
+    """https://app.the-trackr.com/uk-finance-2027-early-access-x/spring-weeks"""
+    source_id = "trackr_ea27_spring_weeks"
+    PROG_TYPE = "spring-weeks"
+
+
+class TrackrEA27OffCycleScraper(_TrackrEarlyAccess2027Base):
+    """https://app.the-trackr.com/uk-finance-2027-early-access-x/off-cycle-internships"""
+    source_id = "trackr_ea27_off_cycle"
+    PROG_TYPE = "off-cycle-internships"
+
+
+class TrackrEA27IndustrialPlacementsScraper(_TrackrEarlyAccess2027Base):
+    """https://app.the-trackr.com/uk-finance-2027-early-access-x/industrial-placements"""
+    source_id = "trackr_ea27_industrial_placements"
+    PROG_TYPE = "industrial-placements"
+
+
+class TrackrEA27GradProgrammesScraper(_TrackrEarlyAccess2027Base):
+    """https://app.the-trackr.com/uk-finance-2027-early-access-x/graduate-programmes"""
+    source_id = "trackr_ea27_grad_programmes"
+    PROG_TYPE = "graduate-programmes"
+
+
+class TrackrEA27EventsScraper(_TrackrEarlyAccess2027Base):
+    """https://app.the-trackr.com/uk-finance-2027-early-access-x/events"""
+    source_id = "trackr_ea27_events"
+    PROG_TYPE = "events"
+
+
 # ── General scraper (non-UK-Finance buckets) ──────────────────────────────────
 
 _OTHER_BUCKETS = [
@@ -224,14 +383,19 @@ _OTHER_BUCKETS = [
     ("UK", "Technology", "2026", "off-cycle-internships"),
     ("UK", "Technology", "2026", "graduate-programmes"),
     ("UK", "Law",        "2026", "training-contracts"),
-    # North America — paused (too many US roles surfacing)
-    # ("NA", "Finance",    "2026", "summer-internships"),
-    # ("NA", "Finance",    "2027", "summer-internships"),
-    # ("NA", "Technology", "2026", "summer-internships"),
-    # ("NA", "Technology", "2027", "summer-internships"),
-    # Europe
+    # North America — Finance 2027  (API uses region=US)
+    ("US", "Finance",    "2027", "summer-internships"),
+    ("US", "Finance",    "2027", "graduate-programmes"),
+    ("US", "Finance",    "2027", "full-time-programmes"),
+    ("US", "Finance",    "2027", "spring-weeks"),
+    ("US", "Finance",    "2027", "insight-programmes"),
+    # Europe — Finance
     ("EU", "Finance",    "2026", "summer-internships"),
     ("EU", "Finance",    "2027", "summer-internships"),
+    ("EU", "Finance",    "2026", "off-cycle-internships"),
+    ("EU", "Finance",    "2027", "off-cycle-internships"),
+    ("EU", "Finance",    "2026", "graduate-programmes"),
+    ("EU", "Finance",    "2027", "graduate-programmes"),
 ]
 
 

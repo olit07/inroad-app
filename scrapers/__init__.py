@@ -25,6 +25,12 @@ from scrapers.trackr import (
     TrackrIndustrialPlacementsScraper,
     TrackrGradProgrammesScraper,
     TrackrEventsScraper,
+    TrackrEA27SummerInternshipsScraper,
+    TrackrEA27SpringWeeksScraper,
+    TrackrEA27OffCycleScraper,
+    TrackrEA27IndustrialPlacementsScraper,
+    TrackrEA27GradProgrammesScraper,
+    TrackrEA27EventsScraper,
 )
 from scrapers.greenhouse import GreenhouseScraper
 from scrapers.lever import LeverScraper
@@ -43,6 +49,13 @@ def get_all_scrapers() -> list:
         TrackrIndustrialPlacementsScraper(),
         TrackrGradProgrammesScraper(),
         TrackrEventsScraper(),
+        # UK Finance 2027 early-access pages
+        TrackrEA27SummerInternshipsScraper(),
+        TrackrEA27SpringWeeksScraper(),
+        TrackrEA27OffCycleScraper(),
+        TrackrEA27IndustrialPlacementsScraper(),
+        TrackrEA27GradProgrammesScraper(),
+        TrackrEA27EventsScraper(),
         # Everything else (pre-uni, Technology, Law, NA, EU)
         TrackrScraper(),
     ]

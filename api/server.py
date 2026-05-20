@@ -13,6 +13,7 @@ import hashlib
 import json
 import secrets
 import base64
+import threading
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
@@ -21,6 +22,7 @@ from flask import (
     send_from_directory, g
 )
 from flask_cors import CORS
+from flask_compress import Compress
 
 # Make sure project root is on the path when running as a module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -51,6 +53,7 @@ from utils.university_lookup import detect_university
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), ".."))
 
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
+Compress(app)
 
 # Configure logging so scraper output appears in Railway logs
 logging.basicConfig(
@@ -110,7 +113,7 @@ def _start_background_scheduler():
     def _loop():
         from scheduler.run import run_trackr_pipeline, run_cards_job, run_notify_job, run_wttj_job
         log = _log.getLogger("scheduler")
-        log.info("Background scheduler started — Trackr slots, WTTJ at 05:05 UTC, pipeline at 06:00 UTC")
+        log.info("Background scheduler started — Trackr at 05:00/07:10/… UTC, WTTJ at 05:05 UTC, pipeline at 06:00 UTC")
 
         next_trackr   = _next_slot(TRACKR_SLOTS)
         next_pipeline = _next_hour(PIPELINE_HOUR)
@@ -164,6 +167,19 @@ def _start_background_scheduler():
 
 
 _start_background_scheduler()
+
+
+def _warm_opp_cache():
+    import time as _t
+    _t.sleep(3)  # let the server finish binding before hitting the DB
+    try:
+        with app.app_context():
+            app.test_client().get("/api/opportunities")
+    except Exception:
+        pass
+
+threading.Thread(target=_warm_opp_cache, daemon=True, name="cache-warmer").start()
+
 
 # ── Admin auth ───────────────────────────────────────────────────────────────
 
@@ -2189,6 +2205,28 @@ def listings_page():
     return _send_html("inroad-listings.html")
 
 
+def _extract_logo_url(raw_json: str) -> str:
+    """Extract logo_url from a job's raw JSON field (populated for WTTJ jobs)."""
+    if not raw_json:
+        return ""
+    try:
+        import json as _j
+        return _j.loads(raw_json).get("logo_url") or ""
+    except Exception:
+        return ""
+
+
+def _extract_company_url(raw_json: str) -> str:
+    """Extract company_url from a job's raw JSON field (populated for WTTJ jobs)."""
+    if not raw_json:
+        return ""
+    try:
+        import json as _j
+        return _j.loads(raw_json).get("company_url") or ""
+    except Exception:
+        return ""
+
+
 # In-process cache for /api/opportunities — recomputed at most once every 5 minutes
 _opp_cache: dict = {"data": None, "expires_at": 0.0}
 
@@ -2199,18 +2237,30 @@ def api_opportunities():
     from datetime import datetime, timezone
     from db.database import USE_POSTGRES
 
+    slim = request.args.get("slim") == "1"
+
     now = _time.time()
     if _opp_cache["data"] is not None and now < _opp_cache["expires_at"]:
-        resp = jsonify(_opp_cache["data"])
+        data = _opp_cache["data"]
+        if slim:
+            data = {**data, "jobs": [{k: v for k, v in j.items() if k != "leads"} for j in data["jobs"]]}
+        resp = jsonify(data)
         resp.headers["Cache-Control"] = "public, max-age=300"
         return resp
 
+    _t0 = _time.time()
+
     # Firm type lookup by company name (used as section headers)
     _INDUSTRY_VERTICAL = {
+        # Trackr industry strings
         "Finance":    "Finance",
         "Technology": "Tech",
         "Law":        "Law",
         "Marketing":  "Marketing",
+        # WTTJ sector strings
+        "Tech":       "Tech",
+        "Consulting":  "Consulting",
+        "Other":       "Miscellaneous",
     }
 
     def infer_firm_type(industry: str, raw_json: str = "") -> str:
@@ -2257,18 +2307,20 @@ def api_opportunities():
 
     def infer_programme_type(title: str, raw_json: str = "") -> str:
         import json as _json
+        # Use the authoritative trackr_type stored in raw JSON when available
         if raw_json:
             try:
                 raw_data = _json.loads(raw_json)
                 tt = raw_data.get("trackr_type", "")
                 if tt and tt in _TRACKR_TYPE_LABEL:
                     return _TRACKR_TYPE_LABEL[tt]
+                # WTTJ jobs store programme_type directly
                 pt = raw_data.get("programme_type", "")
                 if pt in _WTTJ_PROG_TYPES:
                     return pt
             except Exception:
                 pass
-        # Title-based fallback for legacy rows without trackr_type or programme_type
+        # Title-based fallback for legacy rows without trackr_type
         t = title.lower()
         if any(k in t for k in ['spring week', 'spring insight', 'spring into', 'spring programme', 'spring internship']):
             return 'Spring Week'
@@ -2296,36 +2348,60 @@ def api_opportunities():
             return "?"
         return (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()
 
-    # Fetch jobs — compatible SQL for both Postgres and SQLite
+    # Fetch jobs — extract only required fields from raw JSON in SQL (avoids shipping full raw blob)
     if USE_POSTGRES:
-        order_clause = "ORDER BY opening_date DESC NULLS LAST, created_at DESC NULLS LAST"
+        rows = fetchall(
+            "SELECT id, title, company, url, opening_date, closing_date, industry, careers_site,"
+            "  COALESCE(raw::json->>'trackr_type',    '')   AS trackr_type,"
+            "  COALESCE(raw::json->>'region',         'UK') AS region,"
+            "  COALESCE(raw::json->>'logo_url',       '')   AS logo_url,"
+            "  COALESCE(raw::json->>'company_url',    '')   AS company_url,"
+            "  COALESCE(raw::json->>'programme_type', '')   AS wttj_prog_type,"
+            "  CASE WHEN raw IS NOT NULL AND raw != '' AND raw != '{}'"
+            "       AND raw::jsonb->'trackr_categories' @> '[\"Consulting\"]' THEN 1 ELSE 0 END AS is_consulting,"
+            "  CASE WHEN raw IS NOT NULL AND raw != '' AND raw != '{}'"
+            "       AND raw::json->>'trackr_type' = 'events' THEN 1 ELSE 0 END AS is_events"
+            " FROM jobs WHERE company IS NOT NULL AND company != ''"
+            " AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj')"
+            " AND lower(company) != 'trackr'"
+            " ORDER BY opening_date DESC NULLS LAST, created_at DESC NULLS LAST LIMIT 10000"
+        )
     else:
-        order_clause = "ORDER BY CASE WHEN opening_date IS NULL OR opening_date = '' THEN 1 ELSE 0 END, opening_date DESC, created_at DESC"
-
-    rows = fetchall(
-        "SELECT id, title, company, url, opening_date, closing_date, industry, created_at, raw, careers_site "
-        "FROM jobs WHERE company IS NOT NULL AND company != '' "
-        f"AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj') "
-        f"AND lower(company) != 'trackr' {order_clause} LIMIT 10000"
-    )
+        rows = fetchall(
+            "SELECT id, title, company, url, opening_date, closing_date, industry, created_at, raw, careers_site "
+            "FROM jobs WHERE company IS NOT NULL AND company != '' "
+            "AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj') "
+            "AND lower(company) != 'trackr' "
+            "ORDER BY CASE WHEN opening_date IS NULL OR opening_date = '' THEN 1 ELSE 0 END, opening_date DESC, created_at DESC "
+            "LIMIT 10000"
+        )
 
     if not rows:
         return jsonify({"jobs": [], "count": 0, "updated_at": datetime.now(timezone.utc).isoformat()})
 
-    # Batch-fetch leads for all companies in a single query to avoid N+1
+    import logging as _lg
+    _lg.getLogger("api.server").info(f"[opp] jobs query: {_time.time()-_t0:.2f}s ({len(rows)} rows)")
+    _t1 = _time.time()
+
+    # Batch-fetch top 8 leads per company in a single query (window fn avoids N+1 and caps data)
     companies = list({(r.get("company") or "").lower() for r in rows if r.get("company")})
 
     leads_by_company: dict = {}
     if companies:
-        now_expr = "NOW()" if USE_POSTGRES else "datetime('now')"
         cols = "id, name, title, job_title, linkedin_url, job_expected_email, company, lead_type, is_alumni, university, tenure_months"
         if USE_POSTGRES:
             all_leads = fetchall(
-                f"SELECT {cols} FROM leads "
-                f"WHERE lower(company) = ANY(%s) "
-                f"AND (stale_after IS NULL OR stale_after > {now_expr}) "
-                f"ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END, "
-                f"is_alumni DESC, tenure_months DESC",
+                f"SELECT {cols} FROM ("
+                f"  SELECT {cols},"
+                f"    ROW_NUMBER() OVER ("
+                f"      PARTITION BY lower(company)"
+                f"      ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END,"
+                f"               is_alumni DESC, tenure_months DESC"
+                f"    ) AS rn"
+                f"  FROM leads"
+                f"  WHERE lower(company) = ANY(%s)"
+                f"  AND (stale_after IS NULL OR stale_after > NOW())"
+                f") ranked WHERE rn <= 8",
                 (companies,),
             )
         else:
@@ -2333,7 +2409,7 @@ def api_opportunities():
             all_leads = fetchall(
                 f"SELECT {cols} FROM leads "
                 f"WHERE lower(company) IN ({placeholders}) "
-                f"AND (stale_after IS NULL OR stale_after > {now_expr}) "
+                f"AND (stale_after IS NULL OR stale_after > datetime('now')) "
                 f"ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END, "
                 f"is_alumni DESC, tenure_months DESC",
                 tuple(companies),
@@ -2342,10 +2418,54 @@ def api_opportunities():
             key = (l.get("company") or "").lower()
             leads_by_company.setdefault(key, []).append(l)
 
+    _lg.getLogger("api.server").info(f"[opp] leads query: {_time.time()-_t1:.2f}s")
+    _t2 = _time.time()
+
+    import json as _json
+    _IND_LABEL = {"Finance": "Finance", "Law": "Law", "Technology": "Consulting"}
     jobs = []
     for r in rows:
         company = r.get("company") or ""
         title   = r.get("title") or ""
+        industry = r.get("industry") or ""
+
+        # For Postgres, fields were extracted in SQL — no Python JSON parsing needed.
+        # For SQLite (local dev), fall back to parsing raw once.
+        if USE_POSTGRES:
+            tt            = r.get("trackr_type") or ""
+            pt            = r.get("wttj_prog_type") or ""
+            region        = r.get("region") or "UK"
+            logo_url      = r.get("logo_url") or ""
+            company_url   = r.get("company_url") or ""
+            is_consulting = r.get("is_consulting") in (1, True, "1", "true")
+            is_events     = r.get("is_events") in (1, True, "1", "true")
+        else:
+            raw_str = r.get("raw") or ""
+            try:
+                raw_data = _json.loads(raw_str) if raw_str else {}
+            except Exception:
+                raw_data = {}
+            tt            = raw_data.get("trackr_type") or ""
+            pt            = raw_data.get("programme_type") or ""
+            region        = raw_data.get("region") or "UK"
+            logo_url      = raw_data.get("logo_url") or ""
+            company_url   = raw_data.get("company_url") or ""
+            is_consulting = "Consulting" in (raw_data.get("trackr_categories") or [])
+            is_events     = tt == "events"
+
+        if is_consulting:
+            division = "Consulting"
+        elif is_events and not _INDUSTRY_VERTICAL.get(industry):
+            division = "Miscellaneous"
+        else:
+            division = _INDUSTRY_VERTICAL.get(industry, "Miscellaneous")
+
+        if tt and tt in _TRACKR_TYPE_LABEL:
+            programme_type = _TRACKR_TYPE_LABEL[tt]
+        elif pt in _WTTJ_PROG_TYPES:
+            programme_type = pt
+        else:
+            programme_type = infer_programme_type(title, "")
 
         raw_leads = leads_by_company.get(company.lower(), [])
         leads = []
@@ -2370,27 +2490,23 @@ def api_opportunities():
                 "verified":       False,
             })
 
-        _IND_LABEL = {"Finance": "Finance", "Law": "Law", "Technology": "Consulting"}
-        import json as _json
-        try:
-            _raw_data = _json.loads(r.get("raw") or "{}")
-        except Exception:
-            _raw_data = {}
         jobs.append({
             "id":             r.get("id"),
             "company":        company,
             "programme":      title,
-            "division":       infer_firm_type(r.get("industry") or "", r.get("raw") or ""),
-            "programme_type": infer_programme_type(title, r.get("raw") or ""),
-            "region":         extract_region(r.get("raw") or ""),
+            "division":       division,
+            "programme_type": programme_type,
+            "region":         region,
             "opening_date":   r.get("opening_date") or "",
             "closing_date":   r.get("closing_date") or "",
             "apply_url":      r.get("url") or "",
-            "careers_site":   r.get("careers_site") or "",
-            "logo_url":       _raw_data.get("logo_url") or "",
-            "industry_label": _IND_LABEL.get(r.get("industry") or "", ""),
+            "careers_site":   r.get("careers_site") or company_url,
+            "industry_label": _IND_LABEL.get(industry, ""),
+            "logo_url":       logo_url,
             "leads":          leads,
         })
+
+    _lg.getLogger("api.server").info(f"[opp] python loop: {_time.time()-_t2:.2f}s | total: {_time.time()-_t0:.2f}s | {len(jobs)} jobs")
 
     result = {
         "jobs":       jobs,
@@ -2399,9 +2515,59 @@ def api_opportunities():
     }
     _opp_cache["data"]       = result
     _opp_cache["expires_at"] = _time.time() + 300  # 5-minute TTL
+    if slim:
+        result = {**result, "jobs": [{k: v for k, v in j.items() if k != "leads"} for j in result["jobs"]]}
     resp = jsonify(result)
     resp.headers["Cache-Control"] = "public, max-age=300"
     return resp
+
+
+@app.route("/api/admin/import-wttj", methods=["POST"])
+@require_admin
+def api_import_wttj():
+    """Upsert WTTJ job rows sent as JSON array. Each item mirrors the CSV columns."""
+    import json as _json
+    from db.database import get_conn, upsert_job
+    data = request.get_json(silent=True) or {}
+    jobs_in = data.get("jobs", [])
+    if not jobs_in:
+        return jsonify({"error": "no jobs provided"}), 400
+
+    new_count = updated_count = 0
+    with get_conn() as conn:
+        for row in jobs_in:
+            sector = row.get("sector") or "Other"
+            job = {
+                "company_name":        row.get("company_name", ""),
+                "title":               row.get("title", ""),
+                "url":                 row.get("job_url", ""),
+                "industries":          [sector],
+                "region":              row.get("region", ""),
+                "source_id":           "wttj",
+                "source_name":         "Welcome to the Jungle",
+                "company_size":        row.get("company_size", ""),
+                "posted_date":         row.get("date_posted", ""),
+                "opening_date":        row.get("date_posted", ""),
+                "role_type":           "internship_grad",
+                "programme_type":      row.get("programme_type", ""),
+                "logo_url":            row.get("logo_url", ""),
+                "wttj_url":            row.get("wttj_url", ""),
+                "company_url":         row.get("company_url", ""),
+                "recruitment_process": row.get("recruitment_process", ""),
+                "location":            row.get("location", ""),
+                "country":             row.get("country", ""),
+            }
+            if not job["company_name"] or not job["title"]:
+                continue
+            _, is_new = upsert_job(conn, job)
+            if is_new:
+                new_count += 1
+            else:
+                updated_count += 1
+
+    # Bust the opportunities cache so new jobs appear immediately
+    _opp_cache["data"] = None
+    return jsonify({"new": new_count, "updated": updated_count, "total": new_count + updated_count})
 
 
 @app.route("/admin")
