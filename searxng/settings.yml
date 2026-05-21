@@ -1,4 +1,10 @@
-use_default_settings: true
+use_default_settings:
+  engines:
+    keep_only:
+      - bing
+      - duckduckgo
+      - brave
+      - yahoo
 
 server:
   bind_address: "0.0.0.0"
@@ -21,12 +27,6 @@ outgoing:
   enable_http2: true
 
 engines:
-  - name: google
-    engine: google
-    shortcut: g
-    disabled: false
-    timeout: 10.0
-
   - name: bing
     engine: bing
     shortcut: bi

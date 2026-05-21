@@ -893,7 +893,7 @@ class LinkedInMatcher:
         params = urllib.parse.urlencode({
             "q":       query,
             "format":  "json",
-            "engines": "google,bing,duckduckgo",
+            "engines": "brave,yahoo,bing,duckduckgo",
             "pageno":  page,
             "language": "en-GB",
         })
