@@ -111,7 +111,7 @@ def _start_background_scheduler():
         return t
 
     def _loop():
-        from scheduler.run import run_trackr_pipeline, run_cards_job, run_notify_job, run_wttj_job
+        from scheduler.run import run_trackr_pipeline, run_cards_job, run_notify_job, run_wttj_pipeline
         log = _log.getLogger("scheduler")
         log.info("Background scheduler started — Trackr at 05:00/07:10/… UTC, WTTJ at 05:05 UTC, pipeline at 06:00 UTC")
 
@@ -137,9 +137,9 @@ def _start_background_scheduler():
 
             if now >= next_wttj:
                 try:
-                    run_wttj_job()
+                    run_wttj_pipeline()
                 except Exception as exc:
-                    log.error(f"WTTJ job crashed: {exc}", exc_info=True)
+                    log.error(f"WTTJ pipeline crashed: {exc}", exc_info=True)
                 next_wttj = now.replace(hour=WTTJ_HOUR, minute=5, second=0, microsecond=0) + timedelta(days=1)
                 log.info(f"Next WTTJ run: {next_wttj.strftime('%Y-%m-%d %H:%M')} UTC")
 

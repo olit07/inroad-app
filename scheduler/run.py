@@ -191,6 +191,65 @@ def run_trackr_pipeline():
     logger.info(f"TRACKR PIPELINE done in {elapsed} min")
 
 
+def run_wttj_leads_check_job(max_per_run: int = 50):
+    """
+    For each WTTJ company with fewer than TRACKR_LEADS_THRESHOLD leads, run the
+    lead builder. Mirrors run_trackr_leads_check_job but for source = 'wttj'.
+    """
+    logger.info("─" * 60)
+    logger.info("WTTJ LEADS CHECK starting")
+    from db.database import fetchall, USE_POSTGRES
+    from pipeline.lead_builder import build_leads
+
+    limit_clause = f"LIMIT {max_per_run}" if max_per_run > 0 else ""
+
+    if USE_POSTGRES:
+        sql = f"""
+            SELECT j.company, COUNT(DISTINCT l.id) AS lead_count
+            FROM jobs j
+            LEFT JOIN leads l ON lower(l.company) = lower(j.company)
+            WHERE j.source = 'wttj'
+              AND j.company IS NOT NULL AND j.company != ''
+            GROUP BY j.company
+            HAVING COUNT(DISTINCT l.id) < {TRACKR_LEADS_THRESHOLD}
+            ORDER BY COUNT(DISTINCT l.id) ASC
+            {limit_clause}
+        """
+    else:
+        sql = f"""
+            SELECT j.company, COUNT(DISTINCT l.id) AS lead_count
+            FROM jobs j
+            LEFT JOIN leads l ON lower(l.company) = lower(j.company)
+            WHERE j.source = 'wttj'
+              AND j.company IS NOT NULL AND j.company != ''
+            GROUP BY lower(j.company)
+            HAVING COUNT(DISTINCT l.id) < {TRACKR_LEADS_THRESHOLD}
+            ORDER BY COUNT(DISTINCT l.id) ASC
+            {limit_clause}
+        """
+    rows = fetchall(sql)
+
+    if not rows:
+        logger.info("WTTJ LEADS CHECK — all companies have >= 25 leads")
+        return
+
+    logger.info(f"WTTJ LEADS CHECK — building leads for {len(rows)} companies (capped at {max_per_run})")
+    for row in rows:
+        company = (row.get("company") or "").strip()
+        if not company:
+            continue
+        lead_count = row.get("lead_count", 0)
+        logger.info(f"  Lead builder: {company} ({lead_count} leads)")
+        try:
+            build_leads(company_filter=company, top_n=0)
+        except Exception as e:
+            if "SERPER_CREDITS_EXHAUSTED" in str(e):
+                logger.critical("🚨 SERPER CREDITS EXHAUSTED — stopping WTTJ leads check early")
+                break
+            logger.error(f"Lead builder failed for {company}: {e}", exc_info=True)
+    logger.info("WTTJ LEADS CHECK done")
+
+
 def run_wttj_job():
     """Scrape WTTJ internship listings and upsert into the DB. Runs daily at 05:00 UTC."""
     logger.info("─" * 60)
@@ -247,6 +306,23 @@ def run_wttj_job():
                 updated_count += 1
 
     logger.info(f"WTTJ SCRAPE JOB done — {new_count} new, {updated_count} updated, {len(jobs)} total")
+
+
+def run_wttj_pipeline():
+    """Scrape WTTJ, then build leads for any company with fewer than 25 leads."""
+    logger.info("=" * 60)
+    logger.info("WTTJ PIPELINE starting")
+    start = time.time()
+    try:
+        run_wttj_job()
+    except Exception as e:
+        logger.error(f"WTTJ scrape crashed: {e}", exc_info=True)
+    try:
+        run_wttj_leads_check_job(max_per_run=50)
+    except Exception as e:
+        logger.error(f"WTTJ leads check crashed: {e}", exc_info=True)
+    elapsed = round((time.time() - start) / 60, 1)
+    logger.info(f"WTTJ PIPELINE done in {elapsed} min")
 
 
 def run_cards_job():
@@ -469,7 +545,7 @@ if __name__ == "__main__":
     if "--once" in args:
         run_full_pipeline()
     elif "--wttj" in args:
-        run_wttj_job()
+        run_wttj_pipeline()
     elif "--trackr" in args:
         run_trackr_pipeline()
     elif "--scrape" in args:
