@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Settings — inroad</title>
+<title>inroad — Settings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
@@ -171,10 +171,9 @@
     <div class="section-label">Preferred company size</div>
     <div class="section-card">
       <div class="size-row">
-        <div class="size-card locked" data-value="startup">
+        <div class="size-card" data-value="startup" onclick="selectSize(this)">
           <div class="size-card-label">🚀 Startup</div>
           <div class="size-card-desc">Under 200 people</div>
-          <div class="size-card-soon">Coming soon</div>
         </div>
         <div class="size-card" data-value="mid" onclick="selectSize(this)">
           <div class="size-card-label">🏢 Mid-size</div>
@@ -221,12 +220,12 @@
 const INDUSTRIES = [
   'Finance','Technology','Law',
   'Investment Banking','Software Engineering','Product Management','Data & Analytics',
-  'Consulting','Strategy','Marketing','Healthcare',
+  'Consulting','Strategy','Marketing',
   // Coming soon
-  'Media & Journalism','Real Estate','Non-profit & Policy'
+  'Healthcare','Media & Journalism','Real Estate','Non-profit & Policy'
 ];
 const LOCKED_INDUSTRIES = new Set([
-  'Media & Journalism','Real Estate','Non-profit & Policy','Other'
+  'Healthcare','Media & Journalism','Real Estate','Non-profit & Policy','Other'
 ]);
 
 // Save token to sessionStorage before leaving so dashboard can reuse it

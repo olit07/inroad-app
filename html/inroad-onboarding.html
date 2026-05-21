@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Get started — inroad</title>
+<title>inroad — Get started</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
@@ -757,7 +757,7 @@
         <span class="industry-pill" onclick="togglePill(this)">Consulting</span>
         <span class="industry-pill" onclick="togglePill(this)">Strategy</span>
         <span class="industry-pill" onclick="togglePill(this)">Marketing</span>
-        <span class="industry-pill" onclick="togglePill(this)">Healthcare</span>
+        <span class="industry-pill locked">Healthcare<span class="coming-soon-chip">Coming soon</span></span>
         <span class="industry-pill locked">Media &amp; Journalism<span class="coming-soon-chip">Coming soon</span></span>
         <span class="industry-pill locked">Real Estate<span class="coming-soon-chip">Coming soon</span></span>
         <span class="industry-pill locked">Non-profit &amp; Policy<span class="coming-soon-chip">Coming soon</span></span>
@@ -780,8 +780,7 @@
       <div class="error-msg" id="err-5"><span>⚠</span><span>Please select a company size.</span></div>
 
       <div class="size-grid">
-        <div class="size-card locked" data-group="size" data-value="startup">
-          <div class="recommended-tag">Coming soon</div>
+        <div class="size-card" data-group="size" data-value="startup" onclick="toggleSize(this)">
           <span class="size-icon">🚀</span>
           <span class="size-label">Startup</span>
           <span class="size-desc">Under 200 people. Fast, broad roles.</span>
