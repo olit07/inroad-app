@@ -2383,14 +2383,36 @@ def api_opportunities():
     _lg.getLogger("api.server").info(f"[opp] jobs query: {_time.time()-_t0:.2f}s ({len(rows)} rows)")
     _t1 = _time.time()
 
-    # Batch-fetch top 8 leads per company in a single query (window fn avoids N+1 and caps data)
+    # Split companies: recent listings (≤14 days) get all leads; older listings capped at 8
+    import datetime as _dt
+    _cutoff = (_dt.datetime.utcnow() - _dt.timedelta(days=14)).strftime("%Y-%m-%d")
+    recent_cos: set = set()
+    for r in rows:
+        od = (r.get("opening_date") or "")[:10]
+        if od and od >= _cutoff:
+            recent_cos.add((r.get("company") or "").lower())
+
     companies = list({(r.get("company") or "").lower() for r in rows if r.get("company")})
+    recent_list = [c for c in companies if c in recent_cos]
+    older_list  = [c for c in companies if c not in recent_cos]
 
     leads_by_company: dict = {}
-    if companies:
-        cols = "id, name, title, job_title, linkedin_url, job_expected_email, company, lead_type, is_alumni, university, tenure_months"
+    cols = "id, name, title, job_title, linkedin_url, job_expected_email, company, lead_type, is_alumni, university, tenure_months"
+
+    if recent_list and USE_POSTGRES:
+        for l in fetchall(
+            f"SELECT {cols} FROM leads"
+            f"  WHERE lower(company) = ANY(%s)"
+            f"  AND (stale_after IS NULL OR stale_after > NOW())"
+            f"  ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END,"
+            f"           is_alumni DESC, tenure_months DESC",
+            (recent_list,),
+        ):
+            leads_by_company.setdefault((l.get("company") or "").lower(), []).append(l)
+
+    if older_list:
         if USE_POSTGRES:
-            all_leads = fetchall(
+            capped = fetchall(
                 f"SELECT {cols} FROM ("
                 f"  SELECT {cols},"
                 f"    ROW_NUMBER() OVER ("
@@ -2402,21 +2424,20 @@ def api_opportunities():
                 f"  WHERE lower(company) = ANY(%s)"
                 f"  AND (stale_after IS NULL OR stale_after > NOW())"
                 f") ranked WHERE rn <= 8",
-                (companies,),
+                (older_list,),
             )
         else:
-            placeholders = ",".join(["?"] * len(companies))
-            all_leads = fetchall(
+            placeholders = ",".join(["?"] * len(older_list))
+            capped = fetchall(
                 f"SELECT {cols} FROM leads "
                 f"WHERE lower(company) IN ({placeholders}) "
                 f"AND (stale_after IS NULL OR stale_after > datetime('now')) "
                 f"ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END, "
                 f"is_alumni DESC, tenure_months DESC",
-                tuple(companies),
+                tuple(older_list),
             )
-        for l in all_leads:
-            key = (l.get("company") or "").lower()
-            leads_by_company.setdefault(key, []).append(l)
+        for l in capped:
+            leads_by_company.setdefault((l.get("company") or "").lower(), []).append(l)
 
     _lg.getLogger("api.server").info(f"[opp] leads query: {_time.time()-_t1:.2f}s")
     _t2 = _time.time()
