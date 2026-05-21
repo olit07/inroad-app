@@ -1,10 +1,4 @@
-use_default_settings:
-  engines:
-    keep_only:
-      - bing
-      - duckduckgo
-      - brave
-      - yahoo
+use_default_settings: true
 
 server:
   bind_address: "0.0.0.0"
@@ -27,6 +21,19 @@ outgoing:
   enable_http2: true
 
 engines:
+  # ── Engines we actively use ──────────────────────────────────────────────
+  - name: brave
+    engine: brave
+    shortcut: br
+    disabled: false
+    timeout: 10.0
+
+  - name: yahoo
+    engine: yahoo
+    shortcut: yh
+    disabled: false
+    timeout: 8.0
+
   - name: bing
     engine: bing
     shortcut: bi
@@ -39,14 +46,33 @@ engines:
     disabled: false
     timeout: 8.0
 
-  - name: brave
-    engine: brave
-    shortcut: br
-    disabled: false
-    timeout: 10.0
+  # ── Disable everything else that adds noise or never returns results ──────
+  - name: google
+    engine: google
+    shortcut: g
+    disabled: true
 
-  - name: yahoo
-    engine: yahoo
-    shortcut: yh
-    disabled: false
-    timeout: 8.0
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wp
+    disabled: true
+
+  - name: startpage
+    engine: startpage
+    shortcut: sp
+    disabled: true
+
+  - name: mojeek
+    engine: mojeek
+    shortcut: mj
+    disabled: true
+
+  - name: yandex
+    engine: yandex
+    shortcut: ya
+    disabled: true
+
+  - name: grokipedia
+    engine: grokipedia
+    shortcut: gp
+    disabled: true
