@@ -286,15 +286,18 @@ def _lookup_email_format_via_llm(company: str) -> tuple[str, str] | None:
     if not api_key:
         return None
     prompt = (
-        f"What is the corporate email format and domain for employees at \"{company}\"?\n\n"
-        "IMPORTANT: Return the company's OWN email domain (e.g. snap.com, rothschildandco.com). "
-        "Do NOT return job portal or ATS domains like workday.com, greenhouse.io, lever.co, "
+        f"What is the corporate email format and domain actually used by employees at \"{company}\"?\n\n"
+        "IMPORTANT RULES:\n"
+        "1. Return the domain employees ACTUALLY use for email — this is often shorter or abbreviated "
+        "(e.g. yfmep.com not yfmequity.com, rbccm.com not rbccapitalmarkets.com). "
+        "Use the domain from the company's own website or documented employee emails, not a guess from the company name.\n"
+        "2. Do NOT return job portal or ATS domains like workday.com, greenhouse.io, lever.co, "
         "tal.net, taleo.net, myworkdayjobs.com, or any similar hiring platform.\n\n"
         "Reply with ONLY a JSON object, no explanation:\n"
         "{\"format\": \"firstname.lastname\", \"domain\": \"company.com\"}\n\n"
         "Format must be one of: firstname.lastname | firstinitiallastname | firstinitial.lastname | "
         "firstname_lastname | firstname\n\n"
-        "If unsure, make your best guess based on the company name."
+        "If genuinely unsure of the exact domain, use the company's primary public website domain."
     )
     try:
         resp = _req.post(
