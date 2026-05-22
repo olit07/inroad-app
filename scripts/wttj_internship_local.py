@@ -498,6 +498,33 @@ def fetch_apply_urls(jobs: list[dict]) -> dict[str, dict]:
 CompanyData = dict   # {"logo_url": str, "wttj_sectors": list[str], "nb_employees": int|None}
 
 
+LOGOS_DIR = ROOT / "static" / "logos"
+
+
+def _download_logo(slug: str, remote_url: str) -> str:
+    """Download logo to static/logos/<slug>.<ext>. Returns local /static/logos/... path on
+    success, or the original remote_url as fallback. Skips download if already cached."""
+    if not remote_url:
+        return remote_url
+    LOGOS_DIR.mkdir(parents=True, exist_ok=True)
+    ext = Path(remote_url.split("?")[0]).suffix or ".png"
+    local_path = LOGOS_DIR / f"{slug}{ext}"
+    if local_path.exists():
+        return f"/static/logos/{slug}{ext}"
+    tmp = tempfile.mktemp(suffix=ext)
+    try:
+        ok = _curl_to_file(remote_url, tmp, timeout=15)
+        if ok and os.path.getsize(tmp) > 0:
+            os.replace(tmp, local_path)
+            return f"/static/logos/{slug}{ext}"
+    except Exception:
+        pass
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+    return remote_url  # fallback: serve from WTTJ CDN if download failed
+
+
 def fetch_company_data(slugs: list[str]) -> dict[str, CompanyData]:
     """Fetch logo, sector tags, and employee count for each slug."""
     results: dict[str, CompanyData] = {}
@@ -535,6 +562,7 @@ def fetch_company_data(slugs: list[str]) -> dict[str, CompanyData]:
                 recruitment_process = rp.strip()
         except Exception:
             pass
+        logo_url = _download_logo(slug, logo_url)
         results[slug] = {
             "logo_url": logo_url, "company_url": company_url,
             "wttj_sectors": sectors, "nb_employees": nb_employees,

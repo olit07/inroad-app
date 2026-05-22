@@ -2860,7 +2860,7 @@
         <div class="card-row">
           <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
           <div class="card-left">
-            ${(() => { const lu = getLogoUrl(job); return lu ? `<img class="card-logo" src="${lu}" alt="" onerror="this.outerHTML='<span class=\\'card-logo-placeholder\\'></span>'">` : '<span class="card-logo-placeholder"></span>'; })()}
+            ${(() => { const lu = getLogoUrl(job); return lu ? `<img class="card-logo" src="${lu}" alt="" loading="${fresh ? 'eager' : 'lazy'}" fetchpriority="${fresh ? 'high' : 'low'}" onerror="this.outerHTML='<span class=\\'card-logo-placeholder\\'></span>'">` : '<span class="card-logo-placeholder"></span>'; })()}
             <span class="card-company">${esc(job.company)}</span>
             <span class="card-programme">${esc(job.programme)}</span>
           </div>
