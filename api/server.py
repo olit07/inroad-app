@@ -2548,7 +2548,7 @@ def api_opportunities():
 def api_import_wttj():
     """Upsert WTTJ job rows sent as JSON array. Each item mirrors the CSV columns."""
     import json as _json
-    from db.database import get_conn, upsert_job
+    from db.database import get_conn, upsert_job, _exec
     data = request.get_json(silent=True) or {}
     jobs_in = data.get("jobs", [])
     if not jobs_in:
@@ -2580,11 +2580,20 @@ def api_import_wttj():
             }
             if not job["company_name"] or not job["title"]:
                 continue
-            _, is_new = upsert_job(conn, job)
-            if is_new:
-                new_count += 1
-            else:
-                updated_count += 1
+            try:
+                _exec(conn, "SAVEPOINT _sp")
+                _, is_new = upsert_job(conn, job)
+                _exec(conn, "RELEASE SAVEPOINT _sp")
+                if is_new:
+                    new_count += 1
+                else:
+                    updated_count += 1
+            except Exception as e:
+                try:
+                    _exec(conn, "ROLLBACK TO SAVEPOINT _sp")
+                except Exception:
+                    pass
+                app.logger.debug(f"import-wttj upsert error ({job.get('company_name')}): {e}")
 
     # Bust the opportunities cache so new jobs appear immediately
     _opp_cache["data"] = None

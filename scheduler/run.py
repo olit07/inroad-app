@@ -299,11 +299,20 @@ def run_wttj_job():
             }
             if not job_dict["company_name"] or not job_dict["title"]:
                 continue
-            _, is_new = upsert_job(conn, job_dict)
-            if is_new:
-                new_count += 1
-            else:
-                updated_count += 1
+            try:
+                _exec(conn, "SAVEPOINT _sp")
+                _, is_new = upsert_job(conn, job_dict)
+                _exec(conn, "RELEASE SAVEPOINT _sp")
+                if is_new:
+                    new_count += 1
+                else:
+                    updated_count += 1
+            except Exception as e:
+                try:
+                    _exec(conn, "ROLLBACK TO SAVEPOINT _sp")
+                except Exception:
+                    pass
+                logger.debug(f"WTTJ upsert error ({job_dict.get('company_name')}): {e}")
 
     logger.info(f"WTTJ SCRAPE JOB done — {new_count} new, {updated_count} updated, {len(jobs)} total")
 

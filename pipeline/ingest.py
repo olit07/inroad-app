@@ -13,7 +13,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config.settings    import DB_PATH, FRESHNESS_DECAY_DAYS as MAX_JOB_AGE_DAYS
-from db.database        import db_conn, init_db, upsert_job, log_scrape_run, db_stats
+from db.database        import db_conn, init_db, upsert_job, log_scrape_run, db_stats, USE_POSTGRES
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,11 @@ def run_single_scraper(scraper, db_path=DB_PATH) -> dict:
         with db_conn(db_path) as conn:
             for job in raw_jobs:
                 try:
+                    if USE_POSTGRES:
+                        conn.cursor().execute("SAVEPOINT _sp")
                     _, is_new = upsert_job(conn, job)
+                    if USE_POSTGRES:
+                        conn.cursor().execute("RELEASE SAVEPOINT _sp")
                     if is_new:
                         jobs_new += 1
                         company = (job.get("company_name") or "").strip()
@@ -64,6 +68,11 @@ def run_single_scraper(scraper, db_path=DB_PATH) -> dict:
                     else:
                         jobs_updated += 1
                 except Exception as e:
+                    if USE_POSTGRES:
+                        try:
+                            conn.cursor().execute("ROLLBACK TO SAVEPOINT _sp")
+                        except Exception:
+                            pass
                     logger.debug(f"[{source_id}] upsert error: {e}")
                     continue
 
