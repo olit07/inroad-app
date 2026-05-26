@@ -26,7 +26,7 @@ ROOT = Path(__file__).parent.parent
 # ── config ────────────────────────────────────────────────────────────────────
 
 SITEMAP_BASE = "https://www.welcometothejungle.com/sitemaps/job-listings.{n}.xml.gz"
-SITEMAP_SHARDS = 11
+SITEMAP_SHARDS = 12
 ORG_API_BASE   = "https://api.welcometothejungle.com/api/v1/organizations"
 
 CUTOFF_HOURS = 72
@@ -502,27 +502,9 @@ LOGOS_DIR = ROOT / "static" / "logos"
 
 
 def _download_logo(slug: str, remote_url: str) -> str:
-    """Download logo to static/logos/<slug>.<ext>. Returns local /static/logos/... path on
-    success, or the original remote_url as fallback. Skips download if already cached."""
-    if not remote_url:
-        return remote_url
-    LOGOS_DIR.mkdir(parents=True, exist_ok=True)
-    ext = Path(remote_url.split("?")[0]).suffix or ".png"
-    local_path = LOGOS_DIR / f"{slug}{ext}"
-    if local_path.exists():
-        return f"/static/logos/{slug}{ext}"
-    tmp = tempfile.mktemp(suffix=ext)
-    try:
-        ok = _curl_to_file(remote_url, tmp, timeout=15)
-        if ok and os.path.getsize(tmp) > 0:
-            os.replace(tmp, local_path)
-            return f"/static/logos/{slug}{ext}"
-    except Exception:
-        pass
-    finally:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-    return remote_url  # fallback: serve from WTTJ CDN if download failed
+    """Return the WTTJ CDN URL directly. Railway's filesystem is ephemeral so
+    local caching is not viable; CDN URLs are permanent and always reachable."""
+    return remote_url
 
 
 def fetch_company_data(slugs: list[str]) -> dict[str, CompanyData]:
