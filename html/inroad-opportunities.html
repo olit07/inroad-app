@@ -253,6 +253,51 @@
   .filter-btn:hover { border-color: var(--border-md); color: var(--text-mid); }
   .filter-btn.on { background: var(--green-lite); border-color: var(--green); color: var(--green-deep); }
 
+  /* ── University combobox ── */
+  .uni-combo-btn {
+    font-family: var(--sans); font-size: 0.68rem; font-weight: 700;
+    color: var(--text-mid); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 7px;
+    padding: 4px 22px 4px 7px; cursor: pointer; outline: none;
+    width: 100%; text-align: left; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%239C9389'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 6px center;
+    background-color: var(--bg); transition: border-color 0.15s, background-color 0.15s;
+  }
+  .uni-combo-btn:hover { border-color: var(--border-md); }
+  .uni-combo.active .uni-combo-btn {
+    background-color: var(--green-lite); border-color: var(--green); color: var(--green-deep);
+    background-image: none; padding-right: 22px;
+  }
+  .uni-combo-clear {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; padding: 0 2px;
+    font-size: 0.72rem; line-height: 1; color: var(--green-deep); z-index: 3;
+  }
+  .uni-combo-clear:hover { opacity: 0.6; }
+  .uni-combo-panel {
+    position: absolute; top: calc(100% + 3px); left: 0; right: 0; z-index: 200;
+    background: var(--bg); border: 1px solid var(--border-md);
+    border-radius: 7px; box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+    overflow: hidden;
+  }
+  .uni-combo-input {
+    width: 100%; border: none; border-bottom: 1px solid var(--border);
+    outline: none; padding: 6px 9px;
+    font-family: var(--sans); font-size: 0.7rem; color: var(--text);
+    background: var(--surface);
+  }
+  .uni-combo-list { max-height: 210px; overflow-y: auto; }
+  .uni-combo-option {
+    padding: 5px 10px; font-size: 0.69rem; color: var(--text-mid); cursor: pointer;
+  }
+  .uni-combo-option:hover { background: var(--surface); }
+  .uni-combo-empty {
+    padding: 8px 10px; font-size: 0.69rem; color: var(--subtle);
+  }
+
+
   .shown-count { font-size: 0.7rem; color: var(--subtle); white-space: nowrap; }
 
   /* ── NEW SECTION PANEL ── */
@@ -419,6 +464,16 @@
     justify-self: start;
   }
   .apply-btn-inline:hover { background: var(--green-deep); }
+  .apply-btn-stale { opacity: 0.5; }
+  .apply-btn-stale:hover { opacity: 0.7; background: var(--green-deep); }
+  .apply-btn-closed {
+    font-size: 0.63rem; font-weight: 700;
+    background: #ccc; color: #888;
+    border: none; border-radius: 4px;
+    padding: 3px 8px; cursor: not-allowed;
+    text-decoration: none; white-space: nowrap;
+    justify-self: start;
+  }
   .careers-btn-inline {
     font-size: 0.63rem; font-weight: 700;
     background: #122B1E; color: #fff;
@@ -876,13 +931,25 @@
           </select>
         </div>
       </div>
-      <div class="filter-wrap" id="filter-wrap">
-        <button class="filter-btn" data-div="Finance">💰 Finance</button>
-        <button class="filter-btn" data-div="Consulting">📊 Consulting</button>
-        <button class="filter-btn" data-div="Tech">💻 Tech</button>
-        <button class="filter-btn" data-div="Marketing">📣 Marketing</button>
-        <button class="filter-btn" data-div="Law">⚖️ Law</button>
-        <button class="filter-btn" data-div="Miscellaneous">🗂️ Other</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <div class="filter-wrap" id="filter-wrap" style="margin-top:0;flex:1;min-width:0;">
+          <button class="filter-btn" data-div="Finance">💰 Finance</button>
+          <button class="filter-btn" data-div="Consulting">📊 Consulting</button>
+          <button class="filter-btn" data-div="Tech">💻 Tech</button>
+          <button class="filter-btn" data-div="Marketing">📣 Marketing</button>
+          <button class="filter-btn" data-div="Law">⚖️ Law</button>
+          <button class="filter-btn" data-div="Miscellaneous">🗂️ Other</button>
+        </div>
+        <div class="uni-combo" id="uni-combo" style="flex-shrink:0;position:relative;">
+          <button class="uni-combo-btn" id="uni-combo-btn" type="button">
+            <span id="uni-combo-label">🎓 University Alumni</span>
+          </button>
+          <button class="uni-combo-clear" id="uni-combo-clear" type="button" style="display:none" title="Clear">✕</button>
+          <div class="uni-combo-panel" id="uni-combo-panel" style="display:none;">
+            <input type="text" class="uni-combo-input" id="uni-combo-input" placeholder="Search universities…" autocomplete="off">
+            <div class="uni-combo-list" id="uni-combo-list"></div>
+          </div>
+        </div>
       </div>
       <div class="filter-wrap" id="prog-filter-wrap">
         <button class="filter-btn prog-filter-btn" data-pt="Summer Internship">Summer Internship</button>
@@ -946,6 +1013,7 @@
   let searchQuery    = '';
   let regionFilter   = 'UK';
   let leadsQuery     = '';
+  let uniFilter      = '';
   let selectedJobId  = null;
   let selectedLeadId = null;
   let userStatus     = null; // 'grad-program' | 'full-time' | null
@@ -1190,6 +1258,89 @@
     }
   });
 
+  // ── University combobox ──
+  let uniOptions = [];
+
+  const UNI_ACRONYMS = {
+    'London School Of Economics':          'LSE',
+    'University College London':           'UCL',
+    'Massachusetts Institute Of Technology': 'MIT',
+    'New York University':                 'NYU',
+    'University Of California, Los Angeles': 'UCLA',
+    'University Of Southern California':   'USC',
+    'University Of Virginia':              'UVA',
+    'University Of North Carolina':        'UNC',
+    'Ohio State University':               'OSU',
+    'Carnegie Mellon University':          'CMU',
+    'ESCP Business School':                'ESCP',
+    'University Of St. Gallen':            'HSG',
+    'Queen Mary University Of London':     'QMUL',
+    'Hec Paris':                           'HEC',
+  };
+
+  function uniDisplayName(canonical) {
+    const acr = UNI_ACRONYMS[canonical];
+    return acr ? `${canonical} (${acr})` : canonical;
+  }
+  const uniCombo      = document.getElementById('uni-combo');
+  const uniComboBtn   = document.getElementById('uni-combo-btn');
+  const uniComboLabel = document.getElementById('uni-combo-label');
+  const uniComboClear = document.getElementById('uni-combo-clear');
+  const uniComboPanel = document.getElementById('uni-combo-panel');
+  const uniComboInput = document.getElementById('uni-combo-input');
+  const uniComboList  = document.getElementById('uni-combo-list');
+
+  function applyUniFilter(canonical) {
+    uniFilter = canonical.toLowerCase();
+    uniComboLabel.textContent = canonical ? uniDisplayName(canonical) : '🎓 University Alumni';
+    uniCombo.classList.toggle('active', !!canonical);
+    uniComboClear.style.display = canonical ? 'block' : 'none';
+    uniComboPanel.style.display = 'none';
+    uniComboInput.value = '';
+    renderUniOptions('');
+    if (uniFilter) expandSectionsForFilter();
+    render();
+    if (selectedJobId) {
+      const job = allJobs.find(j => j.id === selectedJobId);
+      if (job) renderLeads(job);
+    }
+  }
+
+  function renderUniOptions(query) {
+    const q = query.toLowerCase();
+    const matches = q
+      ? uniOptions.filter(u => uniDisplayName(u).toLowerCase().includes(q))
+      : uniOptions;
+    if (!matches.length) {
+      uniComboList.innerHTML = `<div class="uni-combo-empty">No universities found</div>`;
+      return;
+    }
+    uniComboList.innerHTML = matches.map(u => {
+      const display = uniDisplayName(u);
+      return `<div class="uni-combo-option" data-value="${u.replace(/"/g,'&quot;')}">${display}</div>`;
+    }).join('');
+    uniComboList.querySelectorAll('.uni-combo-option').forEach(el => {
+      el.addEventListener('click', () => applyUniFilter(el.dataset.value));
+    });
+  }
+
+  uniComboBtn.addEventListener('click', () => {
+    const open = uniComboPanel.style.display !== 'none';
+    uniComboPanel.style.display = open ? 'none' : 'block';
+    if (!open) { renderUniOptions(''); uniComboInput.focus(); }
+  });
+
+  uniComboClear.addEventListener('click', e => {
+    e.stopPropagation();
+    applyUniFilter('');
+  });
+
+  uniComboInput.addEventListener('input', () => renderUniOptions(uniComboInput.value));
+
+  document.addEventListener('click', e => {
+    if (!uniCombo.contains(e.target)) uniComboPanel.style.display = 'none';
+  });
+
   // ── Auth state ──
   async function resolveOutlookState() {
     if (outlookState !== null) return outlookState;
@@ -1205,12 +1356,19 @@
   }
 
   // ── Load data ──
-  fetch('/api/opportunities')
+  fetch('/api/opportunities', { cache: 'no-cache' })
     .then(r => r.json())
     .then(data => {
       allJobs = data.jobs || [];
       listingCount.textContent = allJobs.length;
       render();
+      // Build sorted university list from leads data
+      const unis = new Set();
+      allJobs.forEach(j => (j.leads || []).forEach(l => {
+        const u = normaliseUni((l.university || '').trim());
+        if (u) unis.add(u);
+      }));
+      uniOptions = [...unis].sort();
     })
     .catch(() => {
       listingsEl.innerHTML = '<p style="font-size:0.78rem;color:var(--subtle);padding:20px 0;">Failed to load — please refresh.</p>';
@@ -1230,6 +1388,9 @@
       if (activeProgFilters.size > 0 && !activeProgFilters.has(j.programme_type)) return false;
       if (searchQuery) {
         if (!(j.company + ' ' + j.programme).toLowerCase().includes(searchQuery)) return false;
+      }
+      if (uniFilter) {
+        if (!(j.leads || []).some(l => normaliseUni((l.university || '').trim()).toLowerCase() === uniFilter)) return false;
       }
       return true;
     });
@@ -1530,7 +1691,7 @@
     "bain & company": "https://www.bain.com/careers/work-with-us/internships-programs/",
     "bain capital credit": "https://baincapital.wd1.myworkdayjobs.com/External_Public",
     "bain capital credit (seo)": "https://www.baincapitalcredit.com/people",
-    "baird": "https://bit.ly/437zZDw",
+    "baird": "https://www.rwbaird.com/careers",
     "baker hughes": "https://bakerhughes.wd5.myworkdayjobs.com/BakerHughes",
     "baker mckenzie": "https://bit.ly/3XqDWS0",
     "baker tilly": "https://www.bakertilly.com/careers",
@@ -2824,6 +2985,7 @@
     'ardian':             '/static/ardian.png',
     'aqr capital management': '/static/aqr.png',
     'aqr':                '/static/aqr.png',
+    'baird':              '/static/baird.png',
   };
   function getLogoUrl(job) {
     if (job.logo_url) return job.logo_url;
@@ -2866,7 +3028,20 @@
           </div>
           <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
             ${(() => { const cs = job.careers_site || getCareerSite(job.company); return cs ? `<a href="${esc(cs)}" target="_blank" rel="noopener" class="careers-btn-inline">Company Site</a>` : ''; })()}
-            ${job.apply_url ? `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>` : ''}
+            ${(() => {
+              if (!job.apply_url) return '';
+              const today = new Date().toISOString().slice(0, 10);
+              const cd = job.closing_date ? job.closing_date.slice(0, 10) : '';
+              if (cd && cd < today) {
+                return `<span class="apply-btn-closed" data-tip="Job listing closed on ${fmtDate(cd)}">Apply →</span>`;
+              }
+              const threeWeeksAgo = new Date(Date.now() - 21*24*3600*1000).toISOString().slice(0, 10);
+              const od = job.opening_date ? job.opening_date.slice(0, 10) : '';
+              if (od && od < threeWeeksAgo) {
+                return `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline apply-btn-stale" data-tip="Posted more than 3 weeks ago">Apply →</a>`;
+              }
+              return `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>`;
+            })()}
           </div>
         </div>
       </div>`;
@@ -2895,19 +3070,24 @@
 
   function renderLeads(job) {
     let leads = job.leads || [];
+
+    if (uniFilter) {
+      leads = leads.filter(l => normaliseUni((l.university || '').trim()).toLowerCase() === uniFilter);
+    }
     if (leadsQuery) {
       leads = leads.filter(l =>
         (l.name || '').toLowerCase().includes(leadsQuery) ||
-        (l.university || '').toLowerCase().includes(leadsQuery)
+        uniDisplayName(l.university || '').toLowerCase().includes(leadsQuery)
       );
     }
 
-    if (!leads.length && !leadsQuery && !(job.leads || []).length) {
+    const activeFilter = uniFilter || leadsQuery;
+    if (!leads.length && !activeFilter && !(job.leads || []).length) {
       leadsBody.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p class="empty-label">No insider contacts on file for<br><strong>${esc(job.company)}</strong> yet.</p></div>`;
       return;
     }
-    if (!leads.length && leadsQuery) {
-      leadsBody.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p class="empty-label">No contacts match "<strong>${esc(leadsQuery)}</strong>"</p></div>`;
+    if (!leads.length && activeFilter) {
+      leadsBody.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p class="empty-label">No contacts match "<strong>${esc(leadsQuery || uniFilter)}</strong>"</p></div>`;
       return;
     }
     if (!leads.length) {
@@ -3144,7 +3324,17 @@
           const toVal = document.getElementById('draft-to')?.value || to;
           const subj  = document.getElementById('draft-subject').value;
           const msg   = document.getElementById('draft-body-text').value;
-          if (!toVal || !emailVisible) { alert('Reveal the email address first.'); return; }
+          if (!toVal) { alert('No email address available.'); return; }
+          if (!emailVisible) {
+            incrementReveal(lead.id);
+            const draftToEl = document.getElementById('draft-to');
+            if (draftToEl) {
+              draftToEl.classList.remove('email-blurred');
+              draftToEl.removeAttribute('readonly');
+              draftToEl.removeAttribute('tabindex');
+            }
+            document.getElementById('reveal-btn')?.closest('.tooltip-wrap')?.remove();
+          }
           btn.disabled = true;
           btn.textContent = 'Sending…';
           try {
@@ -3214,9 +3404,9 @@
 
   // ── University name normalisation ──
   const UNI_ALIASES = {
-    'london school of economics': 'LSE',
-    'london school of economics and political science': 'LSE',
-    'lse': 'LSE',
+    'london school of economics': 'London School Of Economics',
+    'london school of economics and political science': 'London School Of Economics',
+    'lse': 'London School Of Economics',
     'university college london': 'UCL',
     'ucl': 'UCL',
     'imperial college london': 'Imperial',
@@ -3414,6 +3604,43 @@ function copyReferLink() {
     setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
   });
 }
+
+// Apply-button tooltip — anchored to the right of the button
+(function() {
+  const tip = document.createElement('div');
+  tip.id = 'apply-tip';
+  Object.assign(tip.style, {
+    position: 'fixed', zIndex: '9999', pointerEvents: 'none',
+    background: '#222', color: '#fff', fontSize: '0.72rem',
+    padding: '4px 9px', borderRadius: '5px', whiteSpace: 'nowrap',
+    opacity: '0', transition: 'opacity 0.12s',
+  });
+  document.body.appendChild(tip);
+
+  function showTip(btn) {
+    const text = btn.dataset.tip;
+    if (!text) return;
+    tip.textContent = text;
+    tip.style.opacity = '0'; // measure before showing
+    requestAnimationFrame(() => {
+      const rect = btn.getBoundingClientRect();
+      const tipW = tip.offsetWidth;
+      const left = rect.right + 8;
+      // flip left if it would overflow viewport
+      tip.style.left = (left + tipW > window.innerWidth ? rect.left - tipW - 8 : left) + 'px';
+      tip.style.top  = Math.round(rect.top + (rect.height - tip.offsetHeight) / 2) + 'px';
+      tip.style.opacity = '1';
+    });
+  }
+
+  document.addEventListener('mouseover', e => {
+    const btn = e.target.closest('.apply-btn-closed, .apply-btn-stale');
+    if (btn) showTip(btn);
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('.apply-btn-closed, .apply-btn-stale')) tip.style.opacity = '0';
+  });
+})();
 </script>
 
 </body>
