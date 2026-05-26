@@ -116,15 +116,17 @@
   .hero-new {
     min-height: 100vh;
     background: var(--green-deep);
-    padding: calc(62px + 31px) 52px 36px;
+    padding: calc(62px + 31px) 52px 60px;
     display: flex;
     align-items: center;
+    overflow: visible;
   }
 
   .hero-new-inner {
     max-width: 1100px;
     margin: 0 auto;
     width: 100%;
+    overflow: visible;
   }
 
   .hero-eyebrow {
@@ -269,12 +271,19 @@
     gap: 16px;
   }
 
+  .hero-strip-persp {
+    perspective: 1200px;
+    perspective-origin: 50% 50%;
+    overflow: visible;
+  }
+
   .hero-strip {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
     align-items: stretch;
-    opacity: 0; animation: rise 0.6s ease 0.32s forwards;
+    opacity: 0;
+    will-change: transform, opacity;
   }
 
   .strip-card {
@@ -748,29 +757,22 @@
   }
 
   /* ── TESTIMONIALS ── */
-  .testi-scroll { display: flex; gap: 18px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
-  .testi-scroll::-webkit-scrollbar { display: none; }
-
-  .tcard {
-    flex-shrink: 0; width: 300px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 16px; padding: 26px;
-    display: flex; flex-direction: column; justify-content: space-between; gap: 20px;
+  .tgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .tgcard {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 36px 28px 28px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
   }
-
-  .tcard-open { font-size: 2.4rem; font-weight: 900; color: var(--green-mid); line-height: 1; margin-bottom: 6px; font-style: italic; }
-  .tcard-text { font-size: 0.875rem; color: var(--text-mid); font-weight: 300; line-height: 1.72; }
-
-  .tcard-author { display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid var(--border); }
-
-  .tav {
-    width: 30px; height: 30px; border-radius: 50%;
-    background: var(--green-lite); border: 1px solid var(--green-mid);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.65rem; font-weight: 700; color: var(--green); flex-shrink: 0;
+  .tg-avatar {
+    width: 60px; height: 60px; border-radius: 50%; overflow: hidden;
+    border: 2px solid var(--border-md); margin-bottom: 22px; flex-shrink: 0;
   }
-
-  .tname { font-size: 0.8rem; font-weight: 700; color: var(--text); }
-  .tuni { font-size: 0.7rem; color: var(--muted); font-weight: 300; }
+  .tg-avatar img { width: 100%; height: 100%; object-fit: cover; filter: blur(6px); transform: scale(1.15); display: block; }
+  .tg-quote { font-size: 2.6rem; font-weight: 900; color: var(--green-mid); line-height: 1; margin-bottom: 10px; font-style: italic; }
+  .tg-text { font-size: 0.95rem; color: var(--text-mid); font-weight: 300; line-height: 1.76; flex: 1; margin-bottom: 24px; }
+  .tg-author { padding-top: 16px; border-top: 1px solid var(--border); width: 100%; }
+  .tg-name { font-size: 0.82rem; font-weight: 700; color: var(--text); }
+  .tg-uni { font-size: 0.72rem; color: var(--muted); font-weight: 300; margin-top: 3px; }
 
   /* ── CTA ── */
   .cta-section {
@@ -846,7 +848,7 @@
   @media (max-width: 900px) {
     .nav-inner { padding: 0 20px; }
     .nav-center { display: none; }
-    .hero-new { padding: 100px 24px 56px; }
+    .hero-new { padding: 100px 24px 80px; }
     h1 { font-size: clamp(3rem, 10vw, 4.5rem); }
     .deck-row { flex-direction: column; gap: 28px; }
     .hero-strip { grid-template-columns: 1fr; }
@@ -961,6 +963,90 @@
     transition: border-color 0.15s, color 0.15s;
   }
   .btn-refer-copy:hover { border-color: #1F4530; color: #1F4530; }
+
+  /* ── FEATURE LISTINGS (exact match to inroad-listings.html) ── */
+  .card-list { display: flex; flex-direction: column; gap: 2px; }
+  .job-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.35s;
+  }
+  .job-card:hover {
+    border-color: var(--border-md); background: var(--surface);
+    transform: translateY(-3px) scale(1.005);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.07), 0 16px 40px rgba(0,0,0,0.04);
+  }
+  .card-row {
+    display: grid; grid-template-columns: 64px 1fr auto;
+    align-items: center; padding: 5px 8px; min-height: 28px; gap: 6px;
+  }
+  .card-logo-placeholder { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; display: block; background: var(--border); }
+  .card-left { min-width: 0; overflow: hidden; display: flex; align-items: center; gap: 5px; }
+  .card-company { font-size: 0.74rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-programme { font-size: 0.67rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-programme:not(:empty)::before { content: '·'; margin-right: 5px; color: var(--border-md); }
+  .card-date { font-size: 0.67rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; text-align: center; }
+  .card-date.fresh { font-weight: 700; }
+  .apply-btn-inline {
+    font-size: 0.63rem; font-weight: 700; background: var(--green); color: #fff;
+    border: none; border-radius: 4px; padding: 3px 8px; cursor: pointer;
+    text-decoration: none; white-space: nowrap; transition: background 0.12s;
+  }
+  .apply-btn-inline:hover { background: var(--green-deep); }
+  .careers-btn-inline {
+    font-size: 0.63rem; font-weight: 700; background: #122B1E; color: #fff;
+    border: none; border-radius: 4px; padding: 3px 8px; cursor: pointer;
+    text-decoration: none; white-space: nowrap; transition: opacity 0.12s;
+  }
+  .careers-btn-inline:hover { opacity: 0.82; }
+  .card-chevron { font-size: 7px; color: var(--subtle); opacity: 0.45; flex-shrink: 0; line-height: 1; }
+  .card-logo { width: 14px; height: 14px; border-radius: 2px; object-fit: contain; flex-shrink: 0; display: block; }
+  .card-detail {
+    overflow: hidden; max-height: 0; opacity: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    border-radius: 0 0 6px 6px;
+  }
+  .job-card.expanded .card-detail { max-height: 220px; opacity: 1; border-top: 1px solid rgba(0,0,0,0.07); }
+  .card-detail-inner { display: grid; grid-template-columns: 1fr 1fr; padding: 12px 14px 12px 78px; }
+  .card-detail-fields { display: flex; }
+  .card-detail-meta-row { display: flex; gap: 8px 22px; align-items: flex-start; flex-wrap: wrap; }
+  .card-detail-process { border-left: 1px solid var(--border); padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .detail-field { display: flex; flex-direction: column; gap: 2px; align-items: center; text-align: center; }
+  .detail-label { font-size: 0.54rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--subtle); }
+  .detail-value { font-size: 0.72rem; color: var(--text-mid); }
+  .proc-steps { display: flex; flex-direction: column; gap: 0; }
+  .proc-step-row { display: flex; align-items: center; gap: 8px; }
+  .proc-node { width: 7px; height: 7px; border-radius: 50%; background: var(--green-mid); flex-shrink: 0; }
+  .proc-step-txt { font-size: 0.69rem; color: var(--text-mid); }
+  .proc-connector { width: 1px; height: 10px; background: var(--border-md); margin-left: 3px; }
+
+  /* ── PIPELINE DEMO ── */
+  .pipeline-demo-scroll { background: #F8F7F4; padding: 16px; border-radius: 16px; box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 8px 48px rgba(0,0,0,0.07), 0 0 80px 12px rgba(255,255,255,0.9); }
+  .kanban-inner { display: flex; flex-direction: row; gap: 0; align-items: flex-start; width: 100%; }
+  .kanban-arrow { flex-shrink: 0; width: 16px; display: flex; align-items: flex-start; padding-top: 11px; justify-content: center; color: var(--text); font-size: 10px; user-select: none; }
+  .kanban-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+  .kstage-down-arrow { display: flex; justify-content: center; align-items: center; height: 16px; color: var(--text); font-size: 11px; user-select: none; flex-shrink: 0; }
+  .kstage-block { border-radius: 7px; overflow: hidden; border: 1px solid rgba(0,0,0,0.07); background: #fff; }
+  .kstage-block.rejection-block { opacity: 0.85; }
+  .kstage-hdr { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1.3; }
+  .kstage-hdr-label { flex: 1; }
+  .kstage-cnt { font-size: 0.58rem; font-weight: 700; border-radius: 100px; padding: 1px 5px; min-width: 16px; text-align: center; flex-shrink: 0; }
+  .drop-zone { min-height: 32px; padding: 3px 4px; background: rgba(255,255,255,0.3); border-top: 1px solid rgba(0,0,0,0.05); transition: background 0.15s; }
+  .rejection-block .drop-zone { min-height: 28px; background: rgba(255,255,255,0.2); }
+  .dz-hint { font-size: 0.58rem; color: var(--subtle); display: block; text-align: center; padding: 4px 0; font-style: italic; }
+  .pipeline-chip { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 3px 5px; margin-bottom: 3px; cursor: pointer; font-size: 0.62rem; transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s; }
+  .pipeline-chip:hover { border-color: var(--border-md); transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+  .pipeline-chip.chip-expanded { border-color: var(--border-md); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+  .chip-top-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px; }
+  .chip-info { min-width: 0; }
+  .chip-co { font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .chip-prog { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; font-size: 0.58rem; margin-top: 1px; }
+  .chip-remove { background: none; border: none; cursor: pointer; color: var(--subtle); font-size: 0.75rem; line-height: 1; padding: 0 1px; flex-shrink: 0; transition: color 0.12s; }
+  .chip-remove:hover { color: #b91c1c; }
+  .chip-detail { display: none; border-top: 1px solid rgba(0,0,0,0.07); margin-top: 4px; padding-top: 4px; }
+  .pipeline-chip.chip-expanded .chip-detail { display: block; }
+  .chip-detail-row { font-size: 0.57rem; color: var(--muted); display: flex; gap: 3px; padding: 1px 0; }
+  .chip-detail-lbl { font-weight: 700; color: var(--subtle); flex-shrink: 0; min-width: 30px; }
 </style>
 <script src="/static/auth.js"></script>
 </head>
@@ -1050,6 +1136,7 @@
       </div>
     </div>
 
+    <div class="hero-strip-persp">
     <div class="hero-strip">
 
       <!-- Listings card -->
@@ -1195,6 +1282,7 @@
       </div>
 
     </div>
+    </div><!-- end hero-strip-persp -->
   </div>
 </div>
 
@@ -1211,85 +1299,454 @@
 
 <!-- HOW IT WORKS -->
 <div class="section-divider"><hr></div>
-<div class="section" id="how">
+<div class="section" id="how" style="padding-bottom:16px;">
   <p class="eyebrow reveal">How it works</p>
-  <h2 class="reveal">From sign up to your first outreach<br><em>in minutes.</em></h2>
-  <p class="section-sub reveal">No complicated setup. Sign in with your email and you're ready to reach out.</p>
-  <div class="steps reveal-group">
-    <div class="step">
-      <div class="step-num">Step 01</div>
-      <h3>Sign in with your email</h3>
-      <p>Your email verifies you instantly. No lengthy forms, no waiting, no credit card needed.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">Step 02</div>
-      <h3>Tell us your target role, industry and company size</h3>
-      <p>We pull live job openings from job boards, career networks and trackers. Then we surface the people at those companies who could actually get you in.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">Step 03</div>
-      <h3>Review, approve and send.</h3>
-      <p>We draft a personalised email tied to a real open role. You read it, edit it, and hit send.</p>
-    </div>
+  <h2 class="reveal">From the dashboard to your first outreach<br><em>in 5 clicks.</em></h2>
+  <p class="section-sub reveal" style="max-width:none;margin-bottom:0;">No complicated setup. Sign in with your email and you're ready to reach out.</p>
+</div>
+<div class="reveal" style="padding:0 48px 80px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;">
+  <div style="width:100%;max-width:825px;border-radius:16px;overflow:hidden;border:1px solid rgba(0,0,0,0.06);box-shadow:0 20px 60px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.8);">
+    <video muted loop playsinline autoplay preload="metadata" style="width:100%;height:auto;display:block;">
+      <source src="../static/demo.mp4#t=0.001" type="video/mp4">
+    </video>
   </div>
 </div>
 
-<!-- FEATURE: MATCHING -->
+<!-- FEATURE: LISTINGS -->
 <div class="section-divider"><hr></div>
-<div class="section" id="features">
-  <div class="feature-split reveal">
-    <div class="feature-text">
-      <p class="eyebrow">Smart matching</p>
-      <h2>Matched to <em>real openings.</em></h2>
-      <p>We don't just find contacts. We match you to people at companies with active roles that fit your profile. Alumni are prioritised because shared experience converts. When someone sees their university in your email, response rates jump.</p>
-      <ul class="check-list">
-        <li><span class="check-icon">✓</span> Open roles pulled from job boards and career networks</li>
-        <li><span class="check-icon">✓</span> Alumni from your university surfaced first</li>
-        <li><span class="check-icon">✓</span> Name, position, company and contact info surfaced per match</li>
-      </ul>
-    </div>
-    <div class="app-mock" style="max-width:420px;">
-      <div class="mock-topbar">
-        <span class="mock-title">Live opportunities</span>
+<div class="section" id="features" style="padding-left:16px;padding-right:16px;max-width:1200px;">
+  <p class="eyebrow reveal">New listings hourly</p>
+  <p class="section-sub reveal" style="margin-bottom:18px;">Right click to track <em>in the pipeline</em></p>
+  <div class="reveal" style="position:relative;overflow:visible;">
+    <div class="card-list">
+
+      <div class="job-card">
+        <div class="card-row">
+          <span class="card-date fresh">23 May</span>
+          <div class="card-left">
+            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=morganstanley.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
+            <span class="card-company">Morgan Stanley</span>
+            <span class="card-programme">2026 Quantitative Finance Off-Cycle Internship</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
+            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
+            <span class="card-chevron">▶</span>
+          </div>
+        </div>
       </div>
-      <div class="mock-list">
-        <div class="mock-row active"><div class="mock-av"><img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">Sarah R. <span class="alumni-chip">Alumni</span></div><div class="mock-sub">VP Product · Monzo · PM opening</div></div><div class="mock-sent">Sent ✓</div></div>
-        <div class="mock-row active"><div class="mock-av"><img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">James K. <span class="alumni-chip">Alumni</span></div><div class="mock-sub">Analyst · Goldman · Summer intern</div></div><div class="mock-sent">Sent ✓</div></div>
-        <div class="mock-row"><div class="mock-av"><img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=faces&q=80" alt=""></div><div class="mock-info"><div class="mock-name">Aisha T.</div><div class="mock-sub">Consultant · McKinsey · Analyst role</div></div><div class="mock-action">Draft email →</div></div>
+
+      <div class="job-card">
+        <div class="card-row">
+          <span class="card-date fresh">22 May</span>
+          <div class="card-left">
+            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=rwbaird.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
+            <span class="card-company">Baird</span>
+            <span class="card-programme">Global Investment Banking – M&amp;A Internship (6 months)</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
+            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
+            <span class="card-chevron">▶</span>
+          </div>
+        </div>
       </div>
+
+      <div class="job-card">
+        <div class="card-row">
+          <span class="card-date fresh">22 May</span>
+          <div class="card-left">
+            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=arondite.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
+            <span class="card-company">Arondite</span>
+            <span class="card-programme">New Grad Deployed Software Engineer</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
+            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
+            <span class="card-chevron">▶</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="card-row">
+          <span class="card-date fresh">21 May</span>
+          <div class="card-left">
+            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=citadel.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
+            <span class="card-company">Citadel</span>
+            <span class="card-programme">International Equities Associate – Intern</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
+            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
+            <span class="card-chevron">▶</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="card-row">
+          <span class="card-date fresh">21 May</span>
+          <div class="card-left">
+            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=aramcotrading.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
+            <span class="card-company">Aramco Trading Company</span>
+            <span class="card-programme">Summer Intern</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
+            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
+            <span class="card-chevron">▶</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="card-row">
+          <span class="card-date fresh">21 May</span>
+          <div class="card-left">
+            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=hl.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
+            <span class="card-company">Houlihan Lokey</span>
+            <span class="card-programme">Internship – 6 Months – FSG</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
+            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
+            <span class="card-chevron">▶</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- YFM card — expanded, cursor right-clicking, context menu open -->
+      <div style="position:relative;">
+        <div class="job-card expanded">
+          <div class="card-row">
+            <span class="card-date fresh">20 May</span>
+            <div class="card-left">
+              <img class="card-logo" src="https://www.google.com/s2/favicons?domain=yfmequitypartners.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
+              <span class="card-company">YFM Equity Partners</span>
+              <span class="card-programme">Summer Internship</span>
+            </div>
+            <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+              <a class="careers-btn-inline" href="/opportunities">Company Site</a>
+              <a class="apply-btn-inline" href="/opportunities">Apply →</a>
+              <span class="card-chevron" style="transform:rotate(90deg);opacity:0.75;">▶</span>
+            </div>
+          </div>
+          <div class="card-detail" style="max-height:220px;opacity:1;border-top:1px solid rgba(0,0,0,0.07);">
+            <div class="card-detail-inner">
+              <div class="card-detail-fields">
+                <div class="card-detail-meta-row">
+                  <div class="detail-field"><span class="detail-label">Closes</span><div class="detail-value">1 Sep 2026</div></div>
+                  <div class="detail-field"><span class="detail-label">Location</span><div class="detail-value">London</div></div>
+                  <div class="detail-field"><span class="detail-label">Stage</span><div class="detail-value detail-stage-active">Open</div></div>
+                  <div class="detail-field"><span class="detail-label">Visa</span><div class="detail-value">Not sponsored</div></div>
+                  <div class="detail-field"><span class="detail-label">Cover Letter</span><div class="detail-value">No</div></div>
+                </div>
+              </div>
+              <div class="card-detail-process">
+                <span class="detail-label">Interview Process</span>
+                <div class="proc-steps">
+                  <div class="proc-step-row"><span class="proc-node"></span><span class="proc-step-txt">Technical Interview</span></div>
+                  <div class="proc-connector"></div>
+                  <div class="proc-step-row"><span class="proc-node"></span><span class="proc-step-txt">Video Interview</span></div>
+                  <div class="proc-connector"></div>
+                  <div class="proc-step-row"><span class="proc-node"></span><span class="proc-step-txt">Assessment Centre</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- cursor arrow SVG -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="22" viewBox="0 0 18 22"
+             style="position:absolute;top:105px;left:73%;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));z-index:100;">
+          <path d="M2 2 L2 18 L5.5 14.5 L8.5 20.5 L11 19.5 L8 13.5 L14 13.5 Z" fill="white" stroke="#1a1a1a" stroke-width="1.2" stroke-linejoin="round"/>
+        </svg>
+        <!-- right-click context menu -->
+        <div style="position:absolute;top:122px;left:calc(73% + 12px);background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.14);min-width:190px;padding:4px 0;z-index:99;font-family:'Lato',sans-serif;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:0.8rem;font-weight:500;color:#374151;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#E8960C;flex-shrink:0;display:inline-block;"></span>Applied &amp; Pending
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:0.8rem;font-weight:500;color:#374151;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#D4C31E;flex-shrink:0;display:inline-block;"></span>Hirevue &amp; Tested
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:0.8rem;font-weight:500;color:#374151;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#9CC87A;flex-shrink:0;display:inline-block;"></span>Interview 1
+          </div>
+          <div style="height:1px;background:#e5e7eb;margin:4px 0;"></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:0.8rem;font-weight:500;color:#6b7280;">
+            Remove from pipeline
+          </div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="card-row">
+          <span class="card-date">19 May</span>
+          <div class="card-left">
+            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=lec.ai&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
+            <span class="card-company">LEC AI</span>
+            <span class="card-programme">AI Engineer Summer Internship 2026</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
+            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
+            <span class="card-chevron">▶</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="card-row">
+          <span class="card-date">19 May</span>
+          <div class="card-left">
+            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=cfp.energy&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
+            <span class="card-company">CFP Energy</span>
+            <span class="card-programme">Software &amp; Data Engineering – Summer Internship</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
+            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
+            <span class="card-chevron">▶</span>
+          </div>
+        </div>
+      </div>
+
     </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:130px;background:linear-gradient(to bottom,rgba(255,255,255,0) 0%,rgba(255,255,255,0.97) 100%);pointer-events:none;"></div>
   </div>
 </div>
 
-<!-- FEATURE: EMAIL -->
+<!-- FEATURE: PIPELINE -->
 <div class="section-divider"><hr></div>
-<div class="section">
-  <div class="feature-split reveal" style="direction:rtl;">
-    <div class="feature-text" style="direction:ltr;">
-      <p class="eyebrow">AI email drafting</p>
-      <h2>Not a spam bot.<br><em>A targeted introduction.</em></h2>
-      <p>Every email is written around the specific role and the professional's actual background. Short, direct, genuine. Three rotating templates keep things fresh. You always read it before it sends. You are in control.</p>
-      <ul class="check-list">
-        <li><span class="check-icon">✓</span> Under 120 words so professionals actually read them</li>
-        <li><span class="check-icon">✓</span> 3 matches per day at most, keeping your outreach focused</li>
-        <li><span class="check-icon">✓</span> References the specific open role and their career path</li>
-        <li><span class="check-icon">✓</span> Plain text only so no spam filters get triggered</li>
-      </ul>
-    </div>
-    <div class="email-mock" style="direction:ltr; max-width:420px;">
-      <div class="email-head">
-        <div class="ef">To: <span>john.smith@gmail.com</span></div>
-        <div class="ef">Subject: <span>UCL student reaching out about your PM role at Monzo</span></div>
-      </div>
-      <div class="email-body">
-        <p>Hi Sarah,</p>
-        <p>I noticed you studied at UCL before joining Monzo's product team. I'm in my final year there and came across the PM opening you're currently hiring for.</p>
-        <p>I'd love to hear how you made the jump from university into fintech product. Would you be open to 20 minutes?</p>
-        <p>Thanks,<br><strong>Alex</strong></p>
-      </div>
-      <div class="email-foot">
-        <span class="wc">78 words</span>
-        <button class="send-btn">Send email →</button>
+<div class="section" style="padding-left:16px;padding-right:16px;max-width:1200px;">
+  <p class="eyebrow reveal">Pipeline tracking</p>
+  <p class="section-sub reveal" style="margin-bottom:18px;">Every application. <em>Always in view.</em></p>
+  <div class="reveal">
+    <div class="pipeline-demo-scroll">
+      <div class="kanban-inner">
+
+        <!-- Col 1: Applied and Pending -->
+        <div class="kanban-col">
+          <div class="kstage-block">
+            <div class="kstage-hdr" style="background:#E8960C;color:#fff;">
+              <span class="kstage-hdr-label">Applied and Pending</span>
+              <span class="kstage-cnt" style="background:rgba(255,255,255,0.25);color:#fff;">3</span>
+            </div>
+            <div class="drop-zone">
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">Vericor Capital</span>
+                    <span class="chip-prog">Search Fund Intern Program</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">AmplifyME</span>
+                    <span class="chip-prog">Summer Analyst Training Programme</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">Rothschild &amp; Co.</span>
+                    <span class="chip-prog">2026 UK Graduate Programme - FIG team</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="kstage-down-arrow">↓</div>
+          <div class="kstage-block rejection-block">
+            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
+              <span class="kstage-hdr-label">Rejected Outright</span>
+              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">2</span>
+            </div>
+            <div class="drop-zone">
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">ITE Management</span>
+                    <span class="chip-prog">Summer Internship (Investment Team - 2026)</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">CFP Energy</span>
+                    <span class="chip-prog">Software &amp; Data Engineering - Summer Internship</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="kanban-arrow">→</div>
+
+        <!-- Col 2: HireVue and Tested -->
+        <div class="kanban-col">
+          <div class="kstage-block">
+            <div class="kstage-hdr" style="background:#D4C31E;color:#1A1714;">
+              <span class="kstage-hdr-label">HireVue and Tested</span>
+              <span class="kstage-cnt" style="background:rgba(26,23,20,0.12);color:#1A1714;">2</span>
+            </div>
+            <div class="drop-zone">
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">Avis Budget Group</span>
+                    <span class="chip-prog">AI Engineer Intern - Summer 2026</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">Baird</span>
+                    <span class="chip-prog">Global Investment Banking – M&A Internship (6 months)</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="kstage-down-arrow">↓</div>
+          <div class="kstage-block rejection-block">
+            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
+              <span class="kstage-hdr-label">Rejected after HireVue</span>
+              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">0</span>
+            </div>
+            <div class="drop-zone">
+              <span class="dz-hint">Drop here</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kanban-arrow">→</div>
+
+        <!-- Col 3: Interview #1 -->
+        <div class="kanban-col">
+          <div class="kstage-block">
+            <div class="kstage-hdr" style="background:#9CC87A;color:#1A1714;">
+              <span class="kstage-hdr-label">Interview #1</span>
+              <span class="kstage-cnt" style="background:rgba(26,23,20,0.12);color:#1A1714;">1</span>
+            </div>
+            <div class="drop-zone">
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">Goldman Sachs</span>
+                    <span class="chip-prog">Summer Analyst Programme</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="kstage-down-arrow">↓</div>
+          <div class="kstage-block rejection-block">
+            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
+              <span class="kstage-hdr-label">Rejected after Int. #1</span>
+              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">0</span>
+            </div>
+            <div class="drop-zone">
+              <span class="dz-hint">Drop here</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kanban-arrow">→</div>
+
+        <!-- Col 4: Interview #2 -->
+        <div class="kanban-col">
+          <div class="kstage-block">
+            <div class="kstage-hdr" style="background:#9CC87A;color:#1A1714;">
+              <span class="kstage-hdr-label">Interview #2</span>
+              <span class="kstage-cnt" style="background:rgba(26,23,20,0.12);color:#1A1714;">1</span>
+            </div>
+            <div class="drop-zone">
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">LEC AI</span>
+                    <span class="chip-prog">AI Engineer Summer Internship 2026</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="kstage-down-arrow">↓</div>
+          <div class="kstage-block rejection-block">
+            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
+              <span class="kstage-hdr-label">Rejected after Int. #2</span>
+              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">0</span>
+            </div>
+            <div class="drop-zone">
+              <span class="dz-hint">Drop here</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kanban-arrow">→</div>
+
+        <!-- Col 5: Assessment Center -->
+        <div class="kanban-col">
+          <div class="kstage-block">
+            <div class="kstage-hdr" style="background:#3A7246;color:#fff;">
+              <span class="kstage-hdr-label">Assessment Center</span>
+              <span class="kstage-cnt" style="background:rgba(255,255,255,0.2);color:#fff;">1</span>
+            </div>
+            <div class="drop-zone">
+              <div class="pipeline-chip" onclick="toggleChip(this)">
+                <div class="chip-top-row">
+                  <div class="chip-info">
+                    <span class="chip-co">Citadel</span>
+                    <span class="chip-prog">International Equities Associate – Intern</span>
+                  </div>
+                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="kstage-down-arrow">↓</div>
+          <div class="kstage-block rejection-block">
+            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
+              <span class="kstage-hdr-label">Rejected after AC</span>
+              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">0</span>
+            </div>
+            <div class="drop-zone">
+              <span class="dz-hint">Drop here</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kanban-arrow">→</div>
+
+        <!-- Col 6: Offer -->
+        <div class="kanban-col">
+          <div class="kstage-block">
+            <div class="kstage-hdr" style="background:#1F4530;color:#fff;">
+              <span class="kstage-hdr-label">Offer</span>
+              <span class="kstage-cnt" style="background:rgba(255,255,255,0.2);color:#fff;">0</span>
+            </div>
+            <div class="drop-zone">
+              <span class="dz-hint">Drop here</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -1301,22 +1758,33 @@
   <p class="eyebrow reveal">Student stories</p>
   <h2 class="reveal">They stopped applying.<br>They started <em>connecting.</em></h2>
   <p class="section-sub reveal">Early results from students who switched from mass applying to targeted outreach.</p>
-  <div class="testi-scroll reveal">
-    <div class="tcard">
-      <div><div class="tcard-open">"</div><p class="tcard-text">Got a Goldman Sachs internship after 3 weeks. The alumni matching is the secret. My response rate was unlike anything I had seen from cold outreach on other platforms.</p></div>
-      <div class="tcard-author"><div class="tav">MK</div><div><div class="tname">Maya K.</div><div class="tuni">LSE · Finance · Class of 2025</div></div></div>
+  <div class="tgrid reveal">
+    <div class="tgcard">
+      <div class="tg-avatar"><img src="https://i.pravatar.cc/120?img=5" alt=""></div>
+      <div class="tg-quote">"</div>
+      <p class="tg-text">I've just sent my first application using your website. And it's genuinely fabulous!</p>
+      <div class="tg-author">
+        <div class="tg-name">Sophie T.</div>
+        <div class="tg-uni">UCL · Law · Class of 2027</div>
+      </div>
     </div>
-    <div class="tcard">
-      <div><div class="tcard-open">"</div><p class="tcard-text">Four months of applications going nowhere. First week on inroad I had three real conversations with people actually doing the job I wanted.</p></div>
-      <div class="tcard-author"><div class="tav">TW</div><div><div class="tname">Tom W.</div><div class="tuni">Manchester · CS · Class of 2025</div></div></div>
+    <div class="tgcard">
+      <div class="tg-avatar"><img src="https://i.pravatar.cc/120?img=12" alt=""></div>
+      <div class="tg-quote">"</div>
+      <p class="tg-text">Wow — this is seriously impressive. I've just signed up, and the email reveal feature alone is a game-changer. I'll definitely be using this.</p>
+      <div class="tg-author">
+        <div class="tg-name">James R.</div>
+        <div class="tg-uni">Durham · Economics · Class of 2028</div>
+      </div>
     </div>
-    <div class="tcard">
-      <div><div class="tcard-open">"</div><p class="tcard-text">My flatmate asked how I wrote such a good cold email. I didn't have the heart to tell her. The platform makes you look like you've been networking for years.</p></div>
-      <div class="tcard-author"><div class="tav">PL</div><div><div class="tname">Priya L.</div><div class="tuni">Edinburgh · Marketing · Class of 2026</div></div></div>
-    </div>
-    <div class="tcard">
-      <div><div class="tcard-open">"</div><p class="tcard-text">I'd avoided cold emailing because it felt pushy. The emails this generates feel so natural I barely edited them. Three replies in my first week.</p></div>
-      <div class="tcard-author"><div class="tav">OB</div><div><div class="tname">Oliver B.</div><div class="tuni">Imperial · Engineering · Class of 2025</div></div></div>
+    <div class="tgcard">
+      <div class="tg-avatar"><img src="https://i.pravatar.cc/120?img=47" alt=""></div>
+      <div class="tg-quote">"</div>
+      <p class="tg-text">Honestly this is probably one of the best websites so far in order to land an internship.</p>
+      <div class="tg-author">
+        <div class="tg-name">Aisha M.</div>
+        <div class="tg-uni">Warwick · Business · Class of 2027</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1381,6 +1849,10 @@
     document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('visible'));
   }, 1500);
 
+function toggleChip(el) {
+  el.classList.toggle('chip-expanded');
+}
+
 function openReferModal() {
   document.getElementById('refer-modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1397,6 +1869,45 @@ function copyReferLink() {
     setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
   });
 }
+</script>
+<script>
+(function () {
+  var strip = document.querySelector('.hero-strip');
+  if (!strip) return;
+
+  // Disable on narrow screens where cards stack vertically
+  if (window.innerWidth < 900) {
+    strip.style.opacity = '1';
+    return;
+  }
+
+  var scrollRange = window.innerHeight * 0.52;
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+  function render() {
+    var p  = clamp(window.scrollY / scrollRange, 0, 1);
+    var tZ = (90 * p).toFixed(1); // 0 → +90px
+    strip.style.transform = 'translateZ(' + tZ + 'px)';
+  }
+
+  // Fade in — matches original animation delay/duration
+  setTimeout(function () {
+    strip.style.transition = 'opacity 0.6s ease';
+    strip.style.opacity    = '1';
+    setTimeout(function () { strip.style.transition = ''; }, 680);
+  }, 320);
+
+  render();
+
+  var ticking = false;
+  window.addEventListener('scroll', function () {
+    if (!ticking) {
+      requestAnimationFrame(function () { render(); ticking = false; });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
 </script>
 <script>
 (function() {
