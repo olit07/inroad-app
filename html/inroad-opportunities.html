@@ -1264,6 +1264,7 @@
   const UNI_ACRONYMS = {
     'London School Of Economics':          'LSE',
     'University College London':           'UCL',
+    "King's College London":               'KCL',
     'Massachusetts Institute Of Technology': 'MIT',
     'New York University':                 'NYU',
     'University Of California, Los Angeles': 'UCLA',
@@ -3081,6 +3082,14 @@
       );
     }
 
+    const typeOrder = { relevant: 0, hr: 1 };
+    leads = leads.slice().sort((a, b) => {
+      const ta = typeOrder[a.lead_type] ?? 2;
+      const tb = typeOrder[b.lead_type] ?? 2;
+      if (ta !== tb) return ta - tb;
+      return (b.is_alumni ? 1 : 0) - (a.is_alumni ? 1 : 0);
+    });
+
     const activeFilter = uniFilter || leadsQuery;
     if (!leads.length && !activeFilter && !(job.leads || []).length) {
       leadsBody.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p class="empty-label">No insider contacts on file for<br><strong>${esc(job.company)}</strong> yet.</p></div>`;
@@ -3414,6 +3423,7 @@
     'king\'s college london': 'King\'s College London',
     "king's college london": "King's College London",
     'kings college london': "King's College London",
+    'kcl': "King's College London",
     'university of oxford': 'Oxford',
     'oxford university': 'Oxford',
     'university of cambridge': 'Cambridge',
