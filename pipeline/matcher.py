@@ -59,6 +59,7 @@ UNI_ALIASES: dict[str, list[str]] = {
     # ── UK ───────────────────────────────────────────────────────────────────
     "ucl":              ["university college london", "ucl"],
     "lse":              ["london school of economics", "lse"],
+    "lbs":              ["london business school", "lbs"],
     "imperial":         ["imperial college london", "imperial college", "imperial"],
     "kings":            ["king's college london", "kings college london", "kcl"],
     "oxford":           ["university of oxford", "oxford"],
@@ -866,7 +867,12 @@ class LinkedInMatcher:
             except Exception as exc:
                 logger.warning("SearXNG failed (%s), falling back to Serper/DDG", exc)
         if self._serper_keys:
-            return self._serper_search(query, count=count, page=page)
+            try:
+                return self._serper_search(query, count=count, page=page)
+            except RuntimeError as e:
+                if "SERPER_CREDITS_EXHAUSTED" not in str(e):
+                    raise
+                logger.warning("All Serper credits exhausted — falling through to DDG")
         return self._ddg_search(query, count=count)
 
     def _search_two_pages(self, query: str) -> list[dict]:
@@ -879,7 +885,12 @@ class LinkedInMatcher:
             except Exception as exc:
                 logger.warning("SearXNG failed (%s), falling back to Serper/DDG", exc)
         if self._serper_keys:
-            return self._serper_search_two_pages(query)
+            try:
+                return self._serper_search_two_pages(query)
+            except RuntimeError as e:
+                if "SERPER_CREDITS_EXHAUSTED" not in str(e):
+                    raise
+                logger.warning("All Serper credits exhausted — falling through to DDG")
         return self._ddg_search_two_pages(query)
 
     # ── SearXNG backend (self-hosted, free) ──────────────────────────────────
@@ -893,7 +904,6 @@ class LinkedInMatcher:
         params = urllib.parse.urlencode({
             "q":       query,
             "format":  "json",
-            "engines": "brave,yahoo,bing,duckduckgo",
             "pageno":  page,
             "language": "en-GB",
         })
