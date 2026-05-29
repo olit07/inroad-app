@@ -89,7 +89,7 @@ def _start_background_scheduler():
     except (IOError, OSError):
         return  # another worker already holds the lock
 
-    TRACKR_SLOTS = [(5,0),(7,10),(9,15),(11,20),(13,25),(15,30),(17,45),(20,0)]
+    TRACKR_SLOTS = [(h, 0) for h in range(5, 21)]  # 05:00–20:00 UTC, once per hour
     PIPELINE_HOUR = 6
     WTTJ_HOUR = 5
 
@@ -113,7 +113,7 @@ def _start_background_scheduler():
     def _loop():
         from scheduler.run import run_trackr_pipeline, run_cards_job, run_notify_job, run_wttj_pipeline
         log = _log.getLogger("scheduler")
-        log.info("Background scheduler started — Trackr at 05:00/07:10/… UTC, WTTJ at 05:05 UTC, pipeline at 06:00 UTC")
+        log.info("Background scheduler started — Trackr hourly 05:00–20:00 UTC, WTTJ at 05:05 UTC, pipeline at 06:00 UTC")
 
         next_trackr   = _next_slot(TRACKR_SLOTS)
         next_pipeline = _next_hour(PIPELINE_HOUR)
@@ -1886,6 +1886,39 @@ def admin_build_leads():
     return jsonify({"status": "triggered", "company": label, "force": force})
 
 
+@app.route("/api/admin/build-uni-leads", methods=["POST"])
+@require_admin
+def admin_build_uni_leads():
+    """Targeted alumni search: runs only Query A for specified universities
+    against the top-N most recent trackr/wttj companies.
+    Body: { "universities": ["King's College London", "University College London"], "top_n": 30 }
+    Defaults to KCL + UCL if universities not provided."""
+    data  = request.get_json(silent=True) or {}
+    unis  = data.get("universities") or ["King's College London", "University College London"]
+    top_n = int(data.get("top_n") or 30)
+
+    def _run():
+        try:
+            import importlib.util, os
+            spec = importlib.util.spec_from_file_location(
+                "fetch_kcl_ucl_leads",
+                os.path.join(os.path.dirname(__file__), "..", "scripts", "fetch_kcl_ucl_leads.py"),
+            )
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            result = mod.run(dry_run=False, top_n=top_n, universities=unis)
+            total = sum(result.values())
+            print(f"[admin/build-uni-leads] done — {total} leads upserted: {result}")
+        except Exception as exc:
+            import traceback
+            print(f"[admin/build-uni-leads] error: {exc}")
+            traceback.print_exc()
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "triggered", "universities": unis, "top_n": top_n})
+
+
 @app.route("/api/admin/leads/stats")
 @require_admin
 def admin_leads_stats():
@@ -1910,6 +1943,22 @@ def admin_scrape():
             run_all_scrapers(source_ids=[source_id] if source_id else None)
         except Exception as exc:
             print(f"[admin/scrape] error: {exc}")
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "triggered"})
+
+
+@app.route("/api/admin/wttj-pipeline", methods=["POST"])
+@require_admin
+def admin_wttj_pipeline():
+    """Run full WTTJ pipeline: scrape + upsert into DB."""
+    def _run():
+        try:
+            from scheduler.run import run_wttj_pipeline
+            run_wttj_pipeline()
+        except Exception as exc:
+            print(f"[admin/wttj-pipeline] error: {exc}")
 
     import threading
     threading.Thread(target=_run, daemon=True).start()
@@ -2357,6 +2406,11 @@ def api_opportunities():
             "  COALESCE(raw::json->>'logo_url',       '')   AS logo_url,"
             "  COALESCE(raw::json->>'company_url',    '')   AS company_url,"
             "  COALESCE(raw::json->>'programme_type', '')   AS wttj_prog_type,"
+            "  COALESCE(raw::json->>'location',        '')   AS location,"
+            "  COALESCE(raw::json->>'process',         '')   AS process,"
+            "  COALESCE(raw::json->>'current_stage',   '')   AS current_stage,"
+            "  COALESCE(raw::json->>'sponsors_visa',   '')   AS sponsors_visa,"
+            "  COALESCE(raw::json->>'cover_letter',    '')   AS cover_letter,"
             "  CASE WHEN raw IS NOT NULL AND raw != '' AND raw != '{}'"
             "       AND raw::jsonb->'trackr_categories' @> '[\"Consulting\"]' THEN 1 ELSE 0 END AS is_consulting,"
             "  CASE WHEN raw IS NOT NULL AND raw != '' AND raw != '{}'"
@@ -2364,6 +2418,7 @@ def api_opportunities():
             " FROM jobs WHERE company IS NOT NULL AND company != ''"
             " AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj')"
             " AND lower(company) != 'trackr'"
+            " AND url IS NOT NULL AND url != ''"
             " ORDER BY opening_date DESC NULLS LAST, created_at DESC NULLS LAST LIMIT 10000"
         )
     else:
@@ -2372,6 +2427,7 @@ def api_opportunities():
             "FROM jobs WHERE company IS NOT NULL AND company != '' "
             "AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj') "
             "AND lower(company) != 'trackr' "
+            "AND url IS NOT NULL AND url != '' "
             "ORDER BY CASE WHEN opening_date IS NULL OR opening_date = '' THEN 1 ELSE 0 END, opening_date DESC, created_at DESC "
             "LIMIT 10000"
         )
@@ -2460,6 +2516,11 @@ def api_opportunities():
             company_url   = r.get("company_url") or ""
             is_consulting = r.get("is_consulting") in (1, True, "1", "true")
             is_events     = r.get("is_events") in (1, True, "1", "true")
+            location      = r.get("location") or ""
+            process       = r.get("process") or ""
+            current_stage = r.get("current_stage") or ""
+            sponsors_visa = r.get("sponsors_visa") or ""
+            cover_letter  = r.get("cover_letter") or ""
         else:
             raw_str = r.get("raw") or ""
             try:
@@ -2473,6 +2534,11 @@ def api_opportunities():
             company_url   = raw_data.get("company_url") or ""
             is_consulting = "Consulting" in (raw_data.get("trackr_categories") or [])
             is_events     = tt == "events"
+            location      = raw_data.get("location") or ""
+            process       = raw_data.get("process") or ""
+            current_stage = raw_data.get("current_stage") or ""
+            sponsors_visa = raw_data.get("sponsors_visa") or ""
+            cover_letter  = raw_data.get("cover_letter") or ""
 
         if is_consulting:
             division = "Consulting"
@@ -2487,6 +2553,10 @@ def api_opportunities():
             programme_type = pt
         else:
             programme_type = infer_programme_type(title, "")
+
+        # Any Spring Week job whose title contains 'intern' belongs under internship filters
+        if programme_type == 'Spring Week' and 'intern' in title.lower():
+            programme_type = 'Summer Internship'
 
         raw_leads = leads_by_company.get(company.lower(), [])
         leads = []
@@ -2524,6 +2594,11 @@ def api_opportunities():
             "careers_site":   r.get("careers_site") or company_url,
             "industry_label": _IND_LABEL.get(industry, ""),
             "logo_url":       logo_url,
+            "location":       location,
+            "process":        process,
+            "current_stage":  current_stage,
+            "sponsors_visa":  sponsors_visa,
+            "cover_letter":   cover_letter,
             "leads":          leads,
         })
 
@@ -2628,6 +2703,16 @@ def api_unsubscribe():
     execute("UPDATE students SET notify_matches = FALSE WHERE LOWER(email) = ?", (email,))
     logger.info(f"Unsubscribed {email} from match emails")
     return jsonify(status="unsubscribed", email=email)
+
+
+@app.route("/blog")
+def blog_page():
+    return _send_html("inroad-blog.html")
+
+
+@app.route("/blog/cold-outreach")
+def blog_cold_outreach_page():
+    return _send_html("inroad-blog-cold-outreach.html")
 
 
 @app.route("/privacy")
