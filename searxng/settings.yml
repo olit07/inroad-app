@@ -47,32 +47,30 @@ engines:
     timeout: 8.0
 
   # ── Disable everything else that adds noise or never returns results ──────
+  # Note: no shortcut fields here — redefining a shortcut that already exists
+  # in the defaults causes "ambiguous shortcut" startup failure in SearXNG 2026+
   - name: google
     engine: google
     shortcut: g
-    disabled: true
+    disabled: false
+    timeout: 10.0
 
   - name: wikipedia
-    engine: wikipedia
-    shortcut: wp
     disabled: true
 
   - name: startpage
-    engine: startpage
-    shortcut: sp
     disabled: true
 
   - name: mojeek
-    engine: mojeek
-    shortcut: mj
     disabled: true
 
   - name: yandex
-    engine: yandex
-    shortcut: ya
+    shortcut: yx
+    disabled: true
+
+  - name: yacy
+    shortcut: ycy
     disabled: true
 
   - name: grokipedia
-    engine: grokipedia
-    shortcut: gp
     disabled: true
