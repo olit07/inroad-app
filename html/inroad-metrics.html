@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>inroad — Metrics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #FFFFFF;
+    --surface:    #F3F1EE;
+    --border:     #E6E2DB;
+    --border-md:  #CEC8BF;
+    --green:      #1F4530;
+    --green-lite: #EAF2EC;
+    --green-mid:  #A8C9B0;
+    --text:       #1A1714;
+    --text-mid:   #3D3831;
+    --muted:      #7A7068;
+    --subtle:     #ADA79F;
+    --blue:       #1D4ED8;
+    --serif: 'Lora', Georgia, serif;
+    --sans:  'Lato', system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+  nav {
+    height: 60px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 52px; border-bottom: 1px solid var(--border); background: var(--bg);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .wordmark { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .admin-badge { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: var(--green-lite); color: var(--green); border: 1px solid var(--green-mid); padding: 3px 10px; border-radius: 4px; }
+
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 52px 80px; }
+
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 36px; }
+  .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 3px; }
+  .page-sub { font-size: 0.83rem; color: var(--muted); }
+
+  .refresh-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); color: var(--text); border: 1px solid var(--border-md); border-radius: 9px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700; font-family: var(--sans); cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .refresh-btn:hover { background: var(--border); }
+
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .chart-card { background: var(--surface); border-radius: 14px; padding: 24px 26px 20px; }
+  .chart-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .chart-big { font-size: 2rem; font-weight: 900; letter-spacing: -0.03em; color: var(--text); line-height: 1; margin-bottom: 20px; }
+  .chart-wrap { position: relative; }
+  svg.chart-svg { width: 100%; overflow: visible; display: block; }
+  .chart-axis { display: flex; justify-content: space-between; margin-top: 8px; }
+  .chart-axis-label { font-size: 0.61rem; color: var(--subtle); }
+
+  @media (max-width: 860px) {
+    nav { padding: 0 20px; }
+    .page { padding: 24px 20px 60px; }
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="wordmark">
+    <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+    <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:var(--text);">inroad</span>
+  </a>
+  <span class="admin-badge">Admin</span>
+</nav>
+
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">User metrics</h1>
+      <p class="page-sub" id="last-updated">Loading…</p>
+    </div>
+    <button class="refresh-btn" onclick="loadMetrics()">↺ Refresh</button>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Total user accounts</div>
+      <div class="chart-big" id="cv-accounts">—</div>
+      <div class="chart-wrap">
+        <svg class="chart-svg" id="chart-accounts" viewBox="0 0 400 130" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="chart-axis" id="axis-accounts"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Unique site visits</div>
+      <div class="chart-big" id="cv-visitors">—</div>
+      <div class="chart-wrap">
+        <svg class="chart-svg" id="chart-visitors" viewBox="0 0 400 130" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="chart-axis" id="axis-visitors"></div>
+    </div>
+  </div>
+
+  <!-- Stats strip: activity -->
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:20px;">
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">Total visits</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;" id="stat-total-visits">—</div>
+    </div>
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">DAU</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;" id="stat-dau">—</div>
+    </div>
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">WAU</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;" id="stat-wau">—</div>
+    </div>
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">MAU</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;" id="stat-mau">—</div>
+    </div>
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">DAU / MAU</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;" id="stat-ratio">—</div>
+    </div>
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">Total email reveals</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;" id="cv-reveals">—</div>
+    </div>
+  </div>
+
+  <!-- Stats strip: engagement -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:12px;">
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">Apply clicks (7d)</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;" id="stat-apply-clicks">—</div>
+    </div>
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">Avg session (7d)</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;" id="stat-avg-session">—</div>
+    </div>
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">Reveals today</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;" id="stat-reveals-today">—</div>
+    </div>
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">Gone quiet</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;color:#EF4444;" id="stat-gone-quiet">—</div>
+      <div style="font-size:0.65rem;color:var(--subtle);margin-top:3px;">last active 14d+ ago</div>
+    </div>
+    <div style="background:var(--bg);padding:20px 22px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--subtle);margin-bottom:6px;">Lapsing</div>
+      <div style="font-size:1.6rem;font-weight:900;letter-spacing:-0.03em;line-height:1;color:#F59E0B;" id="stat-lapsing">—</div>
+      <div style="font-size:0.65rem;color:var(--subtle);margin-top:3px;">last active 7-14d ago</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  const _adminKey = new URLSearchParams(window.location.search).get('key') || '';
+
+  function _adminFetch(url, opts) {
+    const sep = url.includes('?') ? '&' : '?';
+    return fetch(_adminKey ? url + sep + 'key=' + encodeURIComponent(_adminKey) : url, opts);
+  }
+
+  const W = 400, H = 130, PX = 2, PY = 6;
+
+  function fmtDate(dateStr, totalPoints) {
+    const dt = new Date(dateStr + 'T00:00:00');
+    if (totalPoints > 60) {
+      return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+    }
+    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  // ── Axis labels: every data point ────────────────────────────────────────
+  function axisLabels(axisId, points) {
+    const axEl = document.getElementById(axisId);
+    if (!axEl || points.length < 2) return;
+    axEl.style.position = 'relative';
+    axEl.innerHTML = '';
+    points.forEach((pt, idx) => {
+      const pct = idx / (points.length - 1) * 100;
+      const span = document.createElement('span');
+      span.className = 'chart-axis-label';
+      span.style.position = 'absolute';
+      span.style.left = pct + '%';
+      span.style.transform = 'translateX(-50%)';
+      if (idx === 0) { span.style.left = '0'; span.style.transform = 'none'; }
+      if (idx === points.length - 1) { span.style.left = 'auto'; span.style.right = '0'; span.style.transform = 'none'; }
+      span.textContent = fmtDate(pt.date, points.length);
+      axEl.appendChild(span);
+    });
+    axEl.style.height = '16px';
+  }
+
+  // ── Line chart (straight lines) ───────────────────────────────────────────
+  function renderLine(svgId, axisId, points, color, yAxis) {
+    const svg = document.getElementById(svgId);
+    if (!svg) return;
+    if (!points.length) { svg.innerHTML = '<text x="200" y="70" text-anchor="middle" font-size="11" fill="#ADA79F" font-family="Lato,sans-serif">No data yet</text>'; return; }
+
+    const lx   = yAxis ? 36 : PX;   // left offset: wider when y-axis labels needed
+    const vals  = points.map(p => p.count);
+    const maxV  = Math.max(...vals, 1);
+    const step  = points.length > 1 ? (W - lx - PX) / (points.length - 1) : W - lx;
+
+    const cx = i => lx + i * step;
+    const cy = v => H - PY - (v / maxV) * (H - PY * 2);
+    const coords = points.map((p, i) => [cx(i), cy(p.count)]);
+
+    const linePath = coords.map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ');
+    const areaPath = [
+      `M ${coords[0][0]} ${H}`,
+      ...coords.map(([x, y]) => `L ${x} ${y}`),
+      `L ${coords[coords.length-1][0]} ${H} Z`,
+    ].join(' ');
+
+    const gId = 'g' + svgId;
+
+    let yAxisMarkup = '';
+    if (yAxis) {
+      const ticks = 4;
+      for (let t = 0; t <= ticks; t++) {
+        const frac = t / ticks;
+        const val  = Math.round(maxV * frac);
+        const y    = cy(val);
+        const label = val >= 1000 ? (val / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : val;
+        yAxisMarkup += `<line x1="${lx}" y1="${y}" x2="${W}" y2="${y}" stroke="#E6E2DB" stroke-width="1"/>`;
+        yAxisMarkup += `<text x="${lx - 5}" y="${y + 4}" text-anchor="end" font-size="9" fill="#ADA79F" font-family="Lato,sans-serif">${label}</text>`;
+      }
+    }
+
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="${gId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.16"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.01"/>
+        </linearGradient>
+      </defs>
+      ${yAxisMarkup}
+      <path d="${areaPath}" fill="url(#${gId})"/>
+      <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${coords[coords.length-1][0]}" cy="${coords[coords.length-1][1]}" r="3.5" fill="${color}"/>
+    `;
+
+    axisLabels(axisId, points);
+  }
+
+  // ── Load metrics ──────────────────────────────────────────────────────────
+  async function loadMetrics() {
+    document.getElementById('last-updated').textContent = 'Refreshing…';
+    try {
+      const r = await _adminFetch('/api/admin/metrics');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const { data: d } = await r.json();
+
+      document.getElementById('last-updated').textContent = 'Last updated ' + new Date().toLocaleTimeString();
+
+      // Cumulative accounts line chart
+      let running = 0;
+      const accountsCumulative = (d.accounts_by_day || []).map(pt => {
+        running += pt.count;
+        return { date: pt.date, count: running };
+      });
+      document.getElementById('cv-accounts').textContent = (d.total_accounts || 0).toLocaleString();
+      renderLine('chart-accounts', 'axis-accounts', accountsCumulative, '#1F4530', true);
+
+      // Unique site visits line chart — all recorded dates
+      const visData = (d.visitors_all || []);
+      const visToday = d.unique_visitors_today || 0;
+      document.getElementById('cv-visitors').textContent = visToday.toLocaleString();
+      renderLine('chart-visitors', 'axis-visitors', visData, '#1D4ED8', true);
+
+      // Emails revealed
+      const totalReveals = d.total_reveals || 0;
+      const revealsToday = d.reveals_today || 0;
+      document.getElementById('cv-reveals').textContent = totalReveals.toLocaleString();
+
+      // Stats strip: activity
+      const totalVisits = visData.reduce((s, p) => s + p.count, 0);
+      const dau   = d.dau || 0;
+      const wau   = d.wau || 0;
+      const mau   = d.mau || 0;
+      const ratio = mau > 0 ? ((dau / mau) * 100).toFixed(1) + '%' : '—';
+      document.getElementById('stat-total-visits').textContent    = totalVisits.toLocaleString();
+      document.getElementById('stat-dau').textContent             = dau.toLocaleString();
+      document.getElementById('stat-wau').textContent             = wau.toLocaleString();
+      document.getElementById('stat-mau').textContent             = mau.toLocaleString();
+      document.getElementById('stat-ratio').textContent           = ratio;
+
+      // Stats strip: engagement
+      const avgMin = d.avg_session_minutes_7d || 0;
+      const churn  = d.churn || {};
+      document.getElementById('stat-apply-clicks').textContent    = (d.apply_clicks_7d || 0).toLocaleString();
+      document.getElementById('stat-avg-session').textContent     = avgMin > 0 ? avgMin.toFixed(1) + ' min' : '—';
+      document.getElementById('stat-reveals-today').textContent   = revealsToday.toLocaleString();
+      document.getElementById('stat-gone-quiet').textContent      = (churn.gone_quiet || 0).toLocaleString();
+      document.getElementById('stat-lapsing').textContent         = (churn.lapsing    || 0).toLocaleString();
+
+    } catch (e) {
+      document.getElementById('last-updated').textContent = 'Failed to load (' + e.message + ')';
+    }
+  }
+
+  loadMetrics();
+  setInterval(loadMetrics, 60000);
+})();
+</script>
+</body>
+</html>

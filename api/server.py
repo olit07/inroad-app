@@ -3178,10 +3178,10 @@ def admin_metrics():
     # Total accounts
     total_accounts = (fetchone("SELECT COUNT(*) AS n FROM students") or {}).get("n", 0)
 
-    # New signups per day (last 30 days)
+    # New signups per day — all time so cumulative chart reaches the true total
     acct_rows = fetchall(
         f"SELECT {date_trunc} AS date, COUNT(*) AS count FROM students "
-        f"WHERE created_at >= {day30} GROUP BY 1 ORDER BY 1"
+        f"GROUP BY 1 ORDER BY 1"
     )
     accounts_by_day = [{"date": str(r["date"]), "count": r["count"]} for r in acct_rows]
 
