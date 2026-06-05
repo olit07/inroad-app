@@ -136,15 +136,14 @@ except Exception as _e:
     import traceback as _tb
     _startup_log.error(f"McKinsey BAI fix failed: {_e}\n{_tb.format_exc()}")
 
-# Close all LaSalle listings detected as pulled on 2026-06-05
+# Close all LaSalle "Intern, Value-Add Investments" listings with closing_date = 2026-06-05
 try:
     _n2 = db_execute(
         "UPDATE jobs SET closing_date = '2026-06-05' "
-        "WHERE lower(company) LIKE ? "
-        "AND (closing_date IS NULL OR closing_date = '')",
-        ('%lasalle%',)
+        "WHERE lower(company) LIKE ? AND lower(title) LIKE ?",
+        ('%lasalle%', '%value-add%')
     )
-    _startup_log.info(f"LaSalle close fix: {_n2} rows updated")
+    _startup_log.info(f"LaSalle value-add close fix: {_n2} rows updated")
 except Exception as _e:
     import traceback as _tb
     _startup_log.error(f"LaSalle fix failed: {_e}\n{_tb.format_exc()}")
