@@ -37,13 +37,14 @@ from config.settings import (
 from db.database import (
     init_db, get_student_by_email, get_student_by_id,
     create_student, upsert_student_profile, update_student_fields,
-    deactivate_student, revoke_all_tokens_for_student,
+    deactivate_student, reactivate_student, purge_expired_deletions, revoke_all_tokens_for_student,
     create_magic_token, get_and_consume_token,
     log_email, count_recent_tokens, fetchall, fetchone,
     execute as db_execute,
     create_refresh_token, get_refresh_token, revoke_refresh_token,
     get_queued_cards, mark_card_consumed,
-    get_leads_for_company
+    get_leads_for_company,
+    record_user_activity,
 )
 from api.auth import make_access_token, make_refresh_token_str, require_jwt
 from utils.university_lookup import detect_university
@@ -65,8 +66,52 @@ logging.basicConfig(
 # Initialise DB tables on startup — must be at module level so Gunicorn picks it up
 init_db()
 
+
+def _backfill_jorb_urls():
+    """One-time fix: replace any jorb.ai apply URLs with direct company URLs."""
+    import time
+    import urllib.request
+    import re as _re
+
+    _RE = _re.compile(
+        r'href="(https?://(?!(?:www\.)?jorb\.ai(?:/|$))[^"]{15,})"[^>]*target="_blank"',
+        _re.IGNORECASE,
+    )
+    _HDRS = {"User-Agent": "Mozilla/5.0 (compatible)"}
+    _log = logging.getLogger("jorb_backfill")
+
+    from db.database import fetchall, execute as db_exec
+    rows = fetchall(
+        "SELECT id, url, company FROM jobs WHERE source = 'jorb' AND url LIKE %s",
+        ("%jorb.ai%",),
+    )
+    if not rows:
+        return
+    _log.info(f"Fixing {len(rows)} jorb jobs with jorb.ai URLs")
+    updated = 0
+    for row in rows:
+        try:
+            time.sleep(0.2)
+            req  = urllib.request.Request(row["url"], headers=_HDRS)
+            html = urllib.request.urlopen(req, timeout=12).read().decode("utf-8", errors="replace")
+            m = _RE.search(html)
+            if m:
+                db_exec("UPDATE jobs SET url = ? WHERE id = ?", (m.group(1), row["id"]))
+                updated += 1
+            else:
+                db_exec("DELETE FROM jobs WHERE id = ?", (row["id"],))
+                _log.info(f"Deleted {row['company']} (jorb page gone, no direct URL)")
+        except Exception as e:
+            db_exec("DELETE FROM jobs WHERE id = ?", (row["id"],))
+            _log.info(f"Deleted {row['company']} (error: {e})")
+    _log.info(f"Jorb backfill done — {updated} updated")
+
+
+threading.Thread(target=_backfill_jorb_urls, daemon=True, name="jorb_backfill").start()
+
 # Determine if we're on a secure host (Railway / any https origin)
 IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
+COOKIE_DOMAIN = ".the-inroad.com" if IS_PRODUCTION else None
 
 
 # ── Embedded background scheduler ────────────────────────────────────────────
@@ -90,6 +135,7 @@ def _start_background_scheduler():
         return  # another worker already holds the lock
 
     TRACKR_SLOTS = [(h, 0) for h in range(5, 21)]  # 05:00–20:00 UTC, once per hour
+    JORB_SLOTS    = [(h, 15) for h in range(5, 21)]  # 05:15–20:15 UTC, once per hour
     PIPELINE_HOUR = 6
     WTTJ_HOUR = 5
 
@@ -111,18 +157,25 @@ def _start_background_scheduler():
         return t
 
     def _loop():
-        from scheduler.run import run_trackr_pipeline, run_cards_job, run_notify_job, run_wttj_pipeline
+        from scheduler.run import run_trackr_pipeline, run_cards_job, run_notify_job, run_wttj_pipeline, run_jorb_pipeline
+        from db.database import purge_expired_deletions
         log = _log.getLogger("scheduler")
-        log.info("Background scheduler started — Trackr hourly 05:00–20:00 UTC, WTTJ at 05:05 UTC, pipeline at 06:00 UTC")
+        log.info("Background scheduler started — Trackr hourly 05:00–20:00 UTC, WTTJ at 05:05 UTC, Jorb 4x daily, pipeline at 06:00 UTC, purge at 03:00 UTC")
 
         next_trackr   = _next_slot(TRACKR_SLOTS)
+        next_jorb     = _next_slot(JORB_SLOTS)
         next_pipeline = _next_hour(PIPELINE_HOUR)
         next_wttj = datetime.utcnow().replace(hour=WTTJ_HOUR, minute=5, second=0, microsecond=0)
         if next_wttj <= datetime.utcnow():
             next_wttj += timedelta(days=1)
+        next_purge = datetime.utcnow().replace(hour=3, minute=0, second=0, microsecond=0)
+        if next_purge <= datetime.utcnow():
+            next_purge += timedelta(days=1)
         log.info(f"First Trackr run: {next_trackr.strftime('%Y-%m-%d %H:%M')} UTC")
         log.info(f"First WTTJ run: {next_wttj.strftime('%Y-%m-%d %H:%M')} UTC")
+        log.info(f"First Jorb run: {next_jorb.strftime('%Y-%m-%d %H:%M')} UTC")
         log.info(f"First pipeline run: {next_pipeline.strftime('%Y-%m-%d %H:%M')} UTC")
+        log.info(f"First purge run: {next_purge.strftime('%Y-%m-%d %H:%M')} UTC")
 
         while True:
             now = datetime.utcnow()
@@ -130,6 +183,8 @@ def _start_background_scheduler():
                 max((next_trackr - now).total_seconds(), 0),
                 max((next_pipeline - now).total_seconds(), 0),
                 max((next_wttj - now).total_seconds(), 0),
+                max((next_jorb - now).total_seconds(), 0),
+                max((next_purge - now).total_seconds(), 0),
             )
             time.sleep(max(wait, 30))
 
@@ -151,6 +206,14 @@ def _start_background_scheduler():
                 next_trackr = _next_slot(TRACKR_SLOTS)
                 log.info(f"Next Trackr run: {next_trackr.strftime('%Y-%m-%d %H:%M')} UTC")
 
+            if now >= next_jorb:
+                try:
+                    run_jorb_pipeline()
+                except Exception as exc:
+                    log.error(f"Jorb pipeline crashed: {exc}", exc_info=True)
+                next_jorb = _next_slot(JORB_SLOTS)
+                log.info(f"Next Jorb run: {next_jorb.strftime('%Y-%m-%d %H:%M')} UTC")
+
             if now >= next_pipeline:
                 try:
                     run_cards_job()
@@ -162,6 +225,15 @@ def _start_background_scheduler():
                     log.error(f"Notify job crashed: {exc}", exc_info=True)
                 next_pipeline = _next_hour(PIPELINE_HOUR)
                 log.info(f"Next pipeline run: {next_pipeline.strftime('%Y-%m-%d %H:%M')} UTC")
+
+            if now >= next_purge:
+                try:
+                    purge_expired_deletions()
+                    log.info("Purged expired student deletions")
+                except Exception as exc:
+                    log.error(f"Purge job crashed: {exc}", exc_info=True)
+                next_purge = now.replace(hour=3, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                log.info(f"Next purge run: {next_purge.strftime('%Y-%m-%d %H:%M')} UTC")
 
     threading.Thread(target=_loop, daemon=True, name="scheduler").start()
 
@@ -265,6 +337,7 @@ def require_session(f):
         if not student:
             return jsonify({"error": "Student not found"}), 401
         g.student = student
+        record_user_activity(payload["id"])
         return f(*args, **kwargs)
     return wrapper
 
@@ -307,16 +380,15 @@ def send_magic_link(email: str, token: str, next_url: str = None, ref: str = Non
   <!-- Body -->
   <div style="padding:44px 40px 36px;">
 
-    <div style="display:inline-flex;align-items:center;gap:7px;background:#EBF4EE;border:1px solid #A8C9B0;border-radius:100px;padding:6px 14px;font-size:11px;font-weight:700;color:#1F4530;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:28px;">
-      <span style="width:5px;height:5px;background:#1F4530;border-radius:50%;display:inline-block;"></span>
-      Magic link
+    <div style="display:inline-block;background:#EBF4EE;border:1px solid #A8C9B0;border-radius:100px;padding:6px 14px;font-size:11px;font-weight:700;color:#1F4530;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:28px;">
+      <span style="width:5px;height:5px;background:#1F4530;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px;"></span><span style="vertical-align:middle;">Magic link</span>
     </div>
 
     <h1 style="font-size:26px;font-weight:900;color:#111110;letter-spacing:-0.02em;line-height:1.15;margin:0 0 14px;">Your sign-up link<br>is <em style="font-style:italic;font-weight:300;color:#1F4530;">ready.</em></h1>
 
     <p style="font-size:15px;color:#6E6860;line-height:1.7;margin:0 0 36px;font-weight:400;">
-      Click below to verify your email and start getting matched to real people
-      at companies you want to work at, alumni first.
+      Click below to verify your email and start seeing new graduate roles and internships
+      as they go live, with a direct contact at every company.
     </p>
 
     <div style="margin-bottom:40px;">
@@ -324,39 +396,27 @@ def send_magic_link(email: str, token: str, next_url: str = None, ref: str = Non
     </div>
 
     <!-- What happens next -->
-    <div style="background:#F5F5F2;border-radius:14px;padding:28px 28px;margin-bottom:32px;">
+    <div style="background:#F5F5F2;border-radius:14px;padding:28px;margin-bottom:32px;">
       <div style="font-size:11px;font-weight:700;color:#6E6860;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:22px;">What happens next</div>
-      <div style="display:flex;gap:14px;margin-bottom:20px;align-items:flex-start;">
-        <div style="width:24px;height:24px;min-width:24px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">1</div>
-        <div style="font-size:14px;color:#3A3733;line-height:1.6;"><strong style="font-weight:700;color:#111110;">Set up your profile</strong> &mdash; tell us your target role, industry, and company size.</div>
-      </div>
-      <div style="display:flex;gap:14px;margin-bottom:20px;align-items:flex-start;">
-        <div style="width:24px;height:24px;min-width:24px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">2</div>
-        <div style="font-size:14px;color:#3A3733;line-height:1.6;"><strong style="font-weight:700;color:#111110;">Get 3 matches every day</strong> &mdash; real people at companies with open roles, alumni prioritised.</div>
-      </div>
-      <div style="display:flex;gap:14px;align-items:flex-start;">
-        <div style="width:24px;height:24px;min-width:24px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">3</div>
-        <div style="font-size:14px;color:#3A3733;line-height:1.6;"><strong style="font-weight:700;color:#111110;">Send, they book</strong> &mdash; AI drafts the email, you approve, a scheduling link handles the rest.</div>
-      </div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><tr>
+        <td style="width:24px;padding-right:14px;vertical-align:top;">
+          <div style="width:24px;height:24px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:11px;font-weight:700;line-height:24px;text-align:center;">1</div>
+        </td>
+        <td style="font-size:14px;color:#3A3733;line-height:1.6;"><strong style="font-weight:700;color:#111110;">Build your profile</strong> &mdash; your name, target industries, and the types of companies you want to work at.</td>
+      </tr></table>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><tr>
+        <td style="width:24px;padding-right:14px;vertical-align:top;">
+          <div style="width:24px;height:24px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:11px;font-weight:700;line-height:24px;text-align:center;">2</div>
+        </td>
+        <td style="font-size:14px;color:#3A3733;line-height:1.6;"><strong style="font-weight:700;color:#111110;">See new roles as they go live</strong> &mdash; internships and graduate jobs matched to your profile, pulled from across the web.</td>
+      </tr></table>
+      <table style="width:100%;border-collapse:collapse;"><tr>
+        <td style="width:24px;padding-right:14px;vertical-align:top;">
+          <div style="width:24px;height:24px;background:#1F4530;border-radius:50%;color:#FFFFFF;font-size:11px;font-weight:700;line-height:24px;text-align:center;">3</div>
+        </td>
+        <td style="font-size:14px;color:#3A3733;line-height:1.6;"><strong style="font-weight:700;color:#111110;">Get a contact at every company</strong> &mdash; we find alumni and employees at each company with an open role, so your application lands with context.</td>
+      </tr></table>
     </div>
-
-    <!-- Stats -->
-    <table style="width:100%;border-collapse:separate;border-spacing:8px;margin-bottom:32px;">
-      <tr>
-        <td style="background:#F5F5F2;border-radius:10px;padding:16px;text-align:center;width:33%;">
-          <div style="font-size:24px;font-weight:900;color:#1F4530;letter-spacing:-0.02em;line-height:1;">20%</div>
-          <div style="font-size:11px;color:#6E6860;font-weight:400;margin-top:5px;line-height:1.4;">Average reply rate from alumni</div>
-        </td>
-        <td style="background:#F5F5F2;border-radius:10px;padding:16px;text-align:center;width:33%;">
-          <div style="font-size:24px;font-weight:900;color:#1F4530;letter-spacing:-0.02em;line-height:1;">3</div>
-          <div style="font-size:11px;color:#6E6860;font-weight:400;margin-top:5px;line-height:1.4;">Targeted matches per day</div>
-        </td>
-        <td style="background:#F5F5F2;border-radius:10px;padding:16px;text-align:center;width:33%;">
-          <div style="font-size:24px;font-weight:900;color:#1F4530;letter-spacing:-0.02em;line-height:1;">72h</div>
-          <div style="font-size:11px;color:#6E6860;font-weight:400;margin-top:5px;line-height:1.4;">Avg. time to first coffee chat</div>
-        </td>
-      </tr>
-    </table>
 
     <hr style="border:none;border-top:1px solid #E2DED8;margin:32px 0;">
 
@@ -377,8 +437,8 @@ def send_magic_link(email: str, token: str, next_url: str = None, ref: str = Non
     <div style="font-size:12px;color:#A8A09A;line-height:1.7;">
       This link expires in {MAGIC_LINK_EXPIRY_MINUTES} minutes and can only be used once.<br>
       If you didn&rsquo;t request this, you can safely ignore it.<br><br>
-      <a href="#" style="color:#6E6860;text-decoration:underline;text-underline-offset:2px;">Privacy</a> &middot;
-      <a href="#" style="color:#6E6860;text-decoration:underline;text-underline-offset:2px;">Terms</a>
+      <a href="{APP_BASE_URL}/privacy" style="color:#6E6860;text-decoration:underline;text-underline-offset:2px;">Privacy</a> &middot;
+      <a href="{APP_BASE_URL}/terms" style="color:#6E6860;text-decoration:underline;text-underline-offset:2px;">Terms</a>
     </div>
   </div>
 
@@ -649,6 +709,10 @@ def verify():
     is_new_user = student is None
     if not student:
         student = create_student(email)
+    elif student.get("deactivated_at"):
+        # Student is within their 30-day deletion window — reactivate on login
+        reactivate_student(student["id"])
+        student = get_student_by_email(email)
 
     student_id = student["id"]
 
@@ -719,6 +783,7 @@ def verify():
         secure=IS_PRODUCTION,
         samesite="None" if IS_PRODUCTION else "Lax",
         path="/",
+        domain=COOKIE_DOMAIN,
     )
     return resp
 
@@ -780,6 +845,7 @@ def refresh():
         secure=IS_PRODUCTION,
         samesite="None" if IS_PRODUCTION else "Lax",
         path="/",
+        domain=COOKIE_DOMAIN,
     )
     return resp
 
@@ -971,6 +1037,90 @@ def register_student():
     threading.Thread(target=_gen_cards, daemon=True).start()
 
     return jsonify(student)
+
+
+# ── Session heartbeat ─────────────────────────────────────────────────────────
+
+@app.route("/api/pipeline", methods=["GET"])
+@require_jwt
+def get_pipeline():
+    from db.database import get_pipeline_positions
+    positions = get_pipeline_positions(g.student_id)
+    return jsonify({"positions": positions})
+
+
+@app.route("/api/pipeline/move", methods=["POST"])
+@require_jwt
+def pipeline_move():
+    data = request.get_json(silent=True) or {}
+    job_id   = str(data.get("job_id", "")).strip()
+    stage_id = str(data.get("stage_id", "")).strip()
+    if not job_id or not stage_id:
+        return jsonify({"error": "job_id and stage_id required"}), 400
+    from db.database import upsert_pipeline_position
+    upsert_pipeline_position(g.student_id, job_id, stage_id)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/pipeline/remove", methods=["POST"])
+@require_jwt
+def pipeline_remove():
+    data = request.get_json(silent=True) or {}
+    job_id = str(data.get("job_id", "")).strip()
+    if not job_id:
+        return jsonify({"error": "job_id required"}), 400
+    from db.database import delete_pipeline_position
+    delete_pipeline_position(g.student_id, job_id)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ping", methods=["POST"])
+@require_jwt
+def session_ping():
+    from datetime import date
+    from db.database import USE_POSTGRES
+    today = date.today().isoformat()
+    if USE_POSTGRES:
+        db_execute(
+            """INSERT INTO user_activity_log (student_id, activity_date, session_minutes)
+               VALUES (%s, %s, 1)
+               ON CONFLICT (student_id, activity_date)
+               DO UPDATE SET session_minutes = user_activity_log.session_minutes + 1""",
+            (g.student_id, today),
+        )
+    else:
+        db_execute(
+            """INSERT INTO user_activity_log (student_id, activity_date, session_minutes)
+               VALUES (?, ?, 1)
+               ON CONFLICT (student_id, activity_date)
+               DO UPDATE SET session_minutes = user_activity_log.session_minutes + 1""",
+            (g.student_id, today),
+        )
+    return jsonify({"ok": True})
+
+
+# ── User event tracking ───────────────────────────────────────────────────────
+
+_ALLOWED_EVENT_TYPES = {"apply_click", "careers_click"}
+
+@app.route("/api/event", methods=["POST"])
+@require_jwt
+def track_event():
+    data = request.get_json(silent=True) or {}
+    event_type = data.get("event_type", "")
+    if event_type not in _ALLOWED_EVENT_TYPES:
+        return jsonify({"error": "Unknown event type"}), 400
+    job_id = data.get("job_id")
+    if job_id is not None:
+        try:
+            job_id = int(job_id)
+        except (TypeError, ValueError):
+            job_id = None
+    db_execute(
+        "INSERT INTO user_events (student_id, event_type, job_id) VALUES (?, ?, ?)",
+        (g.student_id, event_type, job_id),
+    )
+    return jsonify({"ok": True})
 
 
 # ── Email draft regeneration ──────────────────────────────────────────────────
@@ -1509,10 +1659,16 @@ def admin_stats():
         now_minus_7  = "NOW() - INTERVAL '7 days'"
         now_minus_14 = "NOW() - INTERVAL '14 days'"
         today_expr   = "CURRENT_DATE"
+        date_7d      = "CURRENT_DATE - INTERVAL '7 days'"
+        date_14d     = "CURRENT_DATE - INTERVAL '14 days'"
+        date_30d     = "CURRENT_DATE - INTERVAL '30 days'"
     else:
         now_minus_7  = "datetime('now', '-7 days')"
         now_minus_14 = "datetime('now', '-14 days')"
         today_expr   = "date('now')"
+        date_7d      = "date('now', '-7 days')"
+        date_14d     = "date('now', '-14 days')"
+        date_30d     = "date('now', '-30 days')"
 
     active_jobs  = (fetchone(f"SELECT COUNT(*) as n FROM jobs WHERE created_at > {now_minus_14}") or {}).get("n", 0)
     companies    = (fetchone(f"SELECT COUNT(DISTINCT company) as n FROM jobs WHERE created_at > {now_minus_14}") or {}).get("n", 0)
@@ -1530,15 +1686,57 @@ def admin_stats():
     by_industry_rows = fetchall(f"SELECT industry, COUNT(*) as n FROM jobs WHERE industry IS NOT NULL AND created_at > {now_minus_14} GROUP BY industry ORDER BY n DESC LIMIT 10")
     by_industry = {r["industry"]: r["n"] for r in by_industry_rows}
 
+    # ── Engagement metrics from user_activity_log ──
+    dau = (fetchone(
+        f"SELECT COUNT(DISTINCT student_id) as n FROM user_activity_log WHERE activity_date = {today_expr}"
+    ) or {}).get("n", 0)
+    wau = (fetchone(
+        f"SELECT COUNT(DISTINCT student_id) as n FROM user_activity_log WHERE activity_date >= {date_7d}"
+    ) or {}).get("n", 0)
+    mau = (fetchone(
+        f"SELECT COUNT(DISTINCT student_id) as n FROM user_activity_log WHERE activity_date >= {date_30d}"
+    ) or {}).get("n", 0)
+    avg_session_raw = (fetchone(
+        f"SELECT AVG(session_minutes) as n FROM user_activity_log WHERE activity_date >= {date_7d} AND session_minutes > 0"
+    ) or {}).get("n")
+    avg_session_minutes_7d = round(float(avg_session_raw), 1) if avg_session_raw else 0.0
+
+    apply_clicks_7d = (fetchone(
+        f"SELECT COUNT(*) as n FROM user_events WHERE event_type = 'apply_click' AND created_at > {now_minus_7}"
+    ) or {}).get("n", 0)
+
+    # Churn: bucket each student by their last activity date
+    gone_quiet = (fetchone(
+        f"""SELECT COUNT(*) as n FROM (
+              SELECT student_id, MAX(activity_date) as last_active
+              FROM user_activity_log GROUP BY student_id
+            ) t WHERE last_active < {date_14d}"""
+    ) or {}).get("n", 0)
+    lapsing = (fetchone(
+        f"""SELECT COUNT(*) as n FROM (
+              SELECT student_id, MAX(activity_date) as last_active
+              FROM user_activity_log GROUP BY student_id
+            ) t WHERE last_active >= {date_14d} AND last_active < {date_7d}"""
+    ) or {}).get("n", 0)
+
     return jsonify({"data": {
-        "active_jobs":       active_jobs,
-        "total_jobs":        active_jobs,
-        "companies":         companies,
-        "students":          students,
-        "matches_today":     matches_today,
-        "emails_sent_week":  emails_sent_week,
-        "by_source":         by_source,
-        "by_industry":       by_industry,
+        "active_jobs":            active_jobs,
+        "total_jobs":             active_jobs,
+        "companies":              companies,
+        "students":               students,
+        "matches_today":          matches_today,
+        "emails_sent_week":       emails_sent_week,
+        "by_source":              by_source,
+        "by_industry":            by_industry,
+        "dau":                    dau,
+        "wau":                    wau,
+        "mau":                    mau,
+        "apply_clicks_7d":        apply_clicks_7d,
+        "avg_session_minutes_7d": avg_session_minutes_7d,
+        "churn": {
+            "gone_quiet": gone_quiet,
+            "lapsing":    lapsing,
+        },
     }})
 
 
@@ -1994,16 +2192,66 @@ def admin_build_leads_sequential():
         from pipeline.lead_builder import build_leads
         for company in companies:
             try:
-                logger.info(f"[sequential leads] starting: {company}")
+                app.logger.info(f"[sequential leads] starting: {company}")
                 build_leads(company_filter=company, top_n=0, force=force)
-                logger.info(f"[sequential leads] done: {company}")
+                app.logger.info(f"[sequential leads] done: {company}")
             except Exception as exc:
-                logger.error(f"[sequential leads] error for {company}: {exc}")
+                app.logger.error(f"[sequential leads] error for {company}: {exc}")
             _t.sleep(5)  # brief pause between companies
 
     import threading
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"status": "triggered", "companies": companies, "count": len(companies)})
+
+
+@app.route("/api/admin/build-leads-recent", methods=["POST"])
+@require_admin
+def admin_build_leads_recent():
+    """Build leads for all trackr/wttj companies that have listings added in the last N hours."""
+    data    = request.get_json(silent=True) or {}
+    hours   = int(data.get("hours") or 72)
+    force   = bool(data.get("force", True))
+
+    from db.database import fetchall, USE_POSTGRES
+    cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+    if USE_POSTGRES:
+        sql = """
+            SELECT DISTINCT company FROM jobs
+            WHERE source IN ('trackr', 'wttj', 'jorb')
+              AND company IS NOT NULL AND company != ''
+              AND lower(company) != 'trackr'
+              AND created_at >= %s
+        """
+    else:
+        sql = """
+            SELECT DISTINCT company FROM jobs
+            WHERE source IN ('trackr', 'wttj', 'jorb')
+              AND company IS NOT NULL AND company != ''
+              AND lower(company) != 'trackr'
+              AND created_at >= ?
+        """
+    rows = fetchall(sql, (cutoff,))
+    companies = [r["company"] for r in rows if r.get("company")]
+
+    def _run():
+        import time as _t
+        from pipeline.lead_builder import build_leads
+        app.logger.info(f"[build-leads-recent] starting — {len(companies)} companies from last {hours}h")
+        for company in companies:
+            try:
+                app.logger.info(f"[build-leads-recent] {company}")
+                build_leads(company_filter=company, top_n=0, force=force)
+            except Exception as exc:
+                if "SERPER_CREDITS_EXHAUSTED" in str(exc):
+                    app.logger.critical("[build-leads-recent] SERPER CREDITS EXHAUSTED — stopping")
+                    break
+                app.logger.error(f"[build-leads-recent] error for {company}: {exc}")
+            _t.sleep(3)
+        app.logger.info(f"[build-leads-recent] done")
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "triggered", "companies": companies, "count": len(companies), "hours": hours})
 
 
 @app.route("/api/admin/fix-email-formats", methods=["POST"])
@@ -2301,16 +2549,35 @@ def api_opportunities():
 
     # Firm type lookup by company name (used as section headers)
     _INDUSTRY_VERTICAL = {
-        # Trackr industry strings
-        "Finance":    "Finance",
-        "Technology": "Tech",
-        "Law":        "Law",
-        "Marketing":  "Marketing",
-        # WTTJ sector strings
-        "Tech":       "Tech",
-        "Consulting":  "Consulting",
-        "Other":       "Miscellaneous",
+        # Trackr
+        "Finance":              "Finance",
+        "Technology":           "Tech",
+        "Law":                  "Law",
+        "Marketing":            "Marketing",
+        # WTTJ
+        "Tech":                 "Tech",
+        "Consulting":           "Consulting",
+        # Jorb / multi-source extras
+        "Software Engineering": "Tech",
+        "Investment Banking":   "Finance",
+        "Data & Analytics":     "Tech",
+        "Real Estate":          "Finance",
+        "Strategy":             "Finance",
+        "Product Management":   "Tech",
+        "Healthcare":           "Miscellaneous",
+        "Non-profit & Policy":  "Tech",
+        "Media & Journalism":   "Miscellaneous",
+        # Fallback
+        "Other":                "Miscellaneous",
     }
+
+    def _industry_to_division(industry: str) -> str:
+        """Handle single or comma-separated industry strings."""
+        for part in industry.split(","):
+            v = _INDUSTRY_VERTICAL.get(part.strip())
+            if v:
+                return v
+        return "Miscellaneous"
 
     def infer_firm_type(industry: str, raw_json: str = "") -> str:
         if raw_json:
@@ -2321,11 +2588,11 @@ def api_opportunities():
                 if "Consulting" in cats:
                     return "Consulting"
                 # Only fall back to Miscellaneous for events if industry has no known vertical
-                if raw_data.get("trackr_type") == "events" and not _INDUSTRY_VERTICAL.get(industry or ""):
+                if raw_data.get("trackr_type") == "events" and not _industry_to_division(industry or ""):
                     return "Miscellaneous"
             except Exception:
                 pass
-        return _INDUSTRY_VERTICAL.get(industry or "", "Miscellaneous")
+        return _industry_to_division(industry or "")
 
     def extract_region(raw_json: str) -> str:
         if not raw_json:
@@ -2349,9 +2616,10 @@ def api_opportunities():
         "events":                "Events",
     }
 
-    _WTTJ_PROG_TYPES = {
+    _KNOWN_PROG_TYPES = {
         "Summer Internship", "Spring Week", "Off-Cycle Internship",
         "Industrial Placement", "Graduate Programme",
+        "Pre-Uni", "Events", "Apprenticeship",
     }
 
     def infer_programme_type(title: str, raw_json: str = "") -> str:
@@ -2363,9 +2631,9 @@ def api_opportunities():
                 tt = raw_data.get("trackr_type", "")
                 if tt and tt in _TRACKR_TYPE_LABEL:
                     return _TRACKR_TYPE_LABEL[tt]
-                # WTTJ jobs store programme_type directly
+                # WTTJ/jorb jobs store programme_type directly
                 pt = raw_data.get("programme_type", "")
-                if pt in _WTTJ_PROG_TYPES:
+                if pt in _KNOWN_PROG_TYPES:
                     return pt
             except Exception:
                 pass
@@ -2373,20 +2641,25 @@ def api_opportunities():
         t = title.lower()
         if any(k in t for k in ['spring week', 'spring insight', 'spring into', 'spring programme', 'spring internship']):
             return 'Spring Week'
+        if any(k in t for k in ['insight programme', 'insight experience', 'insight event', 'insight week']):
+            return 'Spring Week'
         if any(k in t for k in ['off-cycle', 'off cycle', 'offcycle']):
             return 'Off-Cycle Internship'
         if any(k in t for k in ['industrial placement', 'placement year', 'year in industry', 'sandwich', 'year placement']):
             return 'Industrial Placement'
-        if any(k in t for k in ['pre-uni', 'pre uni', 'school leaver', 'year 12', 'year 13', 'sixth form']):
+        if any(k in t for k in ['pre-uni', 'pre uni', 'school leaver', 'year 12', 'year 13', 'sixth form', 'work experience', 'work placement', 'pioneer']):
             return 'Pre-Uni'
-        if any(k in t for k in ['event', 'open day', 'insight day', 'discovery', 'information session', 'networking']):
+        if any(k in t for k in ['event', 'open day', 'insight day', 'discovery', 'information session', 'networking', 'webinar', 'register your interest', 'emerging talent network', 'conference', 'bootcamp']):
             return 'Events'
+        if any(k in t for k in ['apprentice', 'apprenticeship', 'degree apprenticeship', 'higher apprenticeship']):
+            return 'Apprenticeship'
         if any(k in t for k in ['graduate programme', 'grad scheme', 'graduate scheme', 'grad programme',
-                                  'analyst programme', 'graduate analyst', 'graduate rotational']):
+                                  'analyst programme', 'graduate analyst', 'graduate rotational',
+                                  'returnship', 'veterans', 'athletes programme']):
             return 'Graduate Programme'
         if 'graduate' in t or ('grad ' in t and 'internship' not in t):
             return 'Graduate Programme'
-        return 'Summer Internship'  # default for trackr internships
+        return 'Summer Internship'  # default for internship-tier listings
 
     def infer_division(title: str, industry: str) -> str:
         return ""  # kept for compat; firm type now drives sections
@@ -2400,7 +2673,7 @@ def api_opportunities():
     # Fetch jobs — extract only required fields from raw JSON in SQL (avoids shipping full raw blob)
     if USE_POSTGRES:
         rows = fetchall(
-            "SELECT id, title, company, url, opening_date, closing_date, industry, careers_site,"
+            "SELECT id, title, company, url, source, opening_date, closing_date, industry, careers_site,"
             "  COALESCE(raw::json->>'trackr_type',    '')   AS trackr_type,"
             "  COALESCE(raw::json->>'region',         'UK') AS region,"
             "  COALESCE(raw::json->>'logo_url',       '')   AS logo_url,"
@@ -2411,21 +2684,31 @@ def api_opportunities():
             "  COALESCE(raw::json->>'current_stage',   '')   AS current_stage,"
             "  COALESCE(raw::json->>'sponsors_visa',   '')   AS sponsors_visa,"
             "  COALESCE(raw::json->>'cover_letter',    '')   AS cover_letter,"
+            "  CASE WHEN ("
+            "    (raw IS NOT NULL AND raw != '' AND raw != '{}' AND raw::jsonb->'trackr_categories' @> '[\"Consulting\"]')"
+            "    OR (raw IS NOT NULL AND raw != '' AND raw != '{}' AND raw::jsonb->'industries' @> '[\"Consulting\"]')"
+            "    OR lower(company) IN ('altman solon','mckinsey & company','mckinsey','bain & company','bain',"
+            "       'boston consulting group','bcg','oliver wyman','roland berger','kearney','a.t. kearney',"
+            "       'strategy&','l.e.k. consulting','lek consulting','simon-kucher','simon kucher',"
+            "       'oxera','charles river associates','cra','analysys mason')"
+            "    OR lower(title) LIKE '%%consulting intern%%' OR lower(title) LIKE '%%consultant intern%%'"
+            "    OR lower(title) LIKE '%%strategy consulting%%' OR lower(title) LIKE '%%management consulting%%'"
+            "    OR lower(title) LIKE '%%strategy analyst%%' OR lower(title) LIKE '%%consulting analyst%%'"
+            "  ) THEN 1 ELSE 0 END AS is_consulting,"
             "  CASE WHEN raw IS NOT NULL AND raw != '' AND raw != '{}'"
-            "       AND raw::jsonb->'trackr_categories' @> '[\"Consulting\"]' THEN 1 ELSE 0 END AS is_consulting,"
-            "  CASE WHEN raw IS NOT NULL AND raw != '' AND raw != '{}'"
-            "       AND raw::json->>'trackr_type' = 'events' THEN 1 ELSE 0 END AS is_events"
+            "       AND raw::json->>'trackr_type' = 'events' THEN 1 ELSE 0 END AS is_events,"
+            "  COALESCE(NULLIF(opening_date,''), created_at::date::text) AS listed_date"
             " FROM jobs WHERE company IS NOT NULL AND company != ''"
-            " AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj')"
+            " AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj', 'jorb')"
             " AND lower(company) != 'trackr'"
             " AND url IS NOT NULL AND url != ''"
-            " ORDER BY opening_date DESC NULLS LAST, created_at DESC NULLS LAST LIMIT 10000"
+            " ORDER BY NULLIF(opening_date,'')::date DESC NULLS LAST, created_at DESC NULLS LAST LIMIT 10000"
         )
     else:
         rows = fetchall(
-            "SELECT id, title, company, url, opening_date, closing_date, industry, created_at, raw, careers_site "
+            "SELECT id, title, company, url, source, opening_date, closing_date, industry, created_at, raw, careers_site "
             "FROM jobs WHERE company IS NOT NULL AND company != '' "
-            "AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj') "
+            "AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj', 'jorb') "
             "AND lower(company) != 'trackr' "
             "AND url IS NOT NULL AND url != '' "
             "ORDER BY CASE WHEN opening_date IS NULL OR opening_date = '' THEN 1 ELSE 0 END, opening_date DESC, created_at DESC "
@@ -2438,6 +2721,49 @@ def api_opportunities():
     import logging as _lg
     _lg.getLogger("api.server").info(f"[opp] jobs query: {_time.time()-_t0:.2f}s ({len(rows)} rows)")
     _t1 = _time.time()
+
+    # ── Cross-source dedup ────────────────────────────────────────────────────
+    # When the same role appears from multiple sources or parent/subsidiary
+    # companies (e.g. "Citadel" vs "Citadel Securities"), keep only the
+    # highest-priority source version. Priority: trackr > wttj > jorb.
+    import re as _re_dd
+    _CO_SUFFIXES_DD = (
+        ' securities', ' capital', ' group', ' management', ' asset management',
+        ' partners', ' advisors', ' advisory', ' investments', ' & co',
+        ' llp', ' llc', ' inc', ' ltd', ' plc', ' corp',
+    )
+    _STOP_DD = frozenset({'the', 'a', 'an', 'in', 'of', 'for', 'and', 'or', 'at', 'to', 'with', 'by'})
+    _SRC_RANK_DD = {'trackr': 0, 'wttj': 1, 'jorb': 2}
+
+    def _co_key_dd(name: str) -> str:
+        s = _re_dd.sub(r'[^a-z0-9 ]', ' ', (name or '').lower()).strip()
+        for sfx in _CO_SUFFIXES_DD:
+            if s.endswith(sfx):
+                s = s[:-len(sfx)].strip()
+                break
+        return _re_dd.sub(r'\s+', '', s)
+
+    def _tw_dd(title: str) -> frozenset:
+        return frozenset(
+            w for w in _re_dd.sub(r'[^a-z0-9 ]', ' ', (title or '').lower()).split()
+            if w not in _STOP_DD and len(w) > 1
+        )
+
+    rows.sort(key=lambda r: _SRC_RANK_DD.get(r.get('source') or '', 9))
+    _seen_co_dd: dict[str, list] = {}
+    _deduped_rows: list = []
+    for _r in rows:
+        _ck = _co_key_dd(_r.get('company', '')) + '|' + (_r.get('region') or 'UK')
+        _tw = _tw_dd(_r.get('title', ''))
+        _existing = _seen_co_dd.get(_ck, [])
+        if any(_tw <= _ex or _ex <= _tw for _ex in _existing):
+            continue
+        _existing.append(_tw)
+        _seen_co_dd[_ck] = _existing
+        _deduped_rows.append(_r)
+    rows = _deduped_rows
+    rows.sort(key=lambda r: r.get('opening_date') or '0000-00-00', reverse=True)
+    # ── End dedup ─────────────────────────────────────────────────────────────
 
     # Split companies: recent listings (≤14 days) get all leads; older listings capped at 8
     import datetime as _dt
@@ -2453,13 +2779,12 @@ def api_opportunities():
     older_list  = [c for c in companies if c not in recent_cos]
 
     leads_by_company: dict = {}
-    cols = "id, name, title, job_title, linkedin_url, job_expected_email, company, lead_type, is_alumni, university, tenure_months"
+    cols = "id, name, title, job_title, linkedin_url, job_expected_email, company, lead_type, is_alumni, university, tenure_months, location_country"
 
     if recent_list and USE_POSTGRES:
         for l in fetchall(
             f"SELECT {cols} FROM leads"
             f"  WHERE lower(company) = ANY(%s)"
-            f"  AND (stale_after IS NULL OR stale_after > NOW())"
             f"  ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END,"
             f"           is_alumni DESC, tenure_months DESC",
             (recent_list,),
@@ -2478,7 +2803,6 @@ def api_opportunities():
                 f"    ) AS rn"
                 f"  FROM leads"
                 f"  WHERE lower(company) = ANY(%s)"
-                f"  AND (stale_after IS NULL OR stale_after > NOW())"
                 f") ranked WHERE rn <= 8",
                 (older_list,),
             )
@@ -2487,7 +2811,6 @@ def api_opportunities():
             capped = fetchall(
                 f"SELECT {cols} FROM leads "
                 f"WHERE lower(company) IN ({placeholders}) "
-                f"AND (stale_after IS NULL OR stale_after > datetime('now')) "
                 f"ORDER BY CASE lead_type WHEN 'relevant' THEN 0 WHEN 'exec' THEN 1 WHEN 'hr' THEN 2 ELSE 3 END, "
                 f"is_alumni DESC, tenure_months DESC",
                 tuple(older_list),
@@ -2502,6 +2825,7 @@ def api_opportunities():
     _IND_LABEL = {"Finance": "Finance", "Law": "Law", "Technology": "Consulting"}
     jobs = []
     for r in rows:
+      try:
         company = r.get("company") or ""
         title   = r.get("title") or ""
         industry = r.get("industry") or ""
@@ -2532,7 +2856,24 @@ def api_opportunities():
             region        = raw_data.get("region") or "UK"
             logo_url      = raw_data.get("logo_url") or ""
             company_url   = raw_data.get("company_url") or ""
-            is_consulting = "Consulting" in (raw_data.get("trackr_categories") or [])
+            _CONSULTING_COMPANIES_API = {
+                "altman solon", "mckinsey & company", "mckinsey", "bain & company", "bain",
+                "boston consulting group", "bcg", "oliver wyman", "roland berger",
+                "kearney", "a.t. kearney", "strategy&", "l.e.k. consulting", "lek consulting",
+                "simon-kucher", "simon kucher", "oxera", "charles river associates", "cra",
+                "analysys mason",
+            }
+            _CONSULTING_TITLE_KW_API = (
+                "consulting intern", "consultant intern", "strategy consulting",
+                "management consulting", "strategy analyst", "strategy associate",
+                "consulting analyst", "advisory analyst", "strategy intern",
+            )
+            is_consulting = (
+                "Consulting" in (raw_data.get("trackr_categories") or [])
+                or "Consulting" in (raw_data.get("industries") or [])
+                or company.lower().strip() in _CONSULTING_COMPANIES_API
+                or any(kw in title.lower() for kw in _CONSULTING_TITLE_KW_API)
+            )
             is_events     = tt == "events"
             location      = raw_data.get("location") or ""
             process       = raw_data.get("process") or ""
@@ -2542,14 +2883,14 @@ def api_opportunities():
 
         if is_consulting:
             division = "Consulting"
-        elif is_events and not _INDUSTRY_VERTICAL.get(industry):
+        elif is_events and not _industry_to_division(industry):
             division = "Miscellaneous"
         else:
-            division = _INDUSTRY_VERTICAL.get(industry, "Miscellaneous")
+            division = _industry_to_division(industry)
 
         if tt and tt in _TRACKR_TYPE_LABEL:
             programme_type = _TRACKR_TYPE_LABEL[tt]
-        elif pt in _WTTJ_PROG_TYPES:
+        elif pt in _KNOWN_PROG_TYPES:
             programme_type = pt
         else:
             programme_type = infer_programme_type(title, "")
@@ -2560,6 +2901,8 @@ def api_opportunities():
 
         raw_leads = leads_by_company.get(company.lower(), [])
         leads = []
+        _REGION_COUNTRY = {"UK": "united kingdom", "US": "united states"}
+        job_country = _REGION_COUNTRY.get(region, "").lower()
         for l in raw_leads:
             name   = l.get("name") or ""
             badges = []
@@ -2568,6 +2911,13 @@ def api_opportunities():
             is_alumni = l.get("is_alumni")
             if is_alumni and is_alumni not in (0, False, "0", "false"):
                 badges.append("exp")
+            raw_lt = l.get("lead_type") or "relevant"
+            # Only grant "Relevant Team" to contacts actually at the same office region.
+            # A Paris contact shown against a London listing is not the relevant team.
+            if raw_lt == "relevant" and job_country:
+                lead_country = (l.get("location_country") or "").lower()
+                if lead_country and job_country not in lead_country:
+                    raw_lt = "general"
             leads.append({
                 "id":             l.get("id"),
                 "name":           name,
@@ -2577,7 +2927,7 @@ def api_opportunities():
                 "expected_email": l.get("expected_email") or l.get("job_expected_email") or "",
                 "badges":         badges,
                 "university":     l.get("university") or "",
-                "lead_type":      l.get("lead_type") or "relevant",
+                "lead_type":      raw_lt,
                 "verified":       False,
             })
 
@@ -2589,6 +2939,7 @@ def api_opportunities():
             "programme_type": programme_type,
             "region":         region,
             "opening_date":   r.get("opening_date") or "",
+            "listed_date":    r.get("listed_date") or r.get("opening_date") or "",
             "closing_date":   r.get("closing_date") or "",
             "apply_url":      r.get("url") or "",
             "careers_site":   r.get("careers_site") or company_url,
@@ -2601,6 +2952,8 @@ def api_opportunities():
             "cover_letter":   cover_letter,
             "leads":          leads,
         })
+      except Exception as _e:
+          _lg.getLogger("api.server").warning(f"[opp] skipped job id={r.get('id')}: {_e}")
 
     _lg.getLogger("api.server").info(f"[opp] python loop: {_time.time()-_t2:.2f}s | total: {_time.time()-_t0:.2f}s | {len(jobs)} jobs")
 
@@ -2797,15 +3150,51 @@ def admin_metrics():
     )
     visitors_all = [{"date": str(r["date"]), "count": r["count"]} for r in visitors_rows]
 
-    # DAU / MAU — logged-in students who visited today / this month
+    # DAU / WAU / MAU — from last_seen (has full history)
+    if USE_POSTGRES:
+        date_7d  = "CURRENT_DATE - INTERVAL '7 days'"
+        date_14d = "CURRENT_DATE - INTERVAL '14 days'"
+        day7     = "NOW() - INTERVAL '7 days'"
+    else:
+        date_7d  = "date('now', '-7 days')"
+        date_14d = "date('now', '-14 days')"
+        day7     = "datetime('now', '-7 days')"
+
     dau = (fetchone(
         f"SELECT COUNT(*) AS n FROM students "
         f"WHERE last_seen IS NOT NULL AND {seen_trunc} = {today_expr}"
     ) or {}).get("n", 0)
 
+    wau = (fetchone(
+        f"SELECT COUNT(*) AS n FROM students WHERE last_seen IS NOT NULL AND last_seen >= {day7}"
+    ) or {}).get("n", 0)
+
     mau = (fetchone(
-        f"SELECT COUNT(*) AS n FROM students "
-        f"WHERE last_seen IS NOT NULL AND last_seen >= {day30}"
+        f"SELECT COUNT(*) AS n FROM students WHERE last_seen IS NOT NULL AND last_seen >= {day30}"
+    ) or {}).get("n", 0)
+
+    # Engagement metrics from user_activity_log (accumulates from deploy date)
+    avg_session_raw = (fetchone(
+        f"SELECT AVG(session_minutes) AS n FROM user_activity_log WHERE activity_date >= {date_7d} AND session_minutes > 0"
+    ) or {}).get("n")
+    avg_session_minutes_7d = round(float(avg_session_raw), 1) if avg_session_raw else 0.0
+
+    apply_clicks_7d = (fetchone(
+        f"SELECT COUNT(*) AS n FROM user_events WHERE event_type = 'apply_click' AND created_at > {day7}"
+    ) or {}).get("n", 0)
+
+    gone_quiet = (fetchone(
+        f"""SELECT COUNT(*) AS n FROM (
+              SELECT student_id, MAX(activity_date) AS last_active
+              FROM user_activity_log GROUP BY student_id
+            ) t WHERE last_active < {date_14d}"""
+    ) or {}).get("n", 0)
+
+    lapsing = (fetchone(
+        f"""SELECT COUNT(*) AS n FROM (
+              SELECT student_id, MAX(activity_date) AS last_active
+              FROM user_activity_log GROUP BY student_id
+            ) t WHERE last_active >= {date_14d} AND last_active < {date_7d}"""
     ) or {}).get("n", 0)
 
     # Email reveals
@@ -2829,15 +3218,22 @@ def admin_metrics():
     reveals_by_day = [{"date": str(r["date"]), "count": r["count"]} for r in reveals_rows]
 
     return jsonify({"data": {
-        "total_accounts":        total_accounts,
-        "accounts_by_day":       accounts_by_day,
-        "unique_visitors_today": unique_today,
-        "visitors_all":          visitors_all,
-        "dau":                   dau,
-        "mau":                   mau,
-        "total_reveals":         total_reveals,
-        "reveals_today":         reveals_today,
-        "reveals_by_day":        reveals_by_day,
+        "total_accounts":          total_accounts,
+        "accounts_by_day":         accounts_by_day,
+        "unique_visitors_today":   unique_today,
+        "visitors_all":            visitors_all,
+        "dau":                     dau,
+        "wau":                     wau,
+        "mau":                     mau,
+        "avg_session_minutes_7d":  avg_session_minutes_7d,
+        "apply_clicks_7d":         apply_clicks_7d,
+        "churn": {
+            "gone_quiet": gone_quiet,
+            "lapsing":    lapsing,
+        },
+        "total_reveals":           total_reveals,
+        "reveals_today":           reveals_today,
+        "reveals_by_day":          reveals_by_day,
     }})
 
 
