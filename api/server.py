@@ -133,7 +133,8 @@ try:
     _rows = _fa("SELECT id, title, company, opening_date, closing_date FROM jobs WHERE source = ? AND lower(company) LIKE ? AND lower(title) = ?", ('trackr', '%mckinsey%', 'business analyst intern'))
     _startup_log.info(f"McKinsey BAI in DB: {_rows}")
 except Exception as _e:
-    _startup_log.error(f"McKinsey BAI fix failed: {_e}")
+    import traceback as _tb
+    _startup_log.error(f"McKinsey BAI fix failed: {_e}\n{_tb.format_exc()}")
 
 # Close all LaSalle listings detected as pulled on 2026-06-05
 try:
@@ -145,7 +146,8 @@ try:
     )
     _startup_log.info(f"LaSalle close fix: {_n2} rows updated")
 except Exception as _e:
-    _startup_log.error(f"LaSalle fix failed: {_e}")
+    import traceback as _tb
+    _startup_log.error(f"LaSalle fix failed: {_e}\n{_tb.format_exc()}")
 
 # Determine if we're on a secure host (Railway / any https origin)
 IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
