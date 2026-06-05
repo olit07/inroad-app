@@ -118,6 +118,17 @@ def _backfill_jorb_urls():
 
 threading.Thread(target=_backfill_jorb_urls, daemon=True, name="jorb_backfill").start()
 
+# Fix McKinsey BAI opening_date — 2027-season (2026-06-03) kept getting
+# overwritten by 2026-season (2025-08-31) before the no-downgrade upsert fix.
+try:
+    db_execute(
+        "UPDATE jobs SET opening_date = '2026-06-03', closing_date = '2027-01-14' "
+        "WHERE source = 'trackr' AND lower(company) LIKE '%mckinsey%' "
+        "AND lower(title) = 'business analyst intern'"
+    )
+except Exception:
+    pass
+
 # Close LaSalle listing detected as pulled on 2026-06-05
 try:
     db_execute(
