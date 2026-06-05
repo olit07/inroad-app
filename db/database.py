@@ -259,6 +259,30 @@ CREATE TABLE IF NOT EXISTS site_visits (
     PRIMARY KEY (visitor_id, visited_date)
 );
 
+CREATE TABLE IF NOT EXISTS user_activity_log (
+    student_id      INTEGER REFERENCES students(id),
+    activity_date   DATE NOT NULL,
+    session_minutes INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (student_id, activity_date)
+);
+
+CREATE TABLE IF NOT EXISTS user_events (
+    id          SERIAL PRIMARY KEY,
+    student_id  INTEGER REFERENCES students(id),
+    event_type  TEXT NOT NULL,
+    job_id      INTEGER,
+    metadata    JSONB,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS pipeline_positions (
+    student_id  INTEGER REFERENCES students(id) ON DELETE CASCADE,
+    job_id      TEXT NOT NULL,
+    stage_id    TEXT NOT NULL,
+    updated_at  TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (student_id, job_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token   ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email   ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student      ON matches(student_id);
@@ -269,6 +293,7 @@ CREATE INDEX IF NOT EXISTS idx_card_queue_student_date ON card_queue(student_id,
 CREATE INDEX IF NOT EXISTS idx_leads_company ON leads (lower(company));
 CREATE INDEX IF NOT EXISTS idx_jobs_source ON jobs(source);
 CREATE INDEX IF NOT EXISTS idx_jobs_source_dates ON jobs(source, opening_date DESC NULLS LAST, created_at DESC NULLS LAST);
+CREATE INDEX IF NOT EXISTS idx_pipeline_positions_student ON pipeline_positions(student_id);
 """
 
 SCHEMA_SQLITE = """
@@ -432,6 +457,30 @@ CREATE TABLE IF NOT EXISTS site_visits (
     PRIMARY KEY (visitor_id, visited_date)
 );
 
+CREATE TABLE IF NOT EXISTS user_activity_log (
+    student_id      INTEGER REFERENCES students(id),
+    activity_date   TEXT NOT NULL,
+    session_minutes INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (student_id, activity_date)
+);
+
+CREATE TABLE IF NOT EXISTS user_events (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id  INTEGER REFERENCES students(id),
+    event_type  TEXT NOT NULL,
+    job_id      INTEGER,
+    metadata    TEXT,
+    created_at  TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS pipeline_positions (
+    student_id  INTEGER REFERENCES students(id) ON DELETE CASCADE,
+    job_id      TEXT NOT NULL,
+    stage_id    TEXT NOT NULL,
+    updated_at  TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (student_id, job_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_token ON magic_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_magic_tokens_email ON magic_tokens(email);
 CREATE INDEX IF NOT EXISTS idx_matches_student    ON matches(student_id);
@@ -440,6 +489,7 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token   ON refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_student ON refresh_tokens(student_id);
 CREATE INDEX IF NOT EXISTS idx_card_queue_student_date ON card_queue(student_id, queued_for);
 CREATE INDEX IF NOT EXISTS idx_leads_company ON leads (lower(company));
+CREATE INDEX IF NOT EXISTS idx_pipeline_positions_student ON pipeline_positions(student_id);
 """
 
 
@@ -594,6 +644,7 @@ def _run_migrations_postgres_statements(cur):
         "UPDATE jobs SET role_type = 'entry_level' WHERE role_type IS NULL",
         # Feature: page-visit tracking for DAU metrics
         "ALTER TABLE students ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ",
+        "ALTER TABLE students ADD COLUMN IF NOT EXISTS scheduled_deletion_at TIMESTAMPTZ",
         # Trackr: resolved company careers page URL
         "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS careers_site TEXT",
         # Feature: anonymous visitor tracking (logged-in + non-logged-in)
@@ -603,6 +654,34 @@ def _run_migrations_postgres_statements(cur):
             created_at   TIMESTAMPTZ DEFAULT NOW(),
             PRIMARY KEY (visitor_id, visited_date)
         )""",
+        # Key-value config store (e.g. rotating OAuth tokens)
+        """CREATE TABLE IF NOT EXISTS config (
+            key        TEXT PRIMARY KEY,
+            value      TEXT NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        )""",
+        # Feature: per-user daily activity log for DAU/WAU/churn metrics
+        """CREATE TABLE IF NOT EXISTS user_activity_log (
+            student_id      INTEGER REFERENCES students(id),
+            activity_date   DATE NOT NULL,
+            session_minutes INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (student_id, activity_date)
+        )""",
+        "ALTER TABLE user_activity_log ADD COLUMN IF NOT EXISTS session_minutes INTEGER NOT NULL DEFAULT 0",
+        # Feature: apply/careers click events
+        """CREATE TABLE IF NOT EXISTS user_events (
+            id          SERIAL PRIMARY KEY,
+            student_id  INTEGER REFERENCES students(id),
+            event_type  TEXT NOT NULL,
+            job_id      INTEGER,
+            metadata    JSONB,
+            created_at  TIMESTAMPTZ DEFAULT NOW()
+        )""",
+        # first_seen_at: when inroad first ingested this job (never updated on re-scrape)
+        # Used to compute listed_date = GREATEST(opening_date, first_seen_at) so that
+        # jobs with a lag between company posting and our ingest still appear near the top.
+        "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ",
+        "UPDATE jobs SET first_seen_at = created_at WHERE first_seen_at IS NULL",
     ]
     for stmt in migrations:
         try:
@@ -698,6 +777,16 @@ def _run_migrations_sqlite():
             except Exception as e:
                 print(f"[db] Migration warning (jobs.careers_site): {e}")
 
+        # Key-value config store
+        try:
+            cur.execute("""CREATE TABLE IF NOT EXISTS config (
+                key        TEXT PRIMARY KEY,
+                value      TEXT NOT NULL,
+                updated_at TEXT DEFAULT (datetime('now'))
+            )""")
+        except Exception as e:
+            print(f"[db] Migration warning (config table): {e}")
+
         # Feature: Outlook OAuth + daily match snapshot
         cur.execute("PRAGMA table_info(students)")
         existing_student_cols = {row[1] for row in cur.fetchall()}
@@ -722,6 +811,30 @@ def _run_migrations_sqlite():
                     print(f"[db] Migration warning (students.{col}): {e}")
 
 
+# ── Config key-value store ──────────────────────────────────────────────────
+
+def get_config(key: str) -> str | None:
+    row = fetchone("SELECT value FROM config WHERE key = ?", (key,))
+    return row["value"] if row else None
+
+
+def set_config(key: str, value: str) -> None:
+    if USE_POSTGRES:
+        execute(
+            """INSERT INTO config (key, value, updated_at)
+               VALUES (?, ?, NOW())
+               ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()""",
+            (key, value),
+        )
+    else:
+        execute(
+            """INSERT INTO config (key, value, updated_at)
+               VALUES (?, ?, datetime('now'))
+               ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')""",
+            (key, value),
+        )
+
+
 # ── Convenience wrappers used by api/server.py ──────────────────────────────
 
 def get_student_by_email(email):
@@ -730,6 +843,25 @@ def get_student_by_email(email):
 
 def get_student_by_id(student_id):
     return fetchone("SELECT * FROM students WHERE id = ?", (student_id,))
+
+
+def record_user_activity(student_id: int) -> None:
+    """Upsert one row per student per day. Silently drops errors to never block a request."""
+    from datetime import date
+    today = date.today().isoformat()
+    try:
+        if USE_POSTGRES:
+            execute(
+                "INSERT INTO user_activity_log (student_id, activity_date) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (student_id, today),
+            )
+        else:
+            execute(
+                "INSERT OR IGNORE INTO user_activity_log (student_id, activity_date) VALUES (?, ?)",
+                (student_id, today),
+            )
+    except Exception:
+        pass
 
 
 def create_student(email, university=None):
@@ -872,13 +1004,28 @@ def revoke_all_tokens_for_student(student_id):
 
 
 def deactivate_student(student_id):
-    """Hard-delete the student and all related data so the email can be reused."""
+    """Soft-deactivate: marks account for deletion in 30 days. Reverts if the student logs in again."""
+    execute(
+        "UPDATE students SET deactivated_at = NOW(), scheduled_deletion_at = NOW() + INTERVAL '30 days' WHERE id = ?",
+        (student_id,)
+    )
+
+
+def reactivate_student(student_id):
+    """Cancel a pending deletion — called when a deactivated student logs back in."""
+    execute(
+        "UPDATE students SET deactivated_at = NULL, scheduled_deletion_at = NULL WHERE id = ?",
+        (student_id,)
+    )
+
+
+def hard_delete_student(student_id):
+    """Permanently remove a student and all their data. Called by the scheduler after the 30-day window."""
     for tbl in ("matches", "refresh_tokens", "signals", "card_queue", "magic_tokens"):
         try:
             execute(f"DELETE FROM {tbl} WHERE student_id = ?", (student_id,))
         except Exception:
             pass
-    # magic_tokens uses email not student_id — clean up via sub-select
     try:
         execute(
             "DELETE FROM magic_tokens WHERE email = (SELECT email FROM students WHERE id = ?)",
@@ -887,6 +1034,19 @@ def deactivate_student(student_id):
     except Exception:
         pass
     execute("DELETE FROM students WHERE id = ?", (student_id,))
+
+
+def purge_expired_deletions():
+    """Hard-delete all students whose 30-day deletion window has passed."""
+    rows = fetchall(
+        "SELECT id FROM students WHERE scheduled_deletion_at IS NOT NULL AND scheduled_deletion_at <= NOW()"
+    )
+    for row in rows:
+        try:
+            hard_delete_student(row["id"] if isinstance(row, dict) else row[0])
+        except Exception:
+            pass
+    return len(rows)
 
 
 # ── Pipeline helpers ─────────────────────────────────────────────────────────
@@ -934,19 +1094,12 @@ def get_active_jobs(conn, industries=None, region=None, seniority=None,
             clauses.append(
                 f"(created_at IS NULL OR created_at > NOW() - INTERVAL '{days_fresh} days')"
             )
-            # Exclude jobs whose closing date has already passed
-            clauses.append(
-                "(closing_date IS NULL OR closing_date = '' OR closing_date >= to_char(NOW(), 'YYYY-MM-DD'))"
-            )
         else:
             clauses.append(
                 f"(opening_date IS NULL OR opening_date > date('now', '-{days_fresh} days'))"
             )
             clauses.append(
                 f"(created_at IS NULL OR created_at > datetime('now', '-{days_fresh} days'))"
-            )
-            clauses.append(
-                "(closing_date IS NULL OR closing_date = '' OR closing_date >= date('now'))"
             )
 
     if industries:
@@ -1035,13 +1188,23 @@ def upsert_job(conn, job: dict) -> tuple:
     if existing:
         job_id = existing[0] if not isinstance(existing, dict) else existing["id"]
         now_expr = "NOW()" if USE_POSTGRES else "datetime('now')"
+        # Never downgrade opening_date — keep whichever is more recent.
+        # This prevents an earlier-season scrape entry from overwriting a
+        # later-season entry's date (e.g. 2026-season "2025-08-31" must not
+        # clobber 2027-season "2026-06-03" for the same URL).
+        od_expr = (
+            f"GREATEST(NULLIF(opening_date,''), ?)"
+            if USE_POSTGRES else
+            f"CASE WHEN opening_date > ? THEN opening_date ELSE ? END"
+        )
+        od_params = (opening_date,) if USE_POSTGRES else (opening_date, opening_date)
         _exec(
             conn,
             f"UPDATE jobs SET title=?, company=?, url=?, location=?, "
-            f"industry=?, company_size=?, opening_date=?, closing_date=?, source=?, raw=?, role_type=?, careers_site=?, created_at={now_expr} "
+            f"industry=?, company_size=?, opening_date={od_expr}, closing_date=?, source=?, raw=?, role_type=?, careers_site=?, created_at={now_expr} "
             f"WHERE id=?",
             (title, company, url, location, industry, company_sz,
-             opening_date, closing_date, source, raw, role_type, careers_site, job_id)
+             *od_params, closing_date, source, raw, role_type, careers_site, job_id)
         )
         return job_id, False
     else:
@@ -1049,8 +1212,8 @@ def upsert_job(conn, job: dict) -> tuple:
             cur = _exec(
                 conn,
                 "INSERT INTO jobs (title, company, url, location, industry, company_size, "
-                "opening_date, closing_date, source, raw, role_type, careers_site) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
+                "opening_date, closing_date, source, raw, role_type, careers_site, first_seen_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NOW()) RETURNING id",
                 (title, company, url, location, industry, company_sz,
                  opening_date, closing_date, source, raw, role_type, careers_site)
             )
@@ -1347,3 +1510,41 @@ def get_leads_stats() -> dict:
         "alumni_leads":         int(alumni.get("cnt", 0)),
         "distinct_companies":   int(companies.get("cnt", 0)),
     }
+
+
+# ── Pipeline positions ───────────────────────────────────────────────────────
+
+def get_pipeline_positions(student_id: int) -> dict:
+    """Return {job_id: stage_id} for a student."""
+    rows = fetchall(
+        "SELECT job_id, stage_id FROM pipeline_positions WHERE student_id = ?",
+        (student_id,),
+    )
+    return {r["job_id"]: r["stage_id"] for r in rows}
+
+
+def upsert_pipeline_position(student_id: int, job_id: str, stage_id: str) -> None:
+    """Save or update a single job's stage for a student."""
+    ph = "%s" if USE_POSTGRES else "?"
+    if USE_POSTGRES:
+        execute(
+            f"INSERT INTO pipeline_positions (student_id, job_id, stage_id, updated_at) "
+            f"VALUES ({ph}, {ph}, {ph}, NOW()) "
+            f"ON CONFLICT (student_id, job_id) DO UPDATE SET stage_id = EXCLUDED.stage_id, updated_at = NOW()",
+            (student_id, str(job_id), stage_id),
+        )
+    else:
+        execute(
+            f"INSERT INTO pipeline_positions (student_id, job_id, stage_id, updated_at) "
+            f"VALUES ({ph}, {ph}, {ph}, datetime('now')) "
+            f"ON CONFLICT (student_id, job_id) DO UPDATE SET stage_id = excluded.stage_id, updated_at = datetime('now')",
+            (student_id, str(job_id), stage_id),
+        )
+
+
+def delete_pipeline_position(student_id: int, job_id: str) -> None:
+    """Remove a job from a student's pipeline (dragged back to listings)."""
+    execute(
+        "DELETE FROM pipeline_positions WHERE student_id = ? AND job_id = ?",
+        (student_id, str(job_id)),
+    )
