@@ -99,11 +99,17 @@ def _backfill_jorb_urls():
                 db_exec("UPDATE jobs SET url = ? WHERE id = ?", (m.group(1), row["id"]))
                 updated += 1
             else:
+                try:
+                    db_exec("DELETE FROM jobs WHERE id = ?", (row["id"],))
+                    _log.info(f"Deleted {row['company']} (jorb page gone, no direct URL)")
+                except Exception:
+                    _log.info(f"Kept {row['company']} (has matches, jorb page gone — leaving jorb.ai URL)")
+        except Exception as fetch_err:
+            try:
                 db_exec("DELETE FROM jobs WHERE id = ?", (row["id"],))
-                _log.info(f"Deleted {row['company']} (jorb page gone, no direct URL)")
-        except Exception as e:
-            db_exec("DELETE FROM jobs WHERE id = ?", (row["id"],))
-            _log.info(f"Deleted {row['company']} (error: {e})")
+                _log.info(f"Deleted {row['company']} (fetch error: {fetch_err})")
+            except Exception:
+                _log.info(f"Kept {row['company']} (has matches, fetch error — leaving jorb.ai URL)")
     _log.info(f"Jorb backfill done — {updated} updated")
 
 
