@@ -68,7 +68,10 @@ init_db()
 
 
 def _backfill_jorb_urls():
-    """One-time fix: replace any jorb.ai apply URLs with direct company URLs."""
+    """One-time fix: replace any jorb.ai apply URLs with direct company URLs.
+    When a jorb.ai page returns 404 (listing pulled), mark the job as closed
+    today instead of deleting it so users see a greyed-out 'Apply' button.
+    """
     import time
     import urllib.request
     import re as _re
@@ -81,14 +84,18 @@ def _backfill_jorb_urls():
     _log = logging.getLogger("jorb_backfill")
 
     from db.database import fetchall, execute as db_exec
+    # Skip jobs already marked closed — they've been processed
     rows = fetchall(
-        "SELECT id, url, company FROM jobs WHERE source = 'jorb' AND url LIKE %s",
+        "SELECT id, url, company FROM jobs "
+        "WHERE source = 'jorb' AND url LIKE %s "
+        "AND (closing_date IS NULL OR closing_date = '')",
         ("%jorb.ai%",),
     )
     if not rows:
         return
     _log.info(f"Fixing {len(rows)} jorb jobs with jorb.ai URLs")
     updated = 0
+    closed = 0
     for row in rows:
         try:
             time.sleep(0.2)
@@ -99,21 +106,27 @@ def _backfill_jorb_urls():
                 db_exec("UPDATE jobs SET url = ? WHERE id = ?", (m.group(1), row["id"]))
                 updated += 1
             else:
-                try:
-                    db_exec("DELETE FROM jobs WHERE id = ?", (row["id"],))
-                    _log.info(f"Deleted {row['company']} (jorb page gone, no direct URL)")
-                except Exception:
-                    _log.info(f"Kept {row['company']} (has matches, jorb page gone — leaving jorb.ai URL)")
+                db_exec("UPDATE jobs SET closing_date = '2026-06-05' WHERE id = ?", (row["id"],))
+                _log.info(f"Closed {row['company']} (listing pulled, no direct URL found)")
+                closed += 1
         except Exception as fetch_err:
-            try:
-                db_exec("DELETE FROM jobs WHERE id = ?", (row["id"],))
-                _log.info(f"Deleted {row['company']} (fetch error: {fetch_err})")
-            except Exception:
-                _log.info(f"Kept {row['company']} (has matches, fetch error — leaving jorb.ai URL)")
-    _log.info(f"Jorb backfill done — {updated} updated")
+            db_exec("UPDATE jobs SET closing_date = '2026-06-05' WHERE id = ?", (row["id"],))
+            _log.info(f"Closed {row['company']} (listing pulled: {fetch_err})")
+            closed += 1
+    _log.info(f"Jorb backfill done — {updated} updated, {closed} closed")
 
 
 threading.Thread(target=_backfill_jorb_urls, daemon=True, name="jorb_backfill").start()
+
+# Close LaSalle listing detected as pulled on 2026-06-05
+try:
+    db_execute(
+        "UPDATE jobs SET closing_date = '2026-06-05' "
+        "WHERE source = 'jorb' AND lower(company) LIKE '%lasalle%' "
+        "AND (closing_date IS NULL OR closing_date = '')"
+    )
+except Exception:
+    pass
 
 # Determine if we're on a secure host (Railway / any https origin)
 IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE

@@ -36,14 +36,18 @@ def _careers_site_from_url(apply_url: str) -> str:
         return ""
 
 
+CLOSED_DATE = "2026-06-05"
+
 rows = fetchall(
-    "SELECT id, url, company, title, careers_site FROM jobs WHERE source = 'jorb' AND url LIKE ?",
+    "SELECT id, url, company, title, careers_site FROM jobs "
+    "WHERE source = 'jorb' AND url LIKE ? "
+    "AND (closing_date IS NULL OR closing_date = '')",
     ("%jorb.ai%",),
 )
 print(f"Found {len(rows)} jorb jobs to backfill")
 
 updated = 0
-failed = 0
+closed = 0
 for i, row in enumerate(rows):
     job_id   = row["id"]
     jorb_url = row["url"]
@@ -62,10 +66,12 @@ for i, row in enumerate(rows):
             print(f"  [{i+1}/{len(rows)}] {row['company']}: {direct_url[:80]}")
             updated += 1
         else:
-            print(f"  [{i+1}/{len(rows)}] {row['company']}: no direct URL found, keeping jorb.ai")
-            failed += 1
+            execute("UPDATE jobs SET closing_date = ? WHERE id = ?", (CLOSED_DATE, job_id))
+            print(f"  [{i+1}/{len(rows)}] {row['company']}: listing pulled — marked closed {CLOSED_DATE}")
+            closed += 1
     except Exception as e:
-        print(f"  [{i+1}/{len(rows)}] {row['company']}: error — {e}")
-        failed += 1
+        execute("UPDATE jobs SET closing_date = ? WHERE id = ?", (CLOSED_DATE, job_id))
+        print(f"  [{i+1}/{len(rows)}] {row['company']}: error ({e}) — marked closed {CLOSED_DATE}")
+        closed += 1
 
-print(f"Done — {updated} updated, {failed} failed/unchanged")
+print(f"Done — {updated} updated, {closed} closed")

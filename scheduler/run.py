@@ -630,15 +630,18 @@ def _backfill_jorb_urls_once():
     )
     _HDRS = {"User-Agent": "Mozilla/5.0 (compatible)"}
 
+    _CLOSED_DATE = "2026-06-05"
     rows = fetchall(
         "SELECT id, url, company, careers_site FROM jobs "
-        "WHERE source = 'jorb' AND url LIKE %s",
+        "WHERE source = 'jorb' AND url LIKE %s "
+        "AND (closing_date IS NULL OR closing_date = '')",
         ("%jorb.ai%",),
     )
     if not rows:
         return
     logger.info(f"JORB BACKFILL: fixing {len(rows)} jobs with jorb.ai URLs")
     updated = 0
+    closed = 0
     for row in rows:
         try:
             time.sleep(0.2)
@@ -647,18 +650,17 @@ def _backfill_jorb_urls_once():
             m = _RE.search(html)
             if m:
                 direct = m.group(1)
-                execute(
-                    "UPDATE jobs SET url = ? WHERE id = ?",
-                    (direct, row["id"]),
-                )
+                execute("UPDATE jobs SET url = ? WHERE id = ?", (direct, row["id"]))
                 updated += 1
             else:
-                execute("DELETE FROM jobs WHERE id = ?", (row["id"],))
-                logger.info(f"JORB BACKFILL: deleted {row['company']} (no direct URL, jorb 404)")
+                execute("UPDATE jobs SET closing_date = ? WHERE id = ?", (_CLOSED_DATE, row["id"]))
+                logger.info(f"JORB BACKFILL: closed {row['company']} (listing pulled)")
+                closed += 1
         except Exception as e:
-            execute("DELETE FROM jobs WHERE id = ?", (row["id"],))
-            logger.info(f"JORB BACKFILL: deleted {row['company']} (error: {e})")
-    logger.info(f"JORB BACKFILL: done — {updated} updated")
+            execute("UPDATE jobs SET closing_date = ? WHERE id = ?", (_CLOSED_DATE, row["id"]))
+            logger.info(f"JORB BACKFILL: closed {row['company']} (error: {e})")
+            closed += 1
+    logger.info(f"JORB BACKFILL: done — {updated} updated, {closed} closed")
 
 
 def run_daemon():
