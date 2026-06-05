@@ -124,37 +124,28 @@ _startup_log = logging.getLogger("startup")
 try:
     _n = db_execute(
         "UPDATE jobs SET opening_date = '2026-06-03', closing_date = '2027-01-14' "
-        "WHERE source = 'trackr' AND lower(company) LIKE '%mckinsey%' "
-        "AND lower(title) = 'business analyst intern'"
+        "WHERE source = 'trackr' AND lower(company) LIKE ? "
+        "AND lower(title) = ?",
+        ('%mckinsey%', 'business analyst intern')
     )
     _startup_log.info(f"McKinsey BAI fix: {_n} rows updated")
-    # Also log the current state so we can see what's in DB
     from db.database import fetchall as _fa
-    _rows = _fa("SELECT id, title, company, opening_date, closing_date, url FROM jobs WHERE source='trackr' AND lower(company) LIKE %s AND lower(title) LIKE %s", ('%mckinsey%', '%business analyst intern%'))
+    _rows = _fa("SELECT id, title, company, opening_date, closing_date FROM jobs WHERE source = ? AND lower(company) LIKE ? AND lower(title) = ?", ('trackr', '%mckinsey%', 'business analyst intern'))
     _startup_log.info(f"McKinsey BAI in DB: {_rows}")
 except Exception as _e:
     _startup_log.error(f"McKinsey BAI fix failed: {_e}")
 
-# Close all LaSalle listings (both jorb and any other source) detected as pulled
+# Close all LaSalle listings detected as pulled on 2026-06-05
 try:
     _n2 = db_execute(
         "UPDATE jobs SET closing_date = '2026-06-05' "
-        "WHERE lower(company) LIKE '%lasalle%' "
-        "AND (closing_date IS NULL OR closing_date = '')"
+        "WHERE lower(company) LIKE ? "
+        "AND (closing_date IS NULL OR closing_date = '')",
+        ('%lasalle%',)
     )
     _startup_log.info(f"LaSalle close fix: {_n2} rows updated")
 except Exception as _e:
     _startup_log.error(f"LaSalle fix failed: {_e}")
-
-# (old LaSalle fix below kept for idempotency)
-try:
-    db_execute(
-        "UPDATE jobs SET closing_date = '2026-06-05' "
-        "WHERE source = 'jorb' AND lower(company) LIKE '%lasalle%' "
-        "AND (closing_date IS NULL OR closing_date = '')"
-    )
-except Exception:
-    pass
 
 # Determine if we're on a secure host (Railway / any https origin)
 IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
