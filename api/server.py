@@ -2772,12 +2772,16 @@ def api_opportunities():
     _seen_co_dd: dict[str, list] = {}
     _deduped_rows: list = []
     for _r in rows:
-        _ck = _co_key_dd(_r.get('company', '')) + '|' + (_r.get('region') or 'UK')
-        _tw = _tw_dd(_r.get('title', ''))
+        _ck  = _co_key_dd(_r.get('company', '')) + '|' + (_r.get('region') or 'UK')
+        _src = _r.get('source') or ''
+        _tw  = _tw_dd(_r.get('title', ''))
         _existing = _seen_co_dd.get(_ck, [])
-        if any(_tw <= _ex or _ex <= _tw for _ex in _existing):
+        # Only dedup against entries from a DIFFERENT source — same-source listings
+        # (e.g. "Business Analyst" and "Business Analyst Intern" both from trackr)
+        # are distinct programmes and must never be dropped against each other.
+        if any(_tw <= _ex_tw or _ex_tw <= _tw for (_ex_src, _ex_tw) in _existing if _ex_src != _src):
             continue
-        _existing.append(_tw)
+        _existing.append((_src, _tw))
         _seen_co_dd[_ck] = _existing
         _deduped_rows.append(_r)
     rows = _deduped_rows
