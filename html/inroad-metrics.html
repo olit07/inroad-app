@@ -175,13 +175,17 @@
     return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   }
 
-  // ── Axis labels: every data point ────────────────────────────────────────
+  // ── Axis labels: one every 7 days ────────────────────────────────────────
   function axisLabels(axisId, points) {
     const axEl = document.getElementById(axisId);
     if (!axEl || points.length < 2) return;
     axEl.style.position = 'relative';
     axEl.innerHTML = '';
+    // Build set of indices to label: first, last, and every 7th data point
+    const labeled = new Set([0, points.length - 1]);
+    for (let i = 7; i < points.length - 1; i += 7) labeled.add(i);
     points.forEach((pt, idx) => {
+      if (!labeled.has(idx)) return;
       const pct = idx / (points.length - 1) * 100;
       const span = document.createElement('span');
       span.className = 'chart-axis-label';
