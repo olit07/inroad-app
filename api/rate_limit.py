@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 _windows: dict[str, dict[str, deque]] = defaultdict(lambda: defaultdict(deque))
 
 LIMITS = {
-    "default":  (60,  60),   # 60 req / 60s
+    "default":  (300, 60),   # 300 req / 60s
     "register": (10,  60),   # 10 req / 60s
-    "matches":  (30,  60),   # 30 req / 60s
-    "admin":    (120, 60),   # 120 req / 60s
+    "matches":  (60,  60),   # 60 req / 60s
+    "admin":    (200, 60),   # 200 req / 60s
 }
 
 
@@ -66,13 +66,16 @@ def rate_limit(bucket: str = "default"):
 
 
 def init_rate_limiting(app):
-    """Apply rate limiting to all routes via a before_request hook."""
+    """Apply rate limiting to /api/ and /auth/ routes only."""
     @app.before_request
     def check_global_rate():
+        path = request.path
+        # Only rate-limit API and auth endpoints — not static files or HTML pages
+        if not (path.startswith("/api/") or path.startswith("/auth/")):
+            return
+
         ip = request.headers.get("X-Forwarded-For", request.remote_addr) or "unknown"
         ip = ip.split(",")[0].strip()
-
-        path = request.path
 
         # Determine bucket
         if "register" in path:
