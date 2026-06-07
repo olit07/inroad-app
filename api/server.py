@@ -140,6 +140,15 @@ except Exception as _e:
     import traceback as _tb
     _startup_log.error(f"McKinsey BAI fix failed: {_e}\n{_tb.format_exc()}")
 
+# Set careers_site for H Company
+try:
+    db_execute(
+        "UPDATE jobs SET careers_site = 'https://hcompany.ai' "
+        "WHERE lower(company) = 'h company' AND (careers_site IS NULL OR careers_site = '')"
+    )
+except Exception as _e:
+    _startup_log.error(f"H Company careers_site fix failed: {_e}")
+
 # Close all LaSalle "Intern, Value-Add Investments" listings with closing_date = 2026-06-05
 try:
     _n2 = db_execute(

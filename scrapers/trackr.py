@@ -135,6 +135,7 @@ _CAREERS_SITE_OVERRIDES: dict[str, str] = {
     "millennium management":"https://www.mlp.com/careers/",
     "natwest markets":     "https://jobs.natwestgroup.com/",
     "sembcorp":            "https://www.sembcorp.com/en/careers/",
+    "h company":           "https://hcompany.ai",
 }
 
 def _resolve_url(url: str) -> str:
