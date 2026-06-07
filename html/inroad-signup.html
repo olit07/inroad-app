@@ -580,28 +580,7 @@
     if (!email)               { showError('Please enter your email address.'); return; }
     if (!isValidEmail(email)) { showError('Please enter a valid email address.'); return; }
 
-    // Hide any previous exists notice
-    document.getElementById('exists-msg').style.display = 'none';
-
     setLoading(true);
-
-    // Check if email already registered
-    try {
-      const checkRes = await fetch(`${API_BASE}/api/check-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (checkRes.ok) {
-        const { exists } = await checkRes.json();
-        if (exists) {
-          setLoading(false);
-          input.classList.add('error');
-          document.getElementById('exists-msg').style.display = 'flex';
-          return;
-        }
-      }
-    } catch (_) { /* proceed if check fails */ }
 
     try {
       const _refCode = new URLSearchParams(window.location.search).get('ref') || '';

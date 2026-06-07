@@ -47,6 +47,31 @@ INDUSTRY_MAP = {
     "Law":        ["Law"],
 }
 
+# Strategy/management consulting firms that appear in the Finance Trackr bucket
+# but should be categorised as Consulting, not Finance.
+_CONSULTING_COMPANIES = {
+    "altman solon", "mckinsey & company", "mckinsey", "bain & company", "bain",
+    "boston consulting group", "bcg", "oliver wyman", "roland berger",
+    "kearney", "a.t. kearney", "strategy&", "l.e.k. consulting", "lek consulting",
+    "simon-kucher", "simon kucher", "oxera", "economists group",
+    "charles river associates", "cra", "analysys mason",
+}
+
+_CONSULTING_TITLE_KEYWORDS = (
+    "consulting intern", "consultant intern", "strategy consulting",
+    "management consulting", "strategy analyst", "strategy associate",
+    "consulting analyst", "advisory analyst", "strategy intern",
+)
+
+
+def _override_industries(company: str, title: str, industries: list[str]) -> list[str]:
+    """Return Consulting if company or title clearly signals a consulting role."""
+    cl = company.lower().strip()
+    tl = title.lower()
+    if cl in _CONSULTING_COMPANIES or any(kw in tl for kw in _CONSULTING_TITLE_KEYWORDS):
+        return ["Consulting"]
+    return industries
+
 TYPE_MAP = {
     "summer-internships":    "internship",
     "spring-weeks":          "internship",
@@ -109,6 +134,7 @@ _CAREERS_SITE_OVERRIDES: dict[str, str] = {
     "mckinsey & company":  "https://www.mckinsey.com/careers",
     "millennium management":"https://www.mlp.com/careers/",
     "natwest markets":     "https://jobs.natwestgroup.com/",
+    "sembcorp":            "https://www.sembcorp.com/en/careers/",
 }
 
 def _resolve_url(url: str) -> str:
@@ -190,13 +216,14 @@ def _parse_programme(raw: dict, region: str, industry: str, prog_type: str) -> d
 
     trackr_id = (raw.get("id") or "").strip()
 
+    raw_industries = INDUSTRY_MAP.get(industry, [industry])
     job = make_job(
         company_name    = company_name,
         title           = title,
         source_id       = "trackr",
         source_name     = "Trackr",
         url             = url,
-        industries      = INDUSTRY_MAP.get(industry, [industry]),
+        industries      = _override_industries(company_name, title, raw_industries),
         seniority       = infer_seniority(title),
         employment_type = TYPE_MAP.get(prog_type, "internship"),
         region          = REGION_MAP.get(region, region),
@@ -211,6 +238,11 @@ def _parse_programme(raw: dict, region: str, industry: str, prog_type: str) -> d
     job["careers_site"]      = careers_site
     categories = raw.get("categories") or []
     job["trackr_categories"] = categories  # stored in raw JSON; used to derive vertical
+    job["process"]           = (raw.get("process") or "").strip()
+    job["current_stage"]     = (raw.get("currentStage") or "").strip()
+    sv = company_obj.get("sponsorsVisa")
+    job["sponsors_visa"]     = "Yes" if sv is True else ""
+    job["cover_letter"]      = (raw.get("coverLetter") or "").strip()
     return job
 
 
@@ -255,10 +287,6 @@ def _scrape_bucket(
                 if prog_id in seen:
                     continue
                 seen.add(prog_id)
-
-                closing_date = clean_date(raw.get("closingDate") or "")
-                if closing_date and closing_date < today:
-                    continue
 
                 job = _parse_programme(raw, region, industry, prog_type)
                 if job:

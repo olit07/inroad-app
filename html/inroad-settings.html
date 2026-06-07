@@ -62,8 +62,6 @@
     cursor:pointer;transition:all 0.15s;user-select:none
   }
   .industry-pill.selected{border-color:var(--green);background:var(--green-lite);color:var(--green-deep)}
-  .industry-pill.locked{color:var(--subtle);border-color:var(--border);background:var(--bg);cursor:not-allowed;opacity:0.65;pointer-events:none;position:relative}
-  .coming-soon-chip{display:inline-block;margin-left:5px;padding:1px 6px;border-radius:4px;font-size:0.62rem;font-weight:600;background:#f3f4f6;color:#9ca3af;vertical-align:middle;letter-spacing:0.01em}
   .size-card-soon{display:inline-block;padding:2px 7px;border-radius:5px;font-size:0.6rem;font-weight:700;background:#f3f4f6;color:#9ca3af;letter-spacing:0.04em;text-transform:uppercase;margin-top:4px}
 
   .size-row{display:flex;gap:8px}
@@ -208,7 +206,7 @@
     <div class="section-label">Account</div>
     <div class="danger-zone">
       <div class="danger-title">Delete account</div>
-      <div class="danger-desc">This will permanently remove your profile, match history, and all data. This cannot be undone.</div>
+      <div class="danger-desc">Your account will be deactivated immediately. All data will be permanently deleted after 30 days. Log back in within 30 days to cancel the deletion.</div>
       <button class="btn-danger" onclick="confirmDelete()">Delete my account</button>
     </div>
   </div>
@@ -220,13 +218,9 @@
 const INDUSTRIES = [
   'Finance','Technology','Law',
   'Investment Banking','Software Engineering','Product Management','Data & Analytics',
-  'Consulting','Strategy','Marketing',
-  // Coming soon
-  'Healthcare','Media & Journalism','Real Estate','Non-profit & Policy'
+  'Consulting','Strategy','Marketing'
 ];
-const LOCKED_INDUSTRIES = new Set([
-  'Healthcare','Media & Journalism','Real Estate','Non-profit & Policy','Other'
-]);
+const LOCKED_INDUSTRIES = new Set([]);
 
 // Save token to sessionStorage before leaving so dashboard can reuse it
 // Set back button to referring page if it's same-origin, else default to /opportunities
@@ -252,13 +246,8 @@ INDUSTRIES.forEach(ind => {
   const pill = document.createElement('span');
   pill.textContent = ind;
   pill.dataset.value = ind;
-  if (LOCKED_INDUSTRIES.has(ind)) {
-    pill.className = 'industry-pill locked';
-    pill.innerHTML = ind + '<span class="coming-soon-chip">Coming soon</span>';
-  } else {
-    pill.className = 'industry-pill';
-    pill.onclick = () => { pill.classList.toggle('selected'); };
-  }
+  pill.className = 'industry-pill';
+  pill.onclick = () => { pill.classList.toggle('selected'); };
   grid.appendChild(pill);
 });
 
@@ -389,7 +378,7 @@ async function saveSettings() {
 }
 
 async function confirmDelete() {
-  if (!confirm('Are you sure? This permanently deletes your account and all match history. This cannot be undone.')) return;
+  if (!confirm('Are you sure? Your account will be deactivated now and all data permanently deleted after 30 days. Log back in within 30 days to cancel.')) return;
   try {
     await apiFetch('/api/me', { method: 'DELETE' });
   } catch(_) {}

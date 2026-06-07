@@ -489,13 +489,13 @@ def fix_ats_email_formats() -> int:
 
 
 def _build_query_alumni(company: str, location: str, university_full: str, dept_keyword: str) -> str:
-    """site:linkedin.com/in "dept keyword" "Company" "City" "Full University Name" """
-    return f'site:linkedin.com/in "{dept_keyword}" "{company}" "{location}" "{university_full}"'
+    """Plain keyword query — site: operator is blocked from Railway's IP on all engines."""
+    return f'"{dept_keyword}" "{company}" "{location}" "{university_full}" linkedin'
 
 
 def _build_query_broad(company: str, location: str, dept_keyword: str) -> str:
-    """site:linkedin.com/in "dept keyword" "Company" "City" """
-    return f'site:linkedin.com/in "{dept_keyword}" "{company}" "{location}"'
+    """Plain keyword query — site: operator is blocked from Railway's IP on all engines."""
+    return f'"{dept_keyword}" "{company}" "{location}" linkedin'
 
 
 # ── Snippet parser (standalone, mirrors matcher._parse_snippet) ───────────────
@@ -855,7 +855,7 @@ def build_leads(
 
         # ── Tier 2: Senior / Exec ────────────────────────────────────────────────
         for exec_kw in ["director", "partner"]:
-            q_exec = f'site:linkedin.com/in "{exec_kw}" "{company}" "{search_location}"'
+            q_exec = f'"{exec_kw}" "{company}" "{search_location}" linkedin'
             for pg in [1, 2]:
                 try:
                     raw_exec = matcher._search(q_exec, count=10, page=pg)
@@ -884,7 +884,7 @@ def build_leads(
                         all_leads[url] = lead
 
         # ── Tier 3: HR / Recruiter ───────────────────────────────────────────────
-        q_hr = f'site:linkedin.com/in "recruiter" "{company}" "{search_location}"'
+        q_hr = f'"recruiter" "{company}" "{search_location}" linkedin'
         for pg in [1, 2]:
             try:
                 raw_hr = matcher._search(q_hr, count=10, page=pg)
@@ -913,7 +913,7 @@ def build_leads(
 
         # ── Tier 4: General fallback (only if < 25 total leads) ─────────────────
         if len(all_leads) < 25:
-            q_gen = f'site:linkedin.com/in "{company}" "{search_location}"'
+            q_gen = f'"{company}" "{search_location}" linkedin'
             for pg in [1, 2, 3]:
                 if len(all_leads) >= 25:
                     break
@@ -945,7 +945,7 @@ def build_leads(
 
         # ── Tier 5: No-location fallback (small/niche companies with 0 leads) ────
         if len(all_leads) < 5:
-            q_noloc = f'site:linkedin.com/in "{dept_keyword}" "{company}"'
+            q_noloc = f'"{dept_keyword}" "{company}" linkedin'
             logger.info(f"  Tier 5 (no-location fallback): {q_noloc[:100]}")
             for pg in [1, 2, 3]:
                 if len(all_leads) >= 25:
@@ -975,7 +975,7 @@ def build_leads(
                         all_leads[url] = lead
             # Also try pure company name with no keywords
             if len(all_leads) < 5:
-                q_bare = f'site:linkedin.com/in "{company}"'
+                q_bare = f'"{company}" linkedin'
                 logger.info(f"  Tier 5b (bare company): {q_bare}")
                 for pg in [1, 2]:
                     if len(all_leads) >= 25:
@@ -1007,7 +1007,7 @@ def build_leads(
         # the company name entirely and search by role + city so students still get
         # relevant contacts to reach out to.
         if len(all_leads) < 5:
-            q_broad = f'site:linkedin.com/in "{dept_keyword}" "{search_location}"'
+            q_broad = f'"{dept_keyword}" "{search_location}" linkedin'
             logger.info(f"  Tier 6 (broadened, no company): {q_broad[:100]}")
             for pg in [1, 2]:
                 if len(all_leads) >= 25:

@@ -1358,7 +1358,11 @@
   }
 
   // ── Load data ──
-  fetch('/api/opportunities', { cache: 'no-cache' })
+  const _oppTok = getAccessToken();
+  fetch('/api/opportunities', {
+    cache: 'no-cache',
+    headers: _oppTok ? { Authorization: `Bearer ${_oppTok}` } : {}
+  })
     .then(r => r.json())
     .then(data => {
       allJobs = data.jobs || [];

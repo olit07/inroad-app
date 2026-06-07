@@ -19,6 +19,13 @@ outgoing:
   pool_connections: 100
   pool_maxsize: 2
   enable_http2: true
+  suspended_times:
+    SearxEngineAccessDenied: 60
+    SearxEngineTooManyRequests: 60
+    SearxEngineCaptcha: 90
+    cf_SearxEngineCaptcha: 90
+    cf_SearxEngineAccessDenied: 90
+    recaptcha_SearxEngineCaptcha: 90
 
 engines:
   # ── Engines we actively use ──────────────────────────────────────────────
@@ -74,3 +81,9 @@ engines:
 
   - name: grokipedia
     disabled: true
+
+  - name: qwant
+    engine: qwant
+    shortcut: q
+    disabled: false
+    timeout: 10.0

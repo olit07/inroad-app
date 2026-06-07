@@ -194,6 +194,11 @@ class WTTJScraper(BaseScraper):
         published_raw = raw.get("published_at", raw.get("created_at", ""))
         posted_date   = clean_date(published_raw) if published_raw else today_iso()
 
+        # Closing date — WTTJ may expose published_until, apply_before, or deadline
+        closing_raw  = (raw.get("published_until") or raw.get("apply_before")
+                        or raw.get("deadline") or raw.get("expires_at") or "")
+        closing_date = clean_date(closing_raw) if closing_raw else ""
+
         # Description
         desc = raw.get("description", "") or ""
         if isinstance(desc, dict):
@@ -214,4 +219,5 @@ class WTTJScraper(BaseScraper):
             employment_type = _infer_employment_type(title),
             region          = region,
             posted_date     = posted_date,
+            closing_date    = closing_date,
         )

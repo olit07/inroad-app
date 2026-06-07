@@ -7,6 +7,7 @@ Run via: gunicorn --bind 0.0.0.0:$PORT api.server:app  (Railway)
 
 import os
 import sys
+import re
 import logging
 import hmac
 import hashlib
@@ -31,7 +32,7 @@ from config.settings import (
     APP_BASE_URL, SESSION_SECRET, FROM_EMAIL, FROM_NAME,
     MAGIC_LINK_EXPIRY_MINUTES, MAGIC_LINK_RATE_LIMIT,
     MAGIC_LINK_RATE_WINDOW, SESSION_DAYS, ALLOWED_ORIGINS, DEV_MODE,
-    JWT_REFRESH_TTL_DAYS, ADMIN_SECRET, SEARCH_ROLES_ENABLED,
+    JWT_REFRESH_TTL_DAYS, JWT_SECRET, ADMIN_SECRET, SEARCH_ROLES_ENABLED,
     AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, ADMIN_UI_ENABLED,
 )
 from db.database import (
@@ -46,7 +47,7 @@ from db.database import (
     get_leads_for_company,
     record_user_activity,
 )
-from api.auth import make_access_token, make_refresh_token_str, require_jwt
+from api.auth import make_access_token, make_refresh_token_str, require_jwt, verify_access_token
 from utils.university_lookup import detect_university
 
 # ── App setup ────────────────────────────────────────────────────────────────
@@ -55,6 +56,9 @@ app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), ".."
 
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 Compress(app)
+
+from api.rate_limit import init_rate_limiting
+init_rate_limiting(app)
 
 # Configure logging so scraper output appears in Railway logs
 logging.basicConfig(
@@ -151,6 +155,9 @@ except Exception as _e:
 # Determine if we're on a secure host (Railway / any https origin)
 IS_PRODUCTION = any("https://" in o for o in ALLOWED_ORIGINS) or not DEV_MODE
 COOKIE_DOMAIN = ".the-inroad.com" if IS_PRODUCTION else None
+
+if IS_PRODUCTION and JWT_SECRET == "change-jwt-secret-in-production":
+    raise RuntimeError("JWT_SECRET must be set as a Railway environment variable")
 
 
 # ── Embedded background scheduler ────────────────────────────────────────────
@@ -280,16 +287,6 @@ def _start_background_scheduler():
 _start_background_scheduler()
 
 
-def _warm_opp_cache():
-    import time as _t
-    _t.sleep(3)  # let the server finish binding before hitting the DB
-    try:
-        with app.app_context():
-            app.test_client().get("/api/opportunities")
-    except Exception:
-        pass
-
-threading.Thread(target=_warm_opp_cache, daemon=True, name="cache-warmer").start()
 
 
 # ── Admin auth ───────────────────────────────────────────────────────────────
@@ -618,8 +615,9 @@ def _record_page_visit():
     app.logger.info("VISIT %s %s | ip=%s ua=%s", request.method, request.path, ip, ua[:120])
     visitor_id = request.cookies.get(_VISITOR_COOKIE)
     if not visitor_id:
-        import uuid as _uuid
-        visitor_id = str(_uuid.uuid4())
+        import hashlib as _hashlib
+        from datetime import date as _date
+        visitor_id = "ip-" + _hashlib.sha256(f"{ip}:{_date.today().isoformat()}".encode()).hexdigest()[:32]
     g._visitor_id     = visitor_id
     g._visitor_is_new = _VISITOR_COOKIE not in request.cookies
     try:
@@ -665,14 +663,10 @@ def health():
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
-@app.route("/api/check-email", methods=["POST"])
-def check_email():
-    data  = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip().lower()
-    if not email or "@" not in email:
-        return jsonify({"error": "Invalid email"}), 400
-    exists = get_student_by_email(email) is not None
-    return jsonify({"exists": exists})
+_EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+def _is_valid_email(e: str) -> bool:
+    return bool(_EMAIL_RE.match(e)) and len(e) <= 254
 
 
 @app.route("/auth/magic-link", methods=["POST"])
@@ -680,7 +674,7 @@ def magic_link():
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
 
-    if not email or "@" not in email:
+    if not _is_valid_email(email):
         return jsonify({"error": "Invalid email"}), 400
 
     # Rate limit: max 3 requests per 10 min per email
@@ -1303,11 +1297,12 @@ def record_signal():
 
 
 @app.route("/api/matches/<int:match_id>/reply", methods=["POST"])
+@require_jwt
 def match_reply(match_id):
     from db.database import execute as db_execute
     db_execute(
-        "UPDATE matches SET replied_at = NOW(), status = 'replied' WHERE id = ?",
-        (match_id,)
+        "UPDATE matches SET replied_at = NOW(), status = 'replied' WHERE id = ? AND student_id = ?",
+        (match_id, g.student_id)
     )
     return jsonify({"status": "ok"})
 
@@ -1573,6 +1568,8 @@ def list_jobs():
             "  NULLIF(raw::jsonb->>'closing_date',  '') AS cd  "
             "FROM jobs WHERE company IS NOT NULL AND company != '' "
             "AND title IS NOT NULL AND title != '' "
+            "AND company NOT ILIKE '%%trackr%%' AND company NOT ILIKE '%%amplifyme%%' "
+            "AND title NOT ILIKE '%%trackr%%' AND title NOT ILIKE '%%amplifyme%%' "
             "ORDER BY NULLIF(raw::jsonb->>'opening_date', '') DESC NULLS LAST, "
             "         created_at DESC NULLS LAST LIMIT ?",
             (limit,)
@@ -1581,6 +1578,8 @@ def list_jobs():
         rows = fetchall(
             "SELECT * FROM jobs WHERE company IS NOT NULL AND company != '' "
             "AND title IS NOT NULL AND title != '' "
+            "AND company NOT LIKE '%trackr%' AND company NOT LIKE '%amplifyme%' "
+            "AND title NOT LIKE '%trackr%' AND title NOT LIKE '%amplifyme%' "
             "ORDER BY created_at DESC NULLS LAST LIMIT ?",
             (limit,)
         )
@@ -1636,6 +1635,8 @@ def search_jobs():
         f"FROM jobs "
         f"WHERE (title {ilike} ? OR company {ilike} ?) "
         f"  AND (url IS NOT NULL AND url != '') "
+        f"  AND company NOT {ilike} '%%trackr%%' AND company NOT {ilike} '%%amplifyme%%' "
+        f"  AND title NOT {ilike} '%%trackr%%' AND title NOT {ilike} '%%amplifyme%%' "
         f"ORDER BY opening_date DESC NULLS LAST "
         f"LIMIT ?",
         (term, term, limit),
@@ -2471,6 +2472,7 @@ def admin_suppressions():
 
 
 @app.route("/api/suppress", methods=["POST"])
+@require_admin
 def add_suppression():
     data = request.get_json(silent=True) or {}
     identifier = (data.get("identifier") or "").strip()
@@ -2573,7 +2575,12 @@ def api_opportunities():
     from datetime import datetime, timezone
     from db.database import USE_POSTGRES
 
-    slim = request.args.get("slim") == "1"
+    auth_header = request.headers.get("Authorization", "")
+    is_authed = False
+    if auth_header.startswith("Bearer "):
+        is_authed = verify_access_token(auth_header[7:]) is not None
+
+    slim = request.args.get("slim") == "1" or not is_authed
 
     now = _time.time()
     if _opp_cache["data"] is not None and now < _opp_cache["expires_at"]:
@@ -2684,6 +2691,9 @@ def api_opportunities():
             return 'Spring Week'
         if any(k in t for k in ['off-cycle', 'off cycle', 'offcycle']):
             return 'Off-Cycle Internship'
+        # Internships with explicit multi-month durations (e.g. "12 Month Internship") are off-cycle
+        if re.search(r'\b([4-9]|1[0-9]|2[0-4])\s*[- ]?month', t) and 'intern' in t:
+            return 'Off-Cycle Internship'
         if any(k in t for k in ['industrial placement', 'placement year', 'year in industry', 'sandwich', 'year placement']):
             return 'Industrial Placement'
         if any(k in t for k in ['pre-uni', 'pre uni', 'school leaver', 'year 12', 'year 13', 'sixth form', 'work experience', 'work placement', 'pioneer']):
@@ -2739,7 +2749,8 @@ def api_opportunities():
             "  COALESCE(NULLIF(opening_date,''), created_at::date::text) AS listed_date"
             " FROM jobs WHERE company IS NOT NULL AND company != ''"
             " AND title IS NOT NULL AND title != '' AND source IN ('trackr', 'wttj', 'jorb')"
-            " AND lower(company) != 'trackr'"
+            " AND lower(company) NOT LIKE '%%trackr%%' AND lower(company) NOT LIKE '%%amplifyme%%'"
+            " AND lower(title) NOT LIKE '%%trackr%%' AND lower(title) NOT LIKE '%%amplifyme%%'"
             " AND url IS NOT NULL AND url != ''"
             " ORDER BY NULLIF(opening_date,'')::date DESC NULLS LAST, created_at DESC NULLS LAST LIMIT 10000"
         )
@@ -2766,13 +2777,15 @@ def api_opportunities():
     # companies (e.g. "Citadel" vs "Citadel Securities"), keep only the
     # highest-priority source version. Priority: trackr > wttj > jorb.
     import re as _re_dd
+    from urllib.parse import urlparse as _urlparse, parse_qs as _parse_qs, urlencode as _urlencode, urlunparse as _urlunparse
     _CO_SUFFIXES_DD = (
         ' securities', ' capital', ' group', ' management', ' asset management',
         ' partners', ' advisors', ' advisory', ' investments', ' & co',
         ' llp', ' llc', ' inc', ' ltd', ' plc', ' corp',
     )
     _STOP_DD = frozenset({'the', 'a', 'an', 'in', 'of', 'for', 'and', 'or', 'at', 'to', 'with', 'by'})
-    _SRC_RANK_DD = {'trackr': 0, 'wttj': 1, 'jorb': 2}
+    # Non-Trackr sources have richer data (direct apply links) — prefer them over Trackr
+    _SRC_RANK_DD = {'jorb': 0, 'wttj': 1, 'trackr': 2}
 
     def _co_key_dd(name: str) -> str:
         s = _re_dd.sub(r'[^a-z0-9 ]', ' ', (name or '').lower()).strip()
@@ -2788,19 +2801,40 @@ def api_opportunities():
             if w not in _STOP_DD and len(w) > 1
         )
 
+    _TRACKING_PARAMS = frozenset({'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'source', 'trackr'})
+    def _norm_url_dd(url: str) -> str:
+        """Normalize a URL for dedup: lowercase host, strip trailing slash, drop tracking params."""
+        if not url:
+            return ''
+        try:
+            p = _urlparse(url.lower())
+            qs = {k: v for k, v in _parse_qs(p.query, keep_blank_values=True).items() if k not in _TRACKING_PARAMS}
+            return _urlunparse((p.scheme, p.netloc, p.path.rstrip('/'), '', _urlencode(sorted(qs.items())), ''))
+        except Exception:
+            return url.lower()
+
     rows.sort(key=lambda r: _SRC_RANK_DD.get(r.get('source') or '', 9))
+    _seen_url_dd: set[str] = set()
     _seen_co_dd: dict[str, list] = {}
     _deduped_rows: list = []
     for _r in rows:
-        _ck  = _co_key_dd(_r.get('company', '')) + '|' + (_r.get('region') or 'UK')
         _src = _r.get('source') or ''
+        # URL-based dedup: exact match on normalized apply URL (cross-source only)
+        _nurl = _norm_url_dd(_r.get('url', ''))
+        if _nurl and _nurl in _seen_url_dd:
+            continue
+        _ck  = _co_key_dd(_r.get('company', '')) + '|' + (_r.get('region') or 'UK')
         _tw  = _tw_dd(_r.get('title', ''))
         _existing = _seen_co_dd.get(_ck, [])
-        # Only dedup against entries from a DIFFERENT source — same-source listings
-        # (e.g. "Business Analyst" and "Business Analyst Intern" both from trackr)
-        # are distinct programmes and must never be dropped against each other.
-        if any(_tw <= _ex_tw or _ex_tw <= _tw for (_ex_src, _ex_tw) in _existing if _ex_src != _src):
+        # Title-word dedup: only cross-source, require 4+ words in the matching subset
+        # so short generic titles like "12 Month Internship" don't absorb specific variants
+        if any(
+            (_tw <= _ex_tw and len(_tw) >= 4) or (_ex_tw <= _tw and len(_ex_tw) >= 4)
+            for (_ex_src, _ex_tw) in _existing if _ex_src != _src
+        ):
             continue
+        if _nurl:
+            _seen_url_dd.add(_nurl)
         _existing.append((_src, _tw))
         _seen_co_dd[_ck] = _existing
         _deduped_rows.append(_r)
@@ -2822,7 +2856,38 @@ def api_opportunities():
     older_list  = [c for c in companies if c not in recent_cos]
 
     leads_by_company: dict = {}
-    cols = "id, name, title, job_title, linkedin_url, job_expected_email, company, lead_type, is_alumni, university, tenure_months, location_country"
+    cols = "id, name, title, job_title, linkedin_url, job_expected_email, company, lead_type, dept_tag, is_alumni, university, tenure_months, location_country"
+    from pipeline.lead_builder import _dept_from_title as _dept_from_job_title
+    # Broad industry family each dept_tag belongs to.
+    # "Relevant Team" matching uses the family, not the exact dept, so any finance
+    # contact is relevant to any finance role (not just IB↔IB).
+    _DEPT_BROAD_CAT = {
+        "investment_banking": "finance", "sales_trading": "finance",
+        "asset_management": "finance", "equity_research": "finance",
+        "risk": "finance", "quant": "finance",
+        "software_engineering": "tech", "data_ml": "tech",
+        "product": "tech", "infrastructure": "tech", "design": "tech",
+        "law_corporate": "law", "law_finance": "law",
+        "law_disputes": "law", "law_tech": "law",
+        "consulting": "consulting", "healthcare": "healthcare",
+        "marketing": "marketing", "general": "general",
+    }
+    # "Relevant Team" should mean someone senior enough to influence hiring —
+    # not a peer analyst or associate who has no say in the process.
+    _SENIOR_KW = frozenset([
+        "senior", "vice president", "vp", "director", "partner", "manager",
+        "head of", "principal", "staff", "lead ", "chief", "president",
+        "managing", "executive",
+    ])
+    _JUNIOR_KW = frozenset([
+        "intern", "trainee", "placement", "graduate scheme", "spring week",
+        "analyst", "associate",
+    ])
+    def _contact_is_senior(title: str) -> bool:
+        t = title.lower()
+        if any(kw in t for kw in _SENIOR_KW):
+            return True
+        return not any(kw in t for kw in _JUNIOR_KW)
 
     if recent_list and USE_POSTGRES:
         for l in fetchall(
@@ -2941,11 +3006,21 @@ def api_opportunities():
         # Any Spring Week job whose title contains 'intern' belongs under internship filters
         if programme_type == 'Spring Week' and 'intern' in title.lower():
             programme_type = 'Summer Internship'
+        # Internships with explicit multi-month durations (e.g. "12 Month Internship") are off-cycle
+        # regardless of which Trackr bucket they were scraped from
+        if programme_type == 'Summer Internship' and re.search(r'\b([4-9]|1[0-9]|2[0-4])\s*[- ]?month', title.lower()) and 'intern' in title.lower():
+            programme_type = 'Off-Cycle Internship'
+        # Per-listing overrides where duration is known but not in the title
+        _PROG_TYPE_OVERRIDES = {
+            ('transaction banking services internship', 'crédit agricole'): 'Off-Cycle Internship',
+        }
+        programme_type = _PROG_TYPE_OVERRIDES.get((title.lower(), company.lower()), programme_type)
 
         raw_leads = leads_by_company.get(company.lower(), [])
         leads = []
         _REGION_COUNTRY = {"UK": "united kingdom", "US": "united states"}
         job_country = _REGION_COUNTRY.get(region, "").lower()
+        job_dept = _dept_from_job_title(title)
         for l in raw_leads:
             name   = l.get("name") or ""
             badges = []
@@ -2954,13 +3029,30 @@ def api_opportunities():
             is_alumni = l.get("is_alumni")
             if is_alumni and is_alumni not in (0, False, "0", "false"):
                 badges.append("exp")
-            raw_lt = l.get("lead_type") or "relevant"
-            # Only grant "Relevant Team" to contacts actually at the same office region.
-            # A Paris contact shown against a London listing is not the relevant team.
-            if raw_lt == "relevant" and job_country:
+            raw_lt = l.get("lead_type") or "general"
+            lead_title = l.get("title") or l.get("job_title") or ""
+            lead_dept  = l.get("dept_tag") or "general"
+            job_broad  = _DEPT_BROAD_CAT.get(job_dept, "general")
+            lead_broad = _DEPT_BROAD_CAT.get(lead_dept, "general")
+
+            # Region gate: strip Relevant Team from contacts in a different office country.
+            if raw_lt in ("relevant", "exec") and job_country:
                 lead_country = (l.get("location_country") or "").lower()
                 if lead_country and job_country not in lead_country:
                     raw_lt = "general"
+
+            # Broad-category + seniority gate.
+            # "Relevant Team" = senior person on the right team, not a peer analyst.
+            if raw_lt == "relevant" and job_broad != "general":
+                if lead_broad == "general" or lead_broad != job_broad:
+                    raw_lt = "general"
+                elif not _contact_is_senior(lead_title):
+                    raw_lt = "general"
+            # Exec contacts (found via director/partner searches) are already senior.
+            # Promote them to "Relevant Team" when their dept family matches the job.
+            elif raw_lt == "exec" and job_broad != "general" and lead_broad != "general":
+                if lead_broad == job_broad:
+                    raw_lt = "relevant"
             leads.append({
                 "id":             l.get("id"),
                 "name":           name,

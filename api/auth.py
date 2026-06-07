@@ -47,5 +47,6 @@ def require_jwt(f):
         if not payload:
             return jsonify({"error": "invalid or expired token"}), 401
         g.student_id = payload["sub"]
+        db.record_user_activity(g.student_id)
         return f(*args, **kwargs)
     return decorated

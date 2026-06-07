@@ -1192,12 +1192,14 @@ def upsert_job(conn, job: dict) -> tuple:
         # This prevents an earlier-season scrape entry from overwriting a
         # later-season entry's date (e.g. 2026-season "2025-08-31" must not
         # clobber 2027-season "2026-06-03" for the same URL).
+        # IMPORTANT: GREATEST(x, NULL) = NULL in Postgres, so we must use
+        # COALESCE to fall back to the existing value when new date is NULL.
         od_expr = (
-            f"GREATEST(NULLIF(opening_date,''), ?)"
+            f"COALESCE(GREATEST(NULLIF(opening_date,''), ?), NULLIF(opening_date,''))"
             if USE_POSTGRES else
-            f"CASE WHEN opening_date > ? THEN opening_date ELSE ? END"
+            f"CASE WHEN ? IS NULL THEN opening_date WHEN opening_date > ? THEN opening_date ELSE ? END"
         )
-        od_params = (opening_date,) if USE_POSTGRES else (opening_date, opening_date)
+        od_params = (opening_date,) if USE_POSTGRES else (opening_date, opening_date, opening_date)
         _exec(
             conn,
             f"UPDATE jobs SET title=?, company=?, url=?, location=?, "

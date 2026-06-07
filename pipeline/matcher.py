@@ -198,8 +198,8 @@ def build_search_query(
     # Seniority range: 1–2 levels above the student
     seniority_terms = ["analyst", "associate", "manager", "director", "vice president"]
 
-    parts = [f'site:linkedin.com/in']
-    parts.append(f'"{company}"')
+    # Plain keyword format — site:linkedin.com/in is blocked on all SearXNG engines from Railway IP
+    parts = [f'"{company}"']
 
     if team_keywords:
         kw_str = " OR ".join(f'"{k}"' for k in team_keywords[:2])
@@ -209,10 +209,10 @@ def build_search_query(
     parts.append(f"({seniority_str})")
 
     if student_university:
-        # Alumni boost — append university name
         uni_clean = student_university.strip().strip('"')
         parts.append(f'"{uni_clean}"')
 
+    parts.append("linkedin")
     return " ".join(parts)
 
 
@@ -259,6 +259,7 @@ class LinkedInMatcher:
         if _extra:
             logger.info(f"Loaded {len(_extra)} additional Serper key(s) from Notion")
         self.searxng_url = os.environ.get("SEARXNG_URL", "").rstrip("/")  # self-hosted, free
+        self._searxng_suspended_until: float = 0.0  # epoch seconds; skip SearXNG until this time
         self.brave_key   = os.environ.get("BRAVE_SEARCH_API_KEY", "") # fallback
         self.serp_key    = os.environ.get("SERPAPI_KEY", "")       # fallback
         # Warn if someone has the old dead Bing key set
@@ -781,6 +782,17 @@ class LinkedInMatcher:
             logger.error(f"Brave search failed: {e}")
             return []
 
+    def _brave_search_two_pages(self, query: str) -> list[dict]:
+        p1 = self._brave_search(query, count=20)
+        p2 = self._brave_search(query, count=20)  # Brave has no page param; dedupe by URL
+        seen, out = set(), []
+        for r in p1 + p2:
+            u = r.get("url", "")
+            if u not in seen:
+                seen.add(u)
+                out.append(r)
+        return out
+
     # ── Serper backend (Google) ───────────────────────────────────────────────
     def _serper_search(self, query: str, count: int = 10, page: int = 1) -> list[dict]:
         """
@@ -859,7 +871,8 @@ class LinkedInMatcher:
     # ── Unified search dispatcher ─────────────────────────────────────────────
     def _search(self, query: str, count: int = 10, page: int = 1) -> list[dict]:
         """Route: SearXNG (primary) → Serper (fallback) → DDG (last resort)."""
-        if self.searxng_url:
+        import time as _time
+        if self.searxng_url and _time.time() > self._searxng_suspended_until:
             try:
                 results = self._searxng_search(query, count=count, page=page)
                 if results:
@@ -877,7 +890,8 @@ class LinkedInMatcher:
 
     def _search_two_pages(self, query: str) -> list[dict]:
         """Two pages of results: SearXNG p1+p2, Serper p1+p2, or DDG max_results=20."""
-        if self.searxng_url:
+        import time as _time
+        if self.searxng_url and _time.time() > self._searxng_suspended_until:
             try:
                 results = self._searxng_search_two_pages(query)
                 if results:
@@ -900,6 +914,8 @@ class LinkedInMatcher:
         Set SEARXNG_URL env var to e.g. https://searxng-production-xxx.up.railway.app
         Returns same format as _serper_search: [{name, url, snippet}]
         """
+        import time as _time
+
         self._throttle()
         params = urllib.parse.urlencode({
             "q":       query,
@@ -912,6 +928,12 @@ class LinkedInMatcher:
             req = urllib.request.Request(url, headers={"User-Agent": "inroad/1.0"})
             with urllib.request.urlopen(req, timeout=20) as r:
                 data = json.loads(r.read().decode("utf-8", errors="replace"))
+            # If all engines are suspended, back off for 5 minutes to avoid wasting calls
+            unresponsive = data.get("unresponsive_engines", [])
+            if unresponsive and not data.get("results"):
+                self._searxng_suspended_until = _time.time() + 300
+                logger.warning("SearXNG: all engines suspended, skipping for 5 min")
+                return []
             seen, results = set(), []
             for it in data.get("results", []):
                 u = it.get("url", "")

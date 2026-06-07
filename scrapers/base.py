@@ -158,7 +158,8 @@ def infer_role_type(title: str) -> str:
 
 
 INDUSTRY_KEYWORD_MAP: dict[str, list[str]] = {
-    "Finance":              ["finance", "financial", "treasury", "accounting", "asset management", "hedge fund", "quant"],
+    "Finance":              ["finance", "financial", "treasury", "accounting", "asset management", "hedge fund", "quant",
+                             "trading", "securities", "fixed income", "fic "],
     "Investment Banking":   ["investment bank", "m&a", "mergers", "acquisition", "capital markets", "ipo", "equity research", "dcm", "ecm"],
     # Software Engineering checked BEFORE Technology so coding roles aren't swallowed by the broader bucket
     "Software Engineering": ["software engineer", "software developer", "developer", "swe",
@@ -166,13 +167,17 @@ INDUSTRY_KEYWORD_MAP: dict[str, list[str]] = {
                              "devops", "sre", "site reliability", "mobile engineer",
                              "ml engineer", "machine learning engineer", "ai engineer",
                              "platform engineer", "data engineer", "infrastructure engineer",
-                             "cloud engineer", "embedded", "firmware"],
+                             "cloud engineer", "embedded", "firmware",
+                             "ai infrastructure", "algorithm researcher"],
     # Technology = non-coding roles at tech companies (ops, analysts, consultants in tech context)
     "Technology":           ["technology analyst", "it analyst", "digital analyst",
                              "technical analyst", "tech operations", "it operations",
                              "digital transformation", "solutions analyst", "systems analyst",
                              "technology consultant", "tech consultant", "it consultant",
-                             "saas", "enterprise technology", "technology program"],
+                             "saas", "enterprise technology", "technology program",
+                             "tech grad", "electrical engineer", "computer engineer",
+                             "photonics", "manufacturing engineer", "process integration",
+                             "semiconductor", "hardware engineer", "vlsi", "fpga"],
     "Product Management":   ["product manager", "product management", "pm ", "product owner", "product lead"],
     "Consulting":           ["consulting", "consultant", "advisory", "management consulting", "strategy consulting"],
     "Strategy":             ["strategy", "strategic", "corporate development", "business development", "biz dev"],

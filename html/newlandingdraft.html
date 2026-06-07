@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
+<link rel="apple-touch-icon" href="/static/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>inroad - A smarter path into the workforce</title>
 <meta name="description" content="Find live job openings and connect directly with the people who can get you in. Personalised outreach tied to real opportunities.">
@@ -769,7 +770,7 @@
   }
   .tg-avatar img { width: 100%; height: 100%; object-fit: cover; filter: blur(6px); transform: scale(1.15); display: block; }
   .tg-quote { font-size: 2.6rem; font-weight: 900; color: var(--green-mid); line-height: 1; margin-bottom: 10px; font-style: italic; }
-  .tg-text { font-size: 0.95rem; color: var(--text-mid); font-weight: 300; line-height: 1.76; flex: 1; margin-bottom: 24px; }
+  .tg-text { font-size: 0.95rem; color: var(--text); font-weight: 300; line-height: 1.76; flex: 1; margin-bottom: 24px; text-align: center; }
   .tg-author { padding-top: 16px; border-top: 1px solid var(--border); width: 100%; }
   .tg-name { font-size: 0.82rem; font-weight: 700; color: var(--text); }
   .tg-uni { font-size: 0.72rem; color: var(--muted); font-weight: 300; margin-top: 3px; }
@@ -833,6 +834,48 @@
   .footer-links a:hover { color: var(--text); }
   .footer-copy { font-size: 0.76rem; color: var(--subtle); }
 
+  /* ── FOOTER NAV ── */
+  .footer-nav {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 64px 48px 48px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 0;
+    row-gap: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-nav-brand p {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 300;
+    line-height: 1.7;
+    margin-top: 14px;
+    max-width: 240px;
+  }
+
+  .footer-nav-col h4 {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .footer-nav-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+  .footer-nav-col ul a {
+    font-size: 0.855rem;
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.15s;
+  }
+
+  .footer-nav-col ul a:hover { color: var(--text); }
+
   /* ── ANIMATIONS ── */
   @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -861,8 +904,17 @@
     .feature-split { grid-template-columns: 1fr; gap: 36px; }
     .cta-section { padding: 72px 24px; }
     footer { flex-direction: column; gap: 20px; text-align: center; padding: 28px 24px; }
+    .footer-nav { grid-template-columns: 1fr 1fr; gap: 32px; padding: 48px 24px 32px; }
+    .footer-nav-brand { grid-column: 1 / -1; }
+    .footer-nav-brand p { max-width: none; }
     .carousel-wrap { padding: 14px 0; }
     .ticker-label { padding: 0 16px 0 24px; }
+    .tgrid { grid-template-columns: 1fr; }
+    #features { padding-left: 16px !important; }
+    #features .reveal { width: 100% !important; }
+    #features p.eyebrow, #features h2 { margin-left: 0 !important; }
+    .pipeline-mobile-wrap { padding-right: 16px !important; }
+    .pipeline-mobile-wrap .reveal { width: 100% !important; margin-left: 0 !important; }
   }
 
   @media (max-width: 600px) {
@@ -1034,8 +1086,7 @@
   .drop-zone { min-height: 32px; padding: 3px 4px; background: rgba(255,255,255,0.3); border-top: 1px solid rgba(0,0,0,0.05); transition: background 0.15s; }
   .rejection-block .drop-zone { min-height: 28px; background: rgba(255,255,255,0.2); }
   .dz-hint { font-size: 0.58rem; color: var(--subtle); display: block; text-align: center; padding: 4px 0; font-style: italic; }
-  .pipeline-chip { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 3px 5px; margin-bottom: 3px; cursor: pointer; font-size: 0.62rem; transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s; }
-  .pipeline-chip:hover { border-color: var(--border-md); transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+  .pipeline-chip { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 3px 5px; margin-bottom: 3px; cursor: pointer; font-size: 0.62rem; }
   .pipeline-chip.chip-expanded { border-color: var(--border-md); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
   .chip-top-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px; }
   .chip-info { min-width: 0; }
@@ -1047,6 +1098,10 @@
   .pipeline-chip.chip-expanded .chip-detail { display: block; }
   .chip-detail-row { font-size: 0.57rem; color: var(--muted); display: flex; gap: 3px; padding: 1px 0; }
   .chip-detail-lbl { font-weight: 700; color: var(--subtle); flex-shrink: 0; min-width: 30px; }
+
+  .screenshot-split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .screenshot-split { grid-template-columns: 1fr; } }
+
 </style>
 <script src="/static/auth.js"></script>
 </head>
@@ -1055,7 +1110,7 @@
 <!-- NAV -->
 <nav>
   <div class="nav-inner">
-    <a href="/?home=1" class="wordmark">
+    <a href="/" class="wordmark">
       <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
       <span style="font-family:'Lora',Georgia,serif;font-weight:700;letter-spacing:-0.02em;font-size:1.25rem;color:#fff;">inroad</span>
     </a>
@@ -1088,7 +1143,7 @@
   } catch { return; }
   if (!d) return;
   const lim = (d.daily_cards_override && parseInt(d.daily_cards_override, 10) > 0)
-    ? parseInt(d.daily_cards_override, 10) : 3;
+    ? parseInt(d.daily_cards_override, 10) : 5;
   const name = d.name || '';
   const initials = name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('') || '?';
   const navCenter = document.getElementById('nav-center');
@@ -1126,7 +1181,7 @@
       <p class="hero-deck" style="grid-column: span 2;">Stop applying into the void.<br>The graduate job market is broken.<br>inroad gives you personalised outreach tied to the newest openings and the people who can get you in.</p>
       <div class="deck-actions-col">
         <div class="deck-btns">
-          <a href="/opportunities" class="btn-hero-primary">Get started free →</a>
+          <a href="/opportunities" class="btn-hero-primary">Start for free →</a>
           <a href="#how" class="btn-hero-ghost">How it works ›</a>
         </div>
         <p class="hero-free-note">
@@ -1194,7 +1249,7 @@
           <span class="pp-meta">Today · 3/5 sent</span>
         </div>
         <div class="strip-lead-row">
-          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=faces&q=80" alt="Marcus L., Trader at Jane Street"></div>
           <div class="strip-lead-info">
             <div class="strip-lead-name-row">
               <span class="strip-lead-name">Marcus L.</span>
@@ -1204,7 +1259,7 @@
           <span class="strip-draft-btn">Draft email →</span>
         </div>
         <div class="strip-lead-row">
-          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&crop=faces&q=80" alt="Priya N., Analyst at Citadel"></div>
           <div class="strip-lead-info">
             <div class="strip-lead-name-row">
               <span class="strip-lead-name">Priya N.</span>
@@ -1214,7 +1269,7 @@
           <span class="strip-draft-btn">Draft email →</span>
         </div>
         <div class="strip-lead-row">
-          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop&crop=faces&q=80" alt="Sarah R., Director at Morgan Stanley"></div>
           <div class="strip-lead-info">
             <div class="strip-lead-name-row">
               <span class="strip-lead-name">Sarah R.</span>
@@ -1225,7 +1280,7 @@
           <span class="strip-sent">Sent ✓</span>
         </div>
         <div class="strip-lead-row">
-          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=faces&q=80" alt="Aisha T., PM at Revolut"></div>
           <div class="strip-lead-info">
             <div class="strip-lead-name-row">
               <span class="strip-lead-name">Aisha T.</span>
@@ -1235,7 +1290,7 @@
           <span class="strip-sent">Sent ✓</span>
         </div>
         <div class="strip-lead-row">
-          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=80&h=80&fit=crop&crop=faces&q=80" alt=""></div>
+          <div class="strip-lead-av"><img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=80&h=80&fit=crop&crop=faces&q=80" alt="James K., Analyst at Goldman Sachs"></div>
           <div class="strip-lead-info">
             <div class="strip-lead-name-row">
               <span class="strip-lead-name">James K.</span>
@@ -1314,443 +1369,59 @@
 
 <!-- FEATURE: LISTINGS -->
 <div class="section-divider"><hr></div>
-<div class="section" id="features" style="padding-left:16px;padding-right:16px;max-width:1200px;">
-  <p class="eyebrow reveal">New listings as soon as they are posted</p>
-  <p class="section-sub reveal" style="margin-bottom:18px;">Right click to track <em>in the pipeline</em></p>
-  <div class="reveal" style="position:relative;overflow:visible;">
-    <div class="card-list">
-
-      <div class="job-card">
-        <div class="card-row">
-          <span class="card-date fresh">23 May</span>
-          <div class="card-left">
-            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=morganstanley.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
-            <span class="card-company">Morgan Stanley</span>
-            <span class="card-programme">2026 Quantitative Finance Off-Cycle Internship</span>
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
-            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
-            <span class="card-chevron">▶</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="job-card">
-        <div class="card-row">
-          <span class="card-date fresh">22 May</span>
-          <div class="card-left">
-            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=rwbaird.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
-            <span class="card-company">Baird</span>
-            <span class="card-programme">Global Investment Banking – M&amp;A Internship (6 months)</span>
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
-            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
-            <span class="card-chevron">▶</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="job-card">
-        <div class="card-row">
-          <span class="card-date fresh">22 May</span>
-          <div class="card-left">
-            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=arondite.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
-            <span class="card-company">Arondite</span>
-            <span class="card-programme">New Grad Deployed Software Engineer</span>
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
-            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
-            <span class="card-chevron">▶</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="job-card">
-        <div class="card-row">
-          <span class="card-date fresh">21 May</span>
-          <div class="card-left">
-            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=citadel.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
-            <span class="card-company">Citadel</span>
-            <span class="card-programme">International Equities Associate – Intern</span>
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
-            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
-            <span class="card-chevron">▶</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="job-card">
-        <div class="card-row">
-          <span class="card-date fresh">21 May</span>
-          <div class="card-left">
-            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=aramcotrading.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
-            <span class="card-company">Aramco Trading Company</span>
-            <span class="card-programme">Summer Intern</span>
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
-            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
-            <span class="card-chevron">▶</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="job-card">
-        <div class="card-row">
-          <span class="card-date fresh">21 May</span>
-          <div class="card-left">
-            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=hl.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
-            <span class="card-company">Houlihan Lokey</span>
-            <span class="card-programme">Internship – 6 Months – FSG</span>
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
-            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
-            <span class="card-chevron">▶</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- YFM card — expanded, cursor right-clicking, context menu open -->
-      <div style="position:relative;">
-        <div class="job-card expanded">
-          <div class="card-row">
-            <span class="card-date fresh">20 May</span>
-            <div class="card-left">
-              <img class="card-logo" src="https://www.google.com/s2/favicons?domain=yfmequitypartners.com&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
-              <span class="card-company">YFM Equity Partners</span>
-              <span class="card-programme">Summer Internship</span>
-            </div>
-            <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-              <a class="careers-btn-inline" href="/opportunities">Company Site</a>
-              <a class="apply-btn-inline" href="/opportunities">Apply →</a>
-              <span class="card-chevron" style="transform:rotate(90deg);opacity:0.75;">▶</span>
-            </div>
-          </div>
-          <div class="card-detail" style="max-height:220px;opacity:1;border-top:1px solid rgba(0,0,0,0.07);">
-            <div class="card-detail-inner">
-              <div class="card-detail-fields">
-                <div class="card-detail-meta-row">
-                  <div class="detail-field"><span class="detail-label">Closes</span><div class="detail-value">1 Sep 2026</div></div>
-                  <div class="detail-field"><span class="detail-label">Location</span><div class="detail-value">London</div></div>
-                  <div class="detail-field"><span class="detail-label">Stage</span><div class="detail-value detail-stage-active">Open</div></div>
-                  <div class="detail-field"><span class="detail-label">Visa</span><div class="detail-value">Not sponsored</div></div>
-                  <div class="detail-field"><span class="detail-label">Cover Letter</span><div class="detail-value">No</div></div>
-                </div>
-              </div>
-              <div class="card-detail-process">
-                <span class="detail-label">Interview Process</span>
-                <div class="proc-steps">
-                  <div class="proc-step-row"><span class="proc-node"></span><span class="proc-step-txt">Technical Interview</span></div>
-                  <div class="proc-connector"></div>
-                  <div class="proc-step-row"><span class="proc-node"></span><span class="proc-step-txt">Video Interview</span></div>
-                  <div class="proc-connector"></div>
-                  <div class="proc-step-row"><span class="proc-node"></span><span class="proc-step-txt">Assessment Centre</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- cursor arrow SVG -->
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="22" viewBox="0 0 18 22"
-             style="position:absolute;top:105px;left:73%;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));z-index:100;">
-          <path d="M2 2 L2 18 L5.5 14.5 L8.5 20.5 L11 19.5 L8 13.5 L14 13.5 Z" fill="white" stroke="#1a1a1a" stroke-width="1.2" stroke-linejoin="round"/>
-        </svg>
-        <!-- right-click context menu -->
-        <div style="position:absolute;top:122px;left:calc(73% + 12px);background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.14);min-width:190px;padding:4px 0;z-index:99;font-family:'Lato',sans-serif;">
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:0.8rem;font-weight:500;color:#374151;">
-            <span style="width:8px;height:8px;border-radius:50%;background:#E8960C;flex-shrink:0;display:inline-block;"></span>Applied &amp; Pending
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:0.8rem;font-weight:500;color:#374151;">
-            <span style="width:8px;height:8px;border-radius:50%;background:#D4C31E;flex-shrink:0;display:inline-block;"></span>Hirevue &amp; Tested
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:0.8rem;font-weight:500;color:#374151;">
-            <span style="width:8px;height:8px;border-radius:50%;background:#9CC87A;flex-shrink:0;display:inline-block;"></span>Interview 1
-          </div>
-          <div style="height:1px;background:#e5e7eb;margin:4px 0;"></div>
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:0.8rem;font-weight:500;color:#6b7280;">
-            Remove from pipeline
-          </div>
-        </div>
-      </div>
-
-      <div class="job-card">
-        <div class="card-row">
-          <span class="card-date">19 May</span>
-          <div class="card-left">
-            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=lec.ai&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
-            <span class="card-company">LEC AI</span>
-            <span class="card-programme">AI Engineer Summer Internship 2026</span>
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
-            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
-            <span class="card-chevron">▶</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="job-card">
-        <div class="card-row">
-          <span class="card-date">19 May</span>
-          <div class="card-left">
-            <img class="card-logo" src="https://www.google.com/s2/favicons?domain=cfp.energy&sz=32" alt="" onerror="this.outerHTML='<span class=\'card-logo-placeholder\'></span>'">
-            <span class="card-company">CFP Energy</span>
-            <span class="card-programme">Software &amp; Data Engineering – Summer Internship</span>
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-            <a class="careers-btn-inline" href="/opportunities">Company Site</a>
-            <a class="apply-btn-inline" href="/opportunities">Apply →</a>
-            <span class="card-chevron">▶</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-    <div style="position:absolute;bottom:0;left:0;right:0;height:130px;background:linear-gradient(to bottom,rgba(255,255,255,0) 0%,rgba(255,255,255,0.97) 100%);pointer-events:none;"></div>
+<div id="features" style="padding:80px 0 0 48px;overflow:hidden;">
+  <p class="eyebrow reveal" style="margin-bottom:12px;margin-left:42px;">New listings as soon as they are posted</p>
+  <h2 class="reveal" style="max-width:520px;margin-left:42px;">Every opportunity, <em>trackable with a right click.</em></h2>
+  <div class="reveal" style="position:relative;width:65%;">
+    <img src="../static/listings-screenshot.jpg" alt="inroad listings page" style="width:100%;height:auto;display:block;border-radius:8px;">
+    <!-- Mouse cursor at top-left of dropdown -->
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="17" viewBox="0 0 14 17"
+         style="position:absolute;left:63.8%;top:73.2%;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));z-index:10;">
+      <path d="M1.5 1.5 L1.5 14 L4.5 10.5 L7 15.5 L9 14.5 L6.5 9.5 L11 9.5 Z" fill="white" stroke="#1a1a1a" stroke-width="1" stroke-linejoin="round"/>
+    </svg>
   </div>
 </div>
 
 <!-- FEATURE: PIPELINE -->
-<div class="section-divider"><hr></div>
-<div class="section" style="padding-left:16px;padding-right:16px;max-width:1200px;">
-  <p class="eyebrow reveal">Pipeline tracking</p>
-  <p class="section-sub reveal" style="margin-bottom:18px;">Every application. <em>Always in view.</em></p>
-  <div class="reveal">
-    <div class="pipeline-demo-scroll">
-      <div class="kanban-inner">
-
-        <!-- Col 1: Applied and Pending -->
-        <div class="kanban-col">
-          <div class="kstage-block">
-            <div class="kstage-hdr" style="background:#E8960C;color:#fff;">
-              <span class="kstage-hdr-label">Applied and Pending</span>
-              <span class="kstage-cnt" style="background:rgba(255,255,255,0.25);color:#fff;">3</span>
-            </div>
-            <div class="drop-zone">
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">Vericor Capital</span>
-                    <span class="chip-prog">Search Fund Intern Program</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">AmplifyME</span>
-                    <span class="chip-prog">Summer Analyst Training Programme</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">Rothschild &amp; Co.</span>
-                    <span class="chip-prog">2026 UK Graduate Programme - FIG team</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="kstage-down-arrow">↓</div>
-          <div class="kstage-block rejection-block">
-            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
-              <span class="kstage-hdr-label">Rejected Outright</span>
-              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">2</span>
-            </div>
-            <div class="drop-zone">
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">ITE Management</span>
-                    <span class="chip-prog">Summer Internship (Investment Team - 2026)</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">CFP Energy</span>
-                    <span class="chip-prog">Software &amp; Data Engineering - Summer Internship</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="kanban-arrow">→</div>
-
-        <!-- Col 2: HireVue and Tested -->
-        <div class="kanban-col">
-          <div class="kstage-block">
-            <div class="kstage-hdr" style="background:#D4C31E;color:#1A1714;">
-              <span class="kstage-hdr-label">HireVue and Tested</span>
-              <span class="kstage-cnt" style="background:rgba(26,23,20,0.12);color:#1A1714;">2</span>
-            </div>
-            <div class="drop-zone">
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">Avis Budget Group</span>
-                    <span class="chip-prog">AI Engineer Intern - Summer 2026</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">Baird</span>
-                    <span class="chip-prog">Global Investment Banking – M&A Internship (6 months)</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="kstage-down-arrow">↓</div>
-          <div class="kstage-block rejection-block">
-            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
-              <span class="kstage-hdr-label">Rejected after HireVue</span>
-              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">0</span>
-            </div>
-            <div class="drop-zone">
-              <span class="dz-hint">Drop here</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kanban-arrow">→</div>
-
-        <!-- Col 3: Interview #1 -->
-        <div class="kanban-col">
-          <div class="kstage-block">
-            <div class="kstage-hdr" style="background:#9CC87A;color:#1A1714;">
-              <span class="kstage-hdr-label">Interview #1</span>
-              <span class="kstage-cnt" style="background:rgba(26,23,20,0.12);color:#1A1714;">1</span>
-            </div>
-            <div class="drop-zone">
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">Goldman Sachs</span>
-                    <span class="chip-prog">Summer Analyst Programme</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="kstage-down-arrow">↓</div>
-          <div class="kstage-block rejection-block">
-            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
-              <span class="kstage-hdr-label">Rejected after Int. #1</span>
-              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">0</span>
-            </div>
-            <div class="drop-zone">
-              <span class="dz-hint">Drop here</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kanban-arrow">→</div>
-
-        <!-- Col 4: Interview #2 -->
-        <div class="kanban-col">
-          <div class="kstage-block">
-            <div class="kstage-hdr" style="background:#9CC87A;color:#1A1714;">
-              <span class="kstage-hdr-label">Interview #2</span>
-              <span class="kstage-cnt" style="background:rgba(26,23,20,0.12);color:#1A1714;">1</span>
-            </div>
-            <div class="drop-zone">
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">LEC AI</span>
-                    <span class="chip-prog">AI Engineer Summer Internship 2026</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="kstage-down-arrow">↓</div>
-          <div class="kstage-block rejection-block">
-            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
-              <span class="kstage-hdr-label">Rejected after Int. #2</span>
-              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">0</span>
-            </div>
-            <div class="drop-zone">
-              <span class="dz-hint">Drop here</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kanban-arrow">→</div>
-
-        <!-- Col 5: Assessment Center -->
-        <div class="kanban-col">
-          <div class="kstage-block">
-            <div class="kstage-hdr" style="background:#3A7246;color:#fff;">
-              <span class="kstage-hdr-label">Assessment Center</span>
-              <span class="kstage-cnt" style="background:rgba(255,255,255,0.2);color:#fff;">1</span>
-            </div>
-            <div class="drop-zone">
-              <div class="pipeline-chip" onclick="toggleChip(this)">
-                <div class="chip-top-row">
-                  <div class="chip-info">
-                    <span class="chip-co">Citadel</span>
-                    <span class="chip-prog">International Equities Associate – Intern</span>
-                  </div>
-                  <button class="chip-remove" onclick="event.stopPropagation()">×</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="kstage-down-arrow">↓</div>
-          <div class="kstage-block rejection-block">
-            <div class="kstage-hdr" style="background:#FFAAAA;color:#7F1D1D;">
-              <span class="kstage-hdr-label">Rejected after AC</span>
-              <span class="kstage-cnt" style="background:rgba(127,29,29,0.15);color:#7F1D1D;">0</span>
-            </div>
-            <div class="drop-zone">
-              <span class="dz-hint">Drop here</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kanban-arrow">→</div>
-
-        <!-- Col 6: Offer -->
-        <div class="kanban-col">
-          <div class="kstage-block">
-            <div class="kstage-hdr" style="background:#1F4530;color:#fff;">
-              <span class="kstage-hdr-label">Offer</span>
-              <span class="kstage-cnt" style="background:rgba(255,255,255,0.2);color:#fff;">0</span>
-            </div>
-            <div class="drop-zone">
-              <span class="dz-hint">Drop here</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
+<div style="padding:80px 48px;text-align:center;">
+  <p class="eyebrow reveal" style="margin-bottom:12px;">Pipeline tracking</p>
+  <h2 class="reveal" style="max-width:640px;margin:0 auto 48px;">Every application. <em>Always in view.</em></h2>
+  <div class="reveal" style="max-width:900px;margin:0 auto;position:relative;">
+    <div style="position:relative;border-radius:16px;overflow:hidden;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 4px rgba(0,0,0,0.06),0 8px 24px rgba(0,0,0,0.10),0 24px 64px rgba(0,0,0,0.14);">
+      <img src="/static/pipeline-ss-4.png" aria-hidden="true" style="display:block;width:100%;height:auto;visibility:hidden;">
+      <img id="pipeline-img-1" src="/static/pipeline-ss-4.png" alt="inroad pipeline board view"  style="position:absolute;top:0;left:0;width:100%;height:auto;transition:opacity 0.7s ease;opacity:1;">
+      <img id="pipeline-img-2" src="/static/pipeline-ss-5.png" alt="inroad pipeline sankey view" style="position:absolute;top:0;left:0;width:100%;height:auto;transition:opacity 0.7s ease;opacity:0;">
+      <img id="pipeline-img-3" src="/static/pipeline-ss-6.png" alt="inroad pipeline funnel view" style="position:absolute;top:0;left:0;width:100%;height:auto;transition:opacity 0.7s ease;opacity:0;">
+    </div>
+    <div style="display:flex;justify-content:center;gap:8px;margin-top:20px;" id="pipeline-dots">
+      <button onclick="setPipelineSlide(0)" style="width:8px;height:8px;border-radius:50%;border:none;cursor:pointer;background:var(--green);opacity:1;padding:0;transition:opacity 0.2s;"></button>
+      <button onclick="setPipelineSlide(1)" style="width:8px;height:8px;border-radius:50%;border:none;cursor:pointer;background:var(--green);opacity:0.3;padding:0;transition:opacity 0.2s;"></button>
+      <button onclick="setPipelineSlide(2)" style="width:8px;height:8px;border-radius:50%;border:none;cursor:pointer;background:var(--green);opacity:0.3;padding:0;transition:opacity 0.2s;"></button>
     </div>
   </div>
 </div>
+<script>
+(function() {
+  var imgs = [document.getElementById('pipeline-img-1'), document.getElementById('pipeline-img-2'), document.getElementById('pipeline-img-3')];
+  var dots = document.getElementById('pipeline-dots').querySelectorAll('button');
+  var cur  = 0;
+  var timer;
+
+  window.setPipelineSlide = function(n) {
+    imgs[cur].style.opacity = '0';
+    dots[cur].style.opacity = '0.3';
+    cur = n;
+    imgs[cur].style.opacity = '1';
+    dots[cur].style.opacity = '1';
+    clearInterval(timer);
+    timer = setInterval(advance, 4000);
+  };
+
+  function advance() { setPipelineSlide((cur + 1) % imgs.length); }
+
+  timer = setInterval(advance, 4000);
+})();
+</script>
 
 <!-- TESTIMONIALS -->
 <div class="section-divider"><hr></div>
@@ -1760,27 +1431,21 @@
   <p class="section-sub reveal">Early results from students who switched from mass applying to targeted outreach.</p>
   <div class="tgrid reveal">
     <div class="tgcard">
-      <div class="tg-avatar"><img src="https://i.pravatar.cc/120?img=5" alt=""></div>
-      <div class="tg-quote">"</div>
-      <p class="tg-text">I've just sent my first application using your website. And it's genuinely fabulous!</p>
+      <p class="tg-text">"I've just sent my first application using your website. And it's genuinely fabulous!"</p>
       <div class="tg-author">
         <div class="tg-name">Sophie T.</div>
         <div class="tg-uni">UCL · Law · Class of 2027</div>
       </div>
     </div>
     <div class="tgcard">
-      <div class="tg-avatar"><img src="https://i.pravatar.cc/120?img=12" alt=""></div>
-      <div class="tg-quote">"</div>
-      <p class="tg-text">Wow — this is seriously impressive. I've just signed up, and the email reveal feature alone is a game-changer. I'll definitely be using this.</p>
+      <p class="tg-text">"Wow — this is seriously impressive. I've just signed up, and the email reveal feature alone is a game-changer. I'll definitely be using this."</p>
       <div class="tg-author">
         <div class="tg-name">James R.</div>
         <div class="tg-uni">Durham · Economics · Class of 2028</div>
       </div>
     </div>
     <div class="tgcard">
-      <div class="tg-avatar"><img src="https://i.pravatar.cc/120?img=47" alt=""></div>
-      <div class="tg-quote">"</div>
-      <p class="tg-text">Honestly this is probably one of the best websites so far in order to land an internship.</p>
+      <p class="tg-text">"Honestly this is probably one of the best websites so far in order to land an internship."</p>
       <div class="tg-author">
         <div class="tg-name">Aisha M.</div>
         <div class="tg-uni">Warwick · Business · Class of 2027</div>
@@ -1798,24 +1463,57 @@
   </div>
 </div>
 
-<!-- FOOTER -->
-<footer>
-  <div style="display:flex;align-items:center;gap:16px;">
-    <a href="/?home=1" class="footer-wordmark">
-      <svg width="22" height="22" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
-      <span class="footer-wm-text">inroad</span>
-    </a>
-    <a href="https://www.linkedin.com/company/the-inroad" target="_blank" rel="noopener" style="display:flex;align-items:center;color:var(--subtle);transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--subtle)'" aria-label="LinkedIn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452H17.21v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.987V9h3.102v1.561h.046c.432-.818 1.49-1.681 3.065-1.681 3.278 0 3.881 2.156 3.881 4.961v6.611zM5.337 7.433a1.8 1.8 0 1 1 0-3.601 1.8 1.8 0 0 1 0 3.601zM6.954 20.452H3.72V9h3.234v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-    </a>
+<!-- FOOTER NAV -->
+<div class="footer-nav">
+  <div class="footer-nav-brand">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a href="/" class="footer-wordmark" style="margin-bottom:0;">
+        <svg width="26" height="26" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect width="88" height="88" rx="22" fill="#1F4530"/><path d="M26 24 L54 44 L26 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="54" y1="44" x2="70" y2="44" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>
+        <span class="footer-wm-text">inroad</span>
+      </a>
+      <a href="https://www.linkedin.com/company/the-inroad" target="_blank" rel="noopener" style="display:flex;align-items:center;color:var(--subtle);transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--subtle)'" aria-label="LinkedIn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452H17.21v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.987V9h3.102v1.561h.046c.432-.818 1.49-1.681 3.065-1.681 3.278 0 3.881 2.156 3.881 4.961v6.611zM5.337 7.433a1.8 1.8 0 1 1 0-3.601 1.8 1.8 0 0 1 0 3.601zM6.954 20.452H3.72V9h3.234v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      </a>
+      <a href="https://www.instagram.com/the_inroad/" target="_blank" rel="noopener" style="display:flex;align-items:center;color:var(--subtle);transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--subtle)'" aria-label="Instagram">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+      </a>
+    </div>
+    <p>The newest internship and graduate job listings, matched to the people who can get you in.</p>
+    <p style="font-size:0.76rem;color:var(--subtle);margin-top:16px;">© 2026 Inroad</p>
   </div>
-  <ul class="footer-links">
-    <li><a href="/privacy">Privacy</a></li>
-    <li><a href="/terms">Terms</a></li>
-    <li><a href="/contact">Contact</a></li>
-  </ul>
-  <p class="footer-copy">© 2026 Inroad</p>
-</footer>
+
+  <div style="display:flex;gap:48px;align-items:flex-start;">
+    <div class="footer-nav-col">
+      <h3>Explore</h3>
+      <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#stories">Stories</a></li>
+        <li><a href="/listings">Listings</a></li>
+        <li><a href="/opportunities">Opportunities</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-nav-col">
+      <h3>Resources</h3>
+      <ul>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/contact">Contact</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-nav-col">
+      <h3>Account</h3>
+      <ul>
+        <li><a href="/signup">Create account</a></li>
+        <li><a href="/login">Login</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/terms">Terms</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 
 <div class="refer-modal-backdrop" id="refer-modal-overlay" onclick="if(event.target===this)closeReferModal()">
   <div class="refer-modal">

@@ -362,6 +362,16 @@
     justify-self: start;
   }
   .apply-btn-inline:hover { background: var(--green-deep); }
+  .apply-btn-stale { opacity: 0.5; }
+  .apply-btn-stale:hover { opacity: 0.7; background: var(--green-deep); }
+  .apply-btn-closed {
+    font-size: 0.63rem; font-weight: 700;
+    background: #ccc; color: #888;
+    border: none; border-radius: 4px;
+    padding: 3px 8px; cursor: not-allowed;
+    text-decoration: none; white-space: nowrap;
+    justify-self: start;
+  }
   .careers-btn-inline {
     font-size: 0.63rem; font-weight: 700;
     background: #122B1E; color: #fff;
@@ -371,6 +381,62 @@
     transition: opacity 0.12s;
   }
   .careers-btn-inline:hover { opacity: 0.82; }
+
+  /* ── CARD DETAIL DROPDOWN ── */
+  .card-chevron {
+    font-size: 7px; color: var(--subtle); opacity: 0.45;
+    transition: transform 0.2s; flex-shrink: 0; line-height: 1;
+  }
+  .job-card.expanded .card-chevron { transform: rotate(90deg); opacity: 0.75; }
+
+  .card-detail {
+    overflow: hidden; max-height: 0; opacity: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    border-radius: 0 0 6px 6px;
+  }
+  .job-card.expanded .card-detail {
+    max-height: 220px; opacity: 1;
+    border-top: 1px solid rgba(0,0,0,0.07);
+  }
+  .card-detail-inner {
+    display: grid; grid-template-columns: 1fr 1fr;
+    padding: 12px 14px 12px 78px;
+  }
+  .card-detail-fields { display: flex; }
+  .card-detail-meta-row { display: flex; gap: 8px 22px; align-items: flex-start; }
+  .card-detail-process {
+    border-left: 1px solid var(--border); padding-left: 18px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .detail-field { display: flex; flex-direction: column; gap: 2px; align-items: center; text-align: center; }
+  .detail-label {
+    font-size: 0.54rem; font-weight: 700; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--subtle);
+  }
+  .detail-value { font-size: 0.72rem; color: var(--text-mid); }
+  .detail-closed { color: #DC2626; }
+  .detail-closes-soon { color: #CA8A04; font-weight: 700; }
+  .detail-visa-yes  { color: #166534; font-weight: 700; }
+  .detail-stage-active { color: #1E40AF; font-weight: 600; }
+  .detail-stage-offers { color: #9B1C1C; font-weight: 700; }
+
+  /* 4A process track — green-mid dots, border-md connector, vertical */
+  .proc-steps     { display: flex; flex-direction: column; gap: 0; }
+  .proc-step-row  { display: flex; align-items: center; gap: 8px; }
+  .proc-node      { width: 7px; height: 7px; border-radius: 50%; background: var(--green-mid); flex-shrink: 0; }
+  .proc-step-txt  { font-size: 0.69rem; color: var(--text-mid); }
+  .proc-connector { width: 1px; height: 10px; background: var(--border-md); margin-left: 3px; }
+
+  /* stage-tinted panels */
+  .job-card:not([data-stage]) .card-detail,
+  .job-card[data-stage=""]    .card-detail { background: var(--surface); border-top-color: var(--border); }
+  .job-card[data-stage="applied"]  .card-detail { background: #FDE68A44; border-top-color: rgba(245,158,11,0.2); }
+  .job-card[data-stage="hirevue"] .card-detail  { background: #FEF08A44; border-top-color: rgba(202,184,8,0.2); }
+  .job-card[data-stage="int1"]     .card-detail { background: #BBF7D044; border-top-color: rgba(34,197,94,0.2); }
+  .job-card[data-stage="int2"]     .card-detail { background: #A7F3D044; border-top-color: rgba(22,163,74,0.25); }
+  .job-card[data-stage="ac"]       .card-detail { background: #6EE7B744; border-top-color: rgba(16,130,74,0.25); }
+  .job-card[data-stage="offer"]    .card-detail { background: #34D39944; border-top-color: rgba(5,100,55,0.3); }
+  .job-card[data-stage^="rej-"]    .card-detail { background: #FECACA44; border-top-color: rgba(239,68,68,0.2); }
 
   /* ── AUTH NAV ── */
   .nav-user { display: flex; align-items: center; gap: 12px; }
@@ -644,6 +710,13 @@
     try {
       if (d.status && userStatus !== d.status) { userStatus = d.status; applyStatusCollapse(); }
     } catch {}
+
+    setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const tok = getAccessToken();
+      if (!tok) return;
+      fetch('/api/ping', { method: 'POST', headers: { Authorization: `Bearer ${tok}` } }).catch(() => {});
+    }, 60000);
   })();
 
   function applyStatusCollapse() {
@@ -696,7 +769,7 @@
   });
 
   // ── Load data ──
-  fetch('/api/opportunities?slim=1')
+  fetch('/api/opportunities?slim=1', { cache: 'no-cache' })
     .then(r => r.json())
     .then(data => {
       const jobs = data.jobs || [];
@@ -742,13 +815,6 @@
     shownCountEl.style.display = filtering ? '' : 'none';
     if (filtering) shownCountEl.textContent = jobs.length + ' shown';
 
-    const byProg = {}, noProg = [];
-    for (const j of oldJobs) {
-      const pt = j.programme_type;
-      if (pt && PROG_ORDER.includes(pt)) (byProg[pt] = byProg[pt] || []).push(j);
-      else noProg.push(j);
-    }
-
     const newByProg = {}, newNoProg = [];
     for (const j of newJobs) {
       const pt = j.programme_type;
@@ -777,6 +843,12 @@
           : newSubsections.join('')}
       </div>`;
 
+    const byProg = {}, noProg = [];
+    for (const j of oldJobs) {
+      const pt = j.programme_type;
+      if (pt && PROG_ORDER.includes(pt)) (byProg[pt] = byProg[pt] || []).push(j);
+      else noProg.push(j);
+    }
     const divParts = [];
     if (oldJobs.length === 0) {
       divParts.push(`<p class="card-empty">No listings match your filters.</p>`);
@@ -794,8 +866,21 @@
     listingsEl.querySelectorAll('.job-card').forEach(card => {
       card.addEventListener('click', () => selectJob(+card.dataset.id));
     });
-    listingsEl.querySelectorAll('.apply-btn-inline').forEach(btn => {
-      btn.addEventListener('click', e => e.stopPropagation());
+    listingsEl.querySelectorAll('.apply-btn-inline, .careers-btn-inline').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const card = btn.closest('.job-card');
+        const jobId = card ? +card.dataset.id : null;
+        const eventType = btn.classList.contains('apply-btn-inline') ? 'apply_click' : 'careers_click';
+        const tok = getAccessToken();
+        if (tok && jobId) {
+          fetch('/api/event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+            body: JSON.stringify({ event_type: eventType, job_id: jobId }),
+          }).catch(() => {});
+        }
+      });
     });
     listingsEl.querySelectorAll('.section-row.collapsible').forEach(row => {
       const key = row.dataset.key;
@@ -827,7 +912,7 @@
 
     if (selectedJobId) {
       const el = listingsEl.querySelector(`.job-card[data-id="${selectedJobId}"]`);
-      if (el) el.classList.add('selected');
+      if (el) { el.classList.add('selected'); el.classList.add('expanded'); }
     }
   }
 
@@ -1022,7 +1107,7 @@
     "bain & company": "https://www.bain.com/careers/work-with-us/internships-programs/",
     "bain capital credit": "https://baincapital.wd1.myworkdayjobs.com/External_Public",
     "bain capital credit (seo)": "https://www.baincapitalcredit.com/people",
-    "baird": "https://bit.ly/437zZDw",
+    "baird": "https://www.rwbaird.com/careers",
     "baker hughes": "https://bakerhughes.wd5.myworkdayjobs.com/BakerHughes",
     "baker mckenzie": "https://bit.ly/3XqDWS0",
     "baker tilly": "https://www.bakertilly.com/careers",
@@ -2323,32 +2408,99 @@
     return null;
   }
 
+  function buildProcessTrack(processStr) {
+    const _PROC_LABELS = {
+      'OA': 'Online Assessment', 'HV': 'HireVue', 'VI': 'Video Interview',
+      'AC': 'Assessment Centre', 'TI': 'Technical Interview',
+      'PI': 'Partner Interview', 'SB': 'Superday',
+    };
+    if (!processStr) return '<span class="detail-value">—</span>';
+    const steps = processStr.split(' > ');
+    let html = '';
+    steps.forEach((s, i) => {
+      const label = _PROC_LABELS[s.trim()] || s.trim();
+      html += `<div class="proc-step-row"><span class="proc-node"></span><span class="proc-step-txt">${esc(label)}</span></div>`;
+      if (i < steps.length - 1) html += '<div class="proc-connector"></div>';
+    });
+    return `<div class="proc-steps">${html}</div>`;
+  }
+
   function cardHtml(job) {
     const fresh   = isNew(job.opening_date);
     const dateStr = fmtDate(job.opening_date);
     const sel     = selectedJobId === job.id;
     const stage   = getPipelineStage(job.id);
+
+    const _cd        = (job.closing_date || '').slice(0, 10);
+    const _today     = new Date().toISOString().slice(0, 10);
+    const _weekAhead = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const _past      = _cd && _cd < _today;
+    const _soon      = _cd && !_past && _cd <= _weekAhead;
+    const _location  = job.location || (job.region === 'UK' ? 'London' : '');
+
+    const field = (lbl, val) =>
+      `<div class="detail-field"><span class="detail-label">${lbl}</span><div class="detail-value">${val}</div></div>`;
+
+    const allFields = [
+      field(_past ? 'Closed' : 'Closes',
+        _cd ? `<span${_past ? ' class="detail-closed"' : (_soon ? ' class="detail-closes-soon"' : '')}>${fmtDate(_cd)}</span>` : '—'),
+      field('Location', _location ? esc(_location) : '—'),
+      field('Stage', job.current_stage
+        ? `<span class="${/offer/i.test(job.current_stage) ? 'detail-stage-offers' : 'detail-stage-active'}">${esc(job.current_stage)}</span>`
+        : '—'),
+      field('Visa', job.sponsors_visa === 'Yes' ? '<span class="detail-visa-yes">Sponsored</span>' : '—'),
+      field('Cover Letter', job.cover_letter ? esc(job.cover_letter) : '—'),
+    ].join('');
+
+    const detailSection = `
+      <div class="card-detail"><div class="card-detail-inner">
+        <div class="card-detail-fields">
+          <div class="card-detail-meta-row">${allFields}</div>
+        </div>
+        <div class="card-detail-process">
+          <span class="detail-label">Interview Process</span>
+          ${buildProcessTrack(job.process)}
+        </div>
+      </div></div>`;
+
     return `
-      <div class="job-card${sel ? ' selected' : ''}" data-id="${job.id}"${stage ? ` data-stage="${stage}"` : ''}>
+      <div class="job-card${sel ? ' selected expanded' : ''}" data-id="${job.id}"${stage ? ` data-stage="${stage}"` : ''}>
         <div class="card-row">
           <span class="card-date${fresh ? ' fresh' : ''}">${dateStr}</span>
           <div class="card-left">
-            ${(() => { const lu = getLogoUrl(job); return lu ? `<img class="card-logo" src="${lu}" alt="" onerror="this.outerHTML='<span class=\\'card-logo-placeholder\\'></span>'">` : '<span class="card-logo-placeholder"></span>'; })()}
+            ${(() => { const lu = getLogoUrl(job); return lu ? `<img class="card-logo" src="${lu}" alt="" onerror="_logoFallback(this)">` : '<span class="card-logo-placeholder"></span>'; })()}
             <span class="card-company">${esc(job.company)}</span>
             <span class="card-programme">${esc(job.programme)}</span>
           </div>
           <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
             ${(() => { const cs = job.careers_site || getCareerSite(job.company); return cs ? `<a href="${esc(cs)}" target="_blank" rel="noopener" class="careers-btn-inline">Company Site</a>` : ''; })()}
-            ${job.apply_url ? `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>` : ''}
+            ${(() => {
+              if (!job.apply_url) return '';
+              const today = new Date().toISOString().slice(0, 10);
+              const cd = job.closing_date ? job.closing_date.slice(0, 10) : '';
+              if (cd && cd <= today) {
+                return `<span class="apply-btn-closed" data-tip="Job listing closed on ${fmtDate(cd)}">Apply →</span>`;
+              }
+              const threeWeeksAgo = new Date(Date.now() - 21*24*3600*1000).toISOString().slice(0, 10);
+              const od = job.opening_date ? job.opening_date.slice(0, 10) : '';
+              if (od && od < threeWeeksAgo) {
+                return `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline apply-btn-stale" data-tip="Posted more than 3 weeks ago">Apply →</a>`;
+              }
+              return `<a href="${esc(job.apply_url)}" target="_blank" rel="noopener" class="apply-btn-inline">Apply →</a>`;
+            })()}
+            <span class="card-chevron">▶</span>
           </div>
-        </div>
+        </div>${detailSection}
       </div>`;
   }
 
   function selectJob(id) {
     selectedJobId = selectedJobId === id ? null : id;
-    listingsEl.querySelectorAll('.job-card').forEach(c =>
-      c.classList.toggle('selected', +c.dataset.id === selectedJobId));
+    listingsEl.querySelectorAll('.job-card').forEach(c => {
+      const active = +c.dataset.id === selectedJobId;
+      c.classList.toggle('selected', active);
+      c.classList.toggle('expanded', active);
+    });
   }
 
   function fmtDate(d) {
@@ -2364,6 +2516,17 @@
     'ardian':             '/static/ardian.png',
     'aqr capital management': '/static/aqr.png',
     'aqr':                '/static/aqr.png',
+    'baird':              '/static/baird.png',
+    'triton':             '/static/triton.png',
+    'sembcorp':           'https://icons.duckduckgo.com/ip3/sembcorp.com.ico',
+  };
+  window._logoFallback = function(img) {
+    if (img.src.includes('duckduckgo') && !img.dataset.fb) {
+      img.dataset.fb = '1';
+      img.src = img.src.replace('https://icons.duckduckgo.com/ip3/', 'https://www.google.com/s2/favicons?domain=').replace('.ico', '&sz=32');
+    } else {
+      img.outerHTML = '<span class="card-logo-placeholder"></span>';
+    }
   };
   function getLogoUrl(job) {
     if (job.logo_url) return job.logo_url;
@@ -2373,7 +2536,7 @@
     const site = (raw && !raw.includes('bit.ly')) ? raw : (getCareerSite(job.company) || '');
     try {
       const domain = new URL(site).hostname.replace(/^www\./, '');
-      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+      return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
     } catch { return ''; }
   }
 
@@ -2470,6 +2633,42 @@ function copyReferLink() {
     setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
   });
 }
+
+// Apply-button tooltip — anchored to the right of the button
+(function() {
+  const tip = document.createElement('div');
+  tip.id = 'apply-tip';
+  Object.assign(tip.style, {
+    position: 'fixed', zIndex: '9999', pointerEvents: 'none',
+    background: '#222', color: '#fff', fontSize: '0.72rem',
+    padding: '4px 9px', borderRadius: '5px', whiteSpace: 'nowrap',
+    opacity: '0', transition: 'opacity 0.12s',
+  });
+  document.body.appendChild(tip);
+
+  function showTip(btn) {
+    const text = btn.dataset.tip;
+    if (!text) return;
+    tip.textContent = text;
+    tip.style.opacity = '0';
+    requestAnimationFrame(() => {
+      const rect = btn.getBoundingClientRect();
+      const tipW = tip.offsetWidth;
+      const left = rect.right + 8;
+      tip.style.left = (left + tipW > window.innerWidth ? rect.left - tipW - 8 : left) + 'px';
+      tip.style.top  = Math.round(rect.top + (rect.height - tip.offsetHeight) / 2) + 'px';
+      tip.style.opacity = '1';
+    });
+  }
+
+  document.addEventListener('mouseover', e => {
+    const btn = e.target.closest('.apply-btn-closed, .apply-btn-stale');
+    if (btn) showTip(btn);
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('.apply-btn-closed, .apply-btn-stale')) tip.style.opacity = '0';
+  });
+})();
 </script>
 
 </body>

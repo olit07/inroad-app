@@ -1,0 +1,12 @@
+data/
+logs/
+sterling/
+linkedin/
+*.db
+*.sqlite
+*.sqlite3
+.claude/
+__pycache__/
+*.py[cod]
+.env
+*.env

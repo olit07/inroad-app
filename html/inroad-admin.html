@@ -230,11 +230,15 @@
 <script>
   const API = (window.location.hostname === 'localhost' || window.location.protocol === 'file:') ? 'http://localhost:5001' : '';
 
-  // Read admin key from URL ?key= param and forward on every request
-  const _adminKey = new URLSearchParams(window.location.search).get('key') || '';
+  // Admin key stored in memory only — never placed in the URL
+  let _adminKey = sessionStorage.getItem('inroad_admin_key') || '';
+  if (!_adminKey) {
+    _adminKey = prompt('Admin key:') || '';
+    if (_adminKey) sessionStorage.setItem('inroad_admin_key', _adminKey);
+  }
   function _adminFetch(url, opts = {}) {
-    const sep = url.includes('?') ? '&' : '?';
-    return fetch(_adminKey ? url + sep + 'key=' + encodeURIComponent(_adminKey) : url, opts);
+    opts.headers = { ...(opts.headers || {}), 'X-Admin-Key': _adminKey };
+    return fetch(url, opts);
   }
 
   async function loadStats() {
