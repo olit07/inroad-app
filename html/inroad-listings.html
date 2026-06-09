@@ -806,16 +806,10 @@
   // ── Render ──
   const PROG_ORDER = ['Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement', 'Graduate Programme', 'Pre-Uni', 'Events'];
 
-  function isRecent(d) {
-    if (!d) return false;
-    const dt = new Date(d);
-    return !isNaN(dt) && (Date.now() - dt.getTime()) <= 14 * 24 * 3600 * 1000;
-  }
-
   function render() {
     const jobs    = filtered();
-    const newJobs = jobs.filter(j =>  isRecent(j.opening_date));
-    const oldJobs = jobs.filter(j => !isRecent(j.opening_date));
+    const newJobs = jobs.filter(j =>  isNew(j.opening_date));
+    const oldJobs = jobs.filter(j => !isNew(j.opening_date));
 
     const filtering = regionFilter || activeFilters.size > 0 || activeProgFilters.size > 0 || searchQuery;
     shownCountEl.style.display = filtering ? '' : 'none';
