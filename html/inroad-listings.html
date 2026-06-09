@@ -773,7 +773,7 @@
     .then(r => r.json())
     .then(data => {
       const jobs = data.jobs || [];
-      const cutoff = Date.now() - 72 * 3600 * 1000;
+      const cutoff = Date.now() - 14 * 24 * 3600 * 1000;
       const fresh  = jobs.filter(j => j.opening_date && new Date(j.opening_date).getTime() >= cutoff);
       const rest   = jobs.filter(j => !j.opening_date || new Date(j.opening_date).getTime() < cutoff);
       allJobs = [...fresh, ...rest];
@@ -806,10 +806,16 @@
   // ── Render ──
   const PROG_ORDER = ['Summer Internship', 'Spring Week', 'Off-Cycle Internship', 'Industrial Placement', 'Graduate Programme', 'Pre-Uni', 'Events'];
 
+  function isRecent(d) {
+    if (!d) return false;
+    const dt = new Date(d);
+    return !isNaN(dt) && (Date.now() - dt.getTime()) <= 14 * 24 * 3600 * 1000;
+  }
+
   function render() {
     const jobs    = filtered();
-    const newJobs = jobs.filter(j =>  isNew(j.opening_date));
-    const oldJobs = jobs.filter(j => !isNew(j.opening_date));
+    const newJobs = jobs.filter(j =>  isRecent(j.opening_date));
+    const oldJobs = jobs.filter(j => !isRecent(j.opening_date));
 
     const filtering = regionFilter || activeFilters.size > 0 || activeProgFilters.size > 0 || searchQuery;
     shownCountEl.style.display = filtering ? '' : 'none';
@@ -2459,7 +2465,7 @@
           <div class="card-detail-meta-row">${allFields}</div>
         </div>
         <div class="card-detail-process">
-          <span class="detail-label">Interview Process</span>
+          <span class="detail-label">Expected Interview Process</span>
           ${buildProcessTrack(job.process)}
         </div>
       </div></div>`;
