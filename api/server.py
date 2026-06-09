@@ -9,6 +9,7 @@ import os
 import sys
 import re
 import logging
+from pathlib import Path
 import hmac
 import hashlib
 import json
@@ -69,6 +70,41 @@ logging.basicConfig(
 
 # Initialise DB tables on startup — must be at module level so Gunicorn picks it up
 init_db()
+
+# ── Static logo slug index ────────────────────────────────────────────────────
+_STATIC_LOGOS_DIR = Path(__file__).parent.parent / "static" / "logos"
+_STATIC_LOGO_INDEX: dict[str, str] = {
+    p.stem: f"/static/logos/{p.name}"
+    for p in _STATIC_LOGOS_DIR.glob("*.png")
+} if _STATIC_LOGOS_DIR.is_dir() else {}
+
+_LOGO_SUFFIX_STRIP = (
+    "-group", "-capital", "-management", "-co", "-company",
+    "-plc", "-ltd", "-inc", "-bank", "-partners",
+    "-securities", "-asset-management", "-networks", "-markets",
+)
+
+
+def _logo_from_slug(company: str) -> str:
+    """Return /static/logos/<slug>.png if a local logo exists for company, else ''."""
+    if not company:
+        return ""
+    import unicodedata as _ud
+    _s = _ud.normalize("NFKD", company.lower().strip())
+    _s = "".join(c for c in _s if not _ud.combining(c))
+    slug = re.sub(r"[^a-z0-9]+", "-", _s).strip("-")
+    if slug in _STATIC_LOGO_INDEX:
+        return _STATIC_LOGO_INDEX[slug]
+    for suffix in _LOGO_SUFFIX_STRIP:
+        if slug.endswith(suffix):
+            short = slug[: -len(suffix)]
+            if short in _STATIC_LOGO_INDEX:
+                return _STATIC_LOGO_INDEX[short]
+    compact = slug.replace("-", "")
+    for stem, url in _STATIC_LOGO_INDEX.items():
+        if stem.replace("-", "") == compact:
+            return url
+    return ""
 
 
 def _backfill_jorb_urls():
@@ -2698,7 +2734,7 @@ def api_opportunities():
             return 'Spring Week'
         if any(k in t for k in ['insight programme', 'insight experience', 'insight event', 'insight week']):
             return 'Spring Week'
-        if any(k in t for k in ['off-cycle', 'off cycle', 'offcycle']):
+        if any(k in t for k in ['off-cycle', 'off cycle', 'offcycle', 'long-term intern', 'long term intern']):
             return 'Off-Cycle Internship'
         # Internships with explicit multi-month durations (e.g. "12 Month Internship") are off-cycle
         if re.search(r'\b([4-9]|1[0-9]|2[0-4])\s*[- ]?month', t) and 'intern' in t:
@@ -2953,7 +2989,7 @@ def api_opportunities():
             tt            = r.get("trackr_type") or ""
             pt            = r.get("wttj_prog_type") or ""
             region        = r.get("region") or "UK"
-            logo_url      = r.get("logo_url") or ""
+            logo_url      = r.get("logo_url") or _logo_from_slug(company)
             company_url   = r.get("company_url") or ""
             is_consulting = r.get("is_consulting") in (1, True, "1", "true")
             is_events     = r.get("is_events") in (1, True, "1", "true")
@@ -2971,7 +3007,7 @@ def api_opportunities():
             tt            = raw_data.get("trackr_type") or ""
             pt            = raw_data.get("programme_type") or ""
             region        = raw_data.get("region") or "UK"
-            logo_url      = raw_data.get("logo_url") or ""
+            logo_url      = raw_data.get("logo_url") or _logo_from_slug(company)
             company_url   = raw_data.get("company_url") or ""
             _CONSULTING_COMPANIES_API = {
                 "altman solon", "mckinsey & company", "mckinsey", "bain & company", "bain",
@@ -3015,9 +3051,12 @@ def api_opportunities():
         # Any Spring Week job whose title contains 'intern' belongs under internship filters
         if programme_type == 'Spring Week' and 'intern' in title.lower():
             programme_type = 'Summer Internship'
-        # Internships with explicit multi-month durations (e.g. "12 Month Internship") are off-cycle
+        # Internships with explicit multi-month durations or "long term" are off-cycle
         # regardless of which Trackr bucket they were scraped from
-        if programme_type == 'Summer Internship' and re.search(r'\b([4-9]|1[0-9]|2[0-4])\s*[- ]?month', title.lower()) and 'intern' in title.lower():
+        if programme_type == 'Summer Internship' and (
+            (re.search(r'\b([4-9]|1[0-9]|2[0-4])\s*[- ]?month', title.lower()) and 'intern' in title.lower())
+            or any(k in title.lower() for k in ['long-term intern', 'long term intern'])
+        ):
             programme_type = 'Off-Cycle Internship'
         # Per-listing overrides where duration is known but not in the title
         _PROG_TYPE_OVERRIDES = {
