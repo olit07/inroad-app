@@ -2734,7 +2734,9 @@ def api_opportunities():
             return 'Spring Week'
         if any(k in t for k in ['insight programme', 'insight experience', 'insight event', 'insight week']):
             return 'Spring Week'
-        if any(k in t for k in ['off-cycle', 'off cycle', 'offcycle', 'long-term intern', 'long term intern']):
+        if any(k in t for k in ['off-cycle', 'off cycle', 'offcycle']):
+            return 'Off-Cycle Internship'
+        if ('long-term' in t or 'long term' in t) and 'intern' in t:
             return 'Off-Cycle Internship'
         # Internships with explicit multi-month durations (e.g. "12 Month Internship") are off-cycle
         if re.search(r'\b([4-9]|1[0-9]|2[0-4])\s*[- ]?month', t) and 'intern' in t:
@@ -3055,7 +3057,7 @@ def api_opportunities():
         # regardless of which Trackr bucket they were scraped from
         if programme_type == 'Summer Internship' and (
             (re.search(r'\b([4-9]|1[0-9]|2[0-4])\s*[- ]?month', title.lower()) and 'intern' in title.lower())
-            or any(k in title.lower() for k in ['long-term intern', 'long term intern'])
+            or (('long-term' in title.lower() or 'long term' in title.lower()) and 'intern' in title.lower())
         ):
             programme_type = 'Off-Cycle Internship'
         # Per-listing overrides where duration is known but not in the title
