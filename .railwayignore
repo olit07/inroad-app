@@ -10,3 +10,5 @@ __pycache__/
 *.py[cod]
 .env
 *.env
+static/demo.mp4
+static/pipeline-ss-*.png
