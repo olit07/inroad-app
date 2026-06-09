@@ -912,7 +912,15 @@
 
     if (selectedJobId) {
       const el = listingsEl.querySelector(`.job-card[data-id="${selectedJobId}"]`);
-      if (el) { el.classList.add('selected'); el.classList.add('expanded'); }
+      if (el) {
+        el.classList.add('selected'); el.classList.add('expanded');
+        const proc = el.querySelector('.card-detail-process');
+        if (proc && !proc.dataset.rendered) {
+          proc.dataset.rendered = '1';
+          const track = buildProcessTrack(proc.dataset.process || '');
+          proc.querySelector('.detail-value').outerHTML = track;
+        }
+      }
     }
   }
 
@@ -2458,9 +2466,9 @@
         <div class="card-detail-fields">
           <div class="card-detail-meta-row">${allFields}</div>
         </div>
-        <div class="card-detail-process">
+        <div class="card-detail-process" data-process="${esc(job.process || '')}">
           <span class="detail-label">Expected Interview Process</span>
-          ${buildProcessTrack(job.process)}
+          <span class="detail-value">—</span>
         </div>
       </div></div>`;
 
@@ -2501,6 +2509,14 @@
       const active = +c.dataset.id === selectedJobId;
       c.classList.toggle('selected', active);
       c.classList.toggle('expanded', active);
+      if (active) {
+        const proc = c.querySelector('.card-detail-process');
+        if (proc && !proc.dataset.rendered) {
+          proc.dataset.rendered = '1';
+          const track = buildProcessTrack(proc.dataset.process || '');
+          proc.querySelector('.detail-value').outerHTML = track;
+        }
+      }
     });
   }
 
